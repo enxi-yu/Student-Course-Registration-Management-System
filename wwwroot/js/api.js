@@ -92,12 +92,8 @@
       throw new Error(message);
     }
 
-    if (data && Object.prototype.hasOwnProperty.call(data, "success")) {
-      if (data.success) {
-        return data.data;
-      }
-
-      throw new Error(data.error || "操作失败");
+    if (action === "system.testDbConnection" && data && data.success === false) {
+      throw new Error(data.error || data.message || "Oracle connection failed");
     }
 
     return data;
