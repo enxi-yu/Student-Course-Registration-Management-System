@@ -1,0 +1,11 @@
+bin/
+obj/
+.vs/
+*.user
+*.log
+patches/
+*.bundle
+.claude/
+memory/
+MEMORY.md
+CLAUDE.md

@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>学生端 - 学生选课管理系统</title>
+  <link rel="stylesheet" href="css/student.css">
+</head>
+<body>
+  <div class="student-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">SC</div>
+        <div>
+          <div class="brand-title">学生端</div>
+          <div class="brand-subtitle">Student Portal</div>
+        </div>
+      </div>
+
+      <nav class="nav-menu" aria-label="学生端菜单">
+        <button class="nav-item active" type="button" data-page="dashboard">首页</button>
+        <button class="nav-item" type="button" data-page="courses">选课中心</button>
+        <button class="nav-item" type="button" data-page="schedule">我的课表</button>
+        <button class="nav-item" type="button" data-page="grades">成绩查询</button>
+        <button class="nav-item" type="button" data-page="evaluation">课程评价</button>
+        <button class="nav-item" type="button" data-page="password">修改密码</button>
+      </nav>
+    </aside>
+
+    <section class="workspace">
+      <header class="topbar">
+        <div>
+          <h1>学生选课管理系统</h1>
+          <p id="view-subtitle">学生端后台管理</p>
+        </div>
+        <div class="topbar-actions">
+          <span class="role-pill">当前角色：学生</span>
+          <span class="student-pill" id="student-summary">未登录</span>
+          <button class="logout-button" type="button" id="logout-button">退出登录</button>
+        </div>
+      </header>
+
+      <main class="content">
+        <div class="content-heading">
+          <div>
+            <h2 id="view-title">首页</h2>
+            <p id="view-description">查看个人信息和学业概览</p>
+          </div>
+          <span class="term-badge">公共登录后进入</span>
+        </div>
+
+        <div id="message-root"></div>
+        <div id="page-root"></div>
+      </main>
+    </section>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/pages/student-dashboard.js"></script>
+  <script src="js/pages/student-courses.js"></script>
+  <script src="js/pages/student-schedule.js"></script>
+  <script src="js/pages/student-grades.js"></script>
+  <script src="js/pages/student-evaluation.js"></script>
+  <script src="js/student-app.js"></script>
+</body>
+</html>
