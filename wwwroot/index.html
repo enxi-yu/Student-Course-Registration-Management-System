@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>学生选课管理系统</title>
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">SC</div>
+        <div>
+          <div class="brand-title">教师端</div>
+          <div class="brand-subtitle">Course System</div>
+        </div>
+      </div>
+
+      <nav class="nav-menu" aria-label="教师端导航">
+        <button class="nav-item active" type="button" data-page="dashboard">首页</button>
+        <button class="nav-item" type="button" data-page="courses">我的课程</button>
+        <button class="nav-item" type="button" data-page="schedule">我的课表</button>
+        <button class="nav-item" type="button" data-page="students">选课名单</button>
+        <button class="nav-item" type="button" data-page="scores">成绩录入</button>
+        <button class="nav-item" type="button" data-page="applications">开课申请</button>
+        <button class="nav-item" type="button" data-page="password">修改密码</button>
+      </nav>
+    </aside>
+
+    <section class="workspace">
+      <header class="topbar">
+        <div>
+          <h1>学生选课管理系统</h1>
+          <p id="view-subtitle">教师端后台管理</p>
+        </div>
+        <div class="topbar-actions">
+          <span class="role-pill">当前角色：教师</span>
+          <button class="logout-button" type="button">退出登录</button>
+        </div>
+      </header>
+
+      <main class="content">
+        <div class="content-heading">
+          <h2 id="view-title">首页</h2>
+          <span class="term-badge">2025-2026 第二学期</span>
+        </div>
+        <div id="page-root"></div>
+      </main>
+    </section>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
