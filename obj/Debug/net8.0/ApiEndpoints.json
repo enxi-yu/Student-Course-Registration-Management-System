@@ -1,0 +1,199 @@
+[
+  {
+    "ContainingType": "StudentCourse.Controllers.SystemController",
+    "Method": "Logout",
+    "RelativePath": "api/auth/logout",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "StudentCourse.Controllers.SystemController",
+    "Method": "UseMockStudentSession",
+    "RelativePath": "api/dev/session/student",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "StudentCourse.Controllers.SystemController",
+    "Method": "UseMockTeacherSession",
+    "RelativePath": "api/dev/session/teacher",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "StudentCourse.Controllers.SystemController",
+    "Method": "TestDatabase",
+    "RelativePath": "api/system/database",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "StudentCourse.Controllers.SystemController",
+    "Method": "Ping",
+    "RelativePath": "api/system/ping",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "StudentCourse.Controllers.TeacherController",
+    "Method": "GetScoreSheet",
+    "RelativePath": "api/teacher/classes/{classId}/scores",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "classId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "StudentCourse.Controllers.TeacherController",
+    "Method": "BatchSaveScores",
+    "RelativePath": "api/teacher/classes/{classId}/scores/batch",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "classId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      },
+      {
+        "Name": "rows",
+        "Type": "StudentCourse.Models.ScoreSaveRequest[]",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "StudentCourse.Controllers.TeacherController",
+    "Method": "GetClassStudents",
+    "RelativePath": "api/teacher/classes/{classId}/students",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "classId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "StudentCourse.Controllers.TeacherController",
+    "Method": "ExportClassStudentsCsv",
+    "RelativePath": "api/teacher/classes/{classId}/students/export",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "classId",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "StudentCourse.Controllers.TeacherController",
+    "Method": "GetCourseApplications",
+    "RelativePath": "api/teacher/course-applications",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "StudentCourse.Controllers.TeacherController",
+    "Method": "SubmitCourseApplication",
+    "RelativePath": "api/teacher/course-applications",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "input",
+        "Type": "StudentCourse.Models.CourseApplicationInput",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "StudentCourse.Controllers.TeacherController",
+    "Method": "GetMyCourses",
+    "RelativePath": "api/teacher/courses",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "semester",
+        "Type": "System.String",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "StudentCourse.Controllers.TeacherController",
+    "Method": "GetCurrentTeacher",
+    "RelativePath": "api/teacher/current",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "StudentCourse.Controllers.TeacherController",
+    "Method": "GetDashboard",
+    "RelativePath": "api/teacher/dashboard",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "StudentCourse.Controllers.TeacherController",
+    "Method": "SaveScore",
+    "RelativePath": "api/teacher/scores",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "StudentCourse.Models.ScoreSaveRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  }
+]
