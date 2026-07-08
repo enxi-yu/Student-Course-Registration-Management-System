@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>管理员端 - 学生选课管理系统</title>
+  <link rel="stylesheet" href="css/teacher.css"> <style>
+    /* 强制补全表格的边框线，防止丢失 */
+    table, th, td { border: 1px solid #ddd !important; border-collapse: collapse; }
+    th, td { padding: 12px; }
+  </style>
+</head>
+<body>
+  <div class="teacher-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">ADM</div>
+        <div>
+          <div class="brand-title">管理员端</div>
+          <div class="brand-subtitle">System Admin</div>
+        </div>
+      </div>
+      <nav class="nav-menu">
+        <button class="nav-item active" type="button" onclick="location.reload()">课程管理</button>
+        <button class="nav-item" type="button">选课批次管理</button>
+      </nav>
+    </aside>
+
+    <section class="workspace">
+      <header class="topbar">
+        <h1>学生选课管理系统</h1>
+        <span class="role-pill">当前角色：系统管理员</span>
+      </header>
+
+      <main class="content">
+        <h2>📚 课程管理后台</h2>
+        
+        <div style="margin: 20px 0; padding: 15px; background: #fff; border-radius: 8px;">
+          <h3>➕ 发布新课程</h3>
+          <input type="text" id="cName" placeholder="课程名称" style="padding:8px; margin-right:10px;">
+          <input type="number" id="cCredit" placeholder="学分" style="padding:8px; margin-right:10px;">
+          <button onclick="publishCourse()" style="padding:8px 15px; background:#007bff; color:#fff; border:none; border-radius:4px; cursor:pointer;">发布</button>
+        </div>
+
+        <table style="width:100%; background:#fff; text-align:left;">
+          <thead>
+            <tr style="background:#f2f2f2;">
+              <th>课程名称</th>
+              <th>学分</th>
+            </tr>
+          </thead>
+          <tbody id="courseTableBody">
+            </tbody>
+        </table>
+      </main>
+    </section>
+  </div>
+
+  <script>
+    // 页面加载自动获取
+    window.onload = function() {
+        loadCourses();
+    };
+
+    function loadCourses() {
+        fetch('/api/admin/courses')
+            .then(res => res.json())
+            .then(data => {
+                const tbody = document.getElementById('courseTableBody');
+                tbody.innerHTML = '';
+                data.forEach(c => {
+                    tbody.innerHTML += `<tr><td>${c.c_name}</td><td>${c.c_credit}</td></tr>`;
+                });
+            })
+            .catch(err => console.error("加载失败:", err));
+    }
+
+    function publishCourse() {
+        const name = document.getElementById('cName').value;
+        const credit = document.getElementById('cCredit').value;
+        if(!name || !credit) return alert('请填写完整！');
+
+        // 发送标准的 JSON 格式，保持 c_name 和 c_credit 全小写以匹配后端
+        fetch('/api/admin/courses', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                c_name: name,
+                c_credit: credit.toString()
+            })
+        })
+        .then(res => {
+            if(res.ok) {
+                alert('🎉 课程发布成功！');
+                // 丝滑局部刷新，不闪屏也不重新加载页面
+                loadCourses();
+                document.getElementById('cName').value = '';
+                document.getElementById('cCredit').value = '';
+            } else {
+                alert('后端拒绝了请求，状态码：' + res.status);
+            }
+        })
+        .catch(err => alert('网络错误：' + err));
+    }
+  </script>
+</body>
+</html>
