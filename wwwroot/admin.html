@@ -4,10 +4,245 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>管理员端 - 学生选课管理系统</title>
-  <link rel="stylesheet" href="css/teacher.css"> <style>
-    /* 强制补全表格的边框线，防止丢失 */
-    table, th, td { border: 1px solid #ddd !important; border-collapse: collapse; }
-    th, td { padding: 12px; }
+  <link rel="stylesheet" href="css/teacher.css">
+  <style>
+    table, th, td { border: 1px solid #e0e0e0 !important; border-collapse: collapse; }
+    th, td { padding: 12px 16px; }
+    th { background-color: #f8f9fa; font-weight: 600; color: #495057; }
+    tr:hover { background-color: #f8f9fa; }
+    
+    .form-card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      padding: 28px;
+      margin: 20px 0;
+      border: 1px solid #e8e8e8;
+    }
+    
+    .form-card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid #007bff;
+    }
+    
+    .form-card-header h3 {
+      margin: 0;
+      font-size: 1.25rem;
+      color: #2d3748;
+    }
+    
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+    
+    .form-grid .field {
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .form-grid .field label {
+      margin-bottom: 6px;
+      font-weight: 600;
+      color: #4a5568;
+      font-size: 0.9rem;
+    }
+    
+    .form-grid .field label .required {
+      color: #dc3545;
+      margin-left: 3px;
+    }
+    
+    .form-grid .field input,
+    .form-grid .field select,
+    .form-grid .field textarea {
+      padding: 10px 14px;
+      border: 1.5px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      transition: all 0.2s ease;
+      background-color: #fff;
+    }
+    
+    .form-grid .field input:focus,
+    .form-grid .field select:focus,
+    .form-grid .field textarea:focus {
+      outline: none;
+      border-color: #007bff;
+      box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    }
+    
+    .form-grid .field textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+    
+    .form-grid .field.full-width {
+      grid-column: 1 / -1;
+    }
+    
+    .form-actions {
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid #e8e8e8;
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+    }
+    
+    .btn {
+      padding: 10px 24px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #007bff 0%, #0069d9 100%);
+      color: #fff;
+    }
+    
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #0069d9 0%, #0056b3 100%);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+    }
+    
+    .btn-secondary {
+      background: #f1f3f4;
+      color: #495057;
+    }
+    
+    .btn-secondary:hover {
+      background: #e8eaed;
+    }
+    
+    .btn-sm {
+      padding: 6px 14px;
+      font-size: 0.85rem;
+    }
+    
+    .btn-edit {
+      background: linear-gradient(135deg, #28a745 0%, #218838 100%);
+      color: #fff;
+      margin-right: 6px;
+    }
+    
+    .btn-edit:hover {
+      background: linear-gradient(135deg, #218838 0%, #1e7e34 100%);
+    }
+    
+    .btn-delete {
+      background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+      color: #fff;
+    }
+    
+    .btn-delete:hover {
+      background: linear-gradient(135deg, #c82333 0%, #bd2130 100%);
+    }
+    
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      animation: fadeIn 0.2s ease;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    .modal-content {
+      background: #fff;
+      padding: 32px;
+      border-radius: 12px;
+      width: 600px;
+      max-width: 90%;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+      animation: slideUp 0.25s ease;
+    }
+    
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    
+    .modal-content h3 {
+      margin-top: 0;
+      font-size: 1.25rem;
+      color: #2d3748;
+    }
+    
+    .modal-content .actions {
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid #e8e8e8;
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+    }
+    
+    .data-table {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      overflow: hidden;
+      width: 100%;
+    }
+    
+    .data-table thead {
+      background: #f8f9fa;
+    }
+    
+    .data-table thead th {
+      color: #495057;
+      font-weight: 600;
+    }
+    
+    .type-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+    
+    .type-badge.required {
+      background: #fee2e2;
+      color: #dc2626;
+    }
+    
+    .type-badge.elective {
+      background: #dbeafe;
+      color: #2563eb;
+    }
+    
+    .type-badge.public {
+      background: #dcfce7;
+      color: #16a34a;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      color: #9ca3af;
+    }
   </style>
 </head>
 <body>
@@ -34,74 +269,120 @@
 
       <main class="content">
         <h2>📚 课程管理后台</h2>
-        
-        <div style="margin: 20px 0; padding: 15px; background: #fff; border-radius: 8px;">
-          <h3>➕ 发布新课程</h3>
-          <input type="text" id="cName" placeholder="课程名称" style="padding:8px; margin-right:10px;">
-          <input type="number" id="cCredit" placeholder="学分" style="padding:8px; margin-right:10px;">
-          <button onclick="publishCourse()" style="padding:8px 15px; background:#007bff; color:#fff; border:none; border-radius:4px; cursor:pointer;">发布</button>
+
+        <div class="form-card">
+          <div class="form-card-header">
+            <span>➕</span>
+            <h3>发布新课程</h3>
+          </div>
+          
+          <div class="form-grid">
+            <div class="field">
+              <label>课程名称 <span class="required">*</span></label>
+              <input type="text" id="courseName" placeholder="例如：数据库系统">
+            </div>
+            <div class="field">
+              <label>课程类型 <span class="required">*</span></label>
+              <select id="courseType">
+                <option value="">请选择课程类型</option>
+                <option value="必修">必修</option>
+                <option value="选修">选修</option>
+                <option value="公选">公选</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>学分 <span class="required">*</span></label>
+              <input type="number" id="credit" step="0.5" min="0" placeholder="例如：3.0">
+            </div>
+            <div class="field">
+              <label>总学时 <span class="required">*</span></label>
+              <input type="number" id="totalHours" min="0" placeholder="例如：48">
+            </div>
+            <div class="field">
+              <label>开设院系</label>
+              <input type="text" id="department" placeholder="例如：计算机科学与技术学院">
+            </div>
+            <div class="field">
+              <label>课程编号（自动生成）</label>
+              <input type="text" readonly value="系统自动生成" style="background: #f8f9fa; color: #9ca3af;">
+            </div>
+            <div class="field full-width">
+              <label>课程简介</label>
+              <textarea id="courseDesc" rows="3" placeholder="请输入课程简介（可选）"></textarea>
+            </div>
+          </div>
+          
+          <div class="form-actions">
+            <button class="btn btn-secondary" onclick="clearForm()">重置</button>
+            <button class="btn btn-primary" onclick="publishCourse()">发布课程</button>
+          </div>
         </div>
 
-        <table style="width:100%; background:#fff; text-align:left;">
+        <table class="data-table">
           <thead>
-            <tr style="background:#f2f2f2;">
+            <tr>
+              <th>课程编号</th>
               <th>课程名称</th>
+              <th>课程类型</th>
               <th>学分</th>
+              <th>总学时</th>
+              <th>开设院系</th>
+              <th>课程简介</th>
+              <th>操作</th>
             </tr>
           </thead>
           <tbody id="courseTableBody">
-            </tbody>
+          </tbody>
         </table>
       </main>
     </section>
   </div>
 
-  <script>
-    // 页面加载自动获取
-    window.onload = function() {
-        loadCourses();
-    };
+  <div class="modal" id="editModal">
+    <div class="modal-content">
+      <h3>编辑课程</h3>
+      <input type="hidden" id="editCourseId">
+      <div class="form-grid">
+        <div class="field">
+          <label>课程名称 <span class="required">*</span></label>
+          <input type="text" id="editCourseName">
+        </div>
+        <div class="field">
+          <label>课程类型 <span class="required">*</span></label>
+          <select id="editCourseType">
+            <option value="必修">必修</option>
+            <option value="选修">选修</option>
+            <option value="公选">公选</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>学分 <span class="required">*</span></label>
+          <input type="number" id="editCredit" step="0.5" min="0">
+        </div>
+        <div class="field">
+          <label>总学时 <span class="required">*</span></label>
+          <input type="number" id="editTotalHours" min="0">
+        </div>
+        <div class="field">
+          <label>开设院系</label>
+          <input type="text" id="editDepartment">
+        </div>
+        <div class="field">
+          <label>课程编号</label>
+          <input type="text" id="editCourseIdDisplay" readonly style="background: #f8f9fa; color: #9ca3af;">
+        </div>
+        <div class="field full-width">
+          <label>课程简介</label>
+          <textarea id="editCourseDesc" rows="3"></textarea>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+        <button class="btn btn-primary" onclick="updateCourse()">保存修改</button>
+      </div>
+    </div>
+  </div>
 
-    function loadCourses() {
-        fetch('/api/admin/courses')
-            .then(res => res.json())
-            .then(data => {
-                const tbody = document.getElementById('courseTableBody');
-                tbody.innerHTML = '';
-                data.forEach(c => {
-                    tbody.innerHTML += `<tr><td>${c.c_name}</td><td>${c.c_credit}</td></tr>`;
-                });
-            })
-            .catch(err => console.error("加载失败:", err));
-    }
-
-    function publishCourse() {
-        const name = document.getElementById('cName').value;
-        const credit = document.getElementById('cCredit').value;
-        if(!name || !credit) return alert('请填写完整！');
-
-        // 发送标准的 JSON 格式，保持 c_name 和 c_credit 全小写以匹配后端
-        fetch('/api/admin/courses', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                c_name: name,
-                c_credit: credit.toString()
-            })
-        })
-        .then(res => {
-            if(res.ok) {
-                alert('🎉 课程发布成功！');
-                // 丝滑局部刷新，不闪屏也不重新加载页面
-                loadCourses();
-                document.getElementById('cName').value = '';
-                document.getElementById('cCredit').value = '';
-            } else {
-                alert('后端拒绝了请求，状态码：' + res.status);
-            }
-        })
-        .catch(err => alert('网络错误：' + err));
-    }
-  </script>
+  <script src="js/pages/admin-course.js"></script>
 </body>
 </html>
