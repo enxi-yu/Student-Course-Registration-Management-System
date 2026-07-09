@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
   function escapeHtml(value) {
     return String(value ?? "")
       .replace(/&/g, "&amp;")
@@ -8,11 +8,10 @@
   }
 
   function statusClass(status) {
-    if (status === "已通过") return "status-approved";
-    if (status === "已驳回") return "status-rejected";
+    if (status === "通过" || status === "已开课") return "status-approved";
+    if (status === "驳回") return "status-rejected";
     return "status-pending";
   }
-
 
   function showNotice(type, message) {
     const notice = document.getElementById("application-notice");
@@ -29,6 +28,7 @@
       notice.hidden = true;
     }, 3600);
   }
+
   function row(application) {
     return `
       <tr>
@@ -36,11 +36,13 @@
         <td>${escapeHtml(application.courseType || "-")}</td>
         <td>${application.credit}</td>
         <td>${application.totalHours}</td>
-        <td>${escapeHtml(application.targetMajor || "-")}</td>
-        <td>${escapeHtml(application.targetGrade || "-")}</td>
+        <td>${escapeHtml(application.department || "-")}</td>
+        <td>${escapeHtml(application.textbook || "-")}</td>
+        <td>${escapeHtml(application.courseSummary || "-")}</td>
         <td><span class="status-badge ${statusClass(application.status)}">${escapeHtml(application.status || "待审核")}</span></td>
         <td>${escapeHtml(application.applyTime || "-")}</td>
-        <td>${escapeHtml(application.reviewRemark || "-")}</td>
+        <td>${escapeHtml(application.approveTime || "-")}</td>
+        <td>${escapeHtml(application.approveComment || "-")}</td>
       </tr>
     `;
   }
@@ -52,7 +54,7 @@
     if (!applications || applications.length === 0) {
       body.innerHTML = `
         <tr>
-          <td colspan="9"><div class="empty-state">暂无开课申请记录</div></td>
+          <td colspan="11"><div class="empty-state">暂无开课申请记录</div></td>
         </tr>
       `;
       return;
@@ -66,8 +68,11 @@
     const data = new FormData(form);
     const credit = Number(data.get("credit"));
     const totalHours = Number(data.get("totalHours"));
+    const courseName = data.get("courseName").trim();
+    const courseType = data.get("courseType").trim();
+    const department = data.get("department").trim();
 
-    if (!data.get("courseName").trim()) {
+    if (!courseName) {
       throw new Error("课程名称不能为空");
     }
 
@@ -76,17 +81,25 @@
     }
 
     if (!Number.isInteger(totalHours) || totalHours <= 0) {
-      throw new Error("学时必须为正整数");
+      throw new Error("总学时必须为正整数");
+    }
+
+    if (!courseType) {
+      throw new Error("课程类型不能为空");
+    }
+
+    if (!department) {
+      throw new Error("面向学院不能为空");
     }
 
     return {
-      courseName: data.get("courseName").trim(),
-      courseType: data.get("courseType").trim(),
+      courseName,
       credit,
       totalHours,
-      targetMajor: data.get("targetMajor").trim(),
-      targetGrade: data.get("targetGrade").trim(),
-      description: data.get("description").trim()
+      textbook: data.get("textbook").trim(),
+      courseSummary: data.get("courseSummary").trim(),
+      courseType,
+      department
     };
   }
 
@@ -98,31 +111,31 @@
         <form id="application-form" class="application-form">
           <div class="field">
             <label>课程名称</label>
-            <input name="courseName" type="text" placeholder="例如：数据库系统实践">
+            <input name="courseName" type="text" maxlength="100" placeholder="例如：数据库系统实践">
           </div>
           <div class="field">
             <label>课程类型</label>
-            <input name="courseType" type="text" placeholder="例如：专业选修">
+            <input name="courseType" type="text" maxlength="20" placeholder="例如：专业选修">
           </div>
           <div class="field">
             <label>学分</label>
             <input name="credit" type="number" min="0.5" step="0.5" placeholder="2.0">
           </div>
           <div class="field">
-            <label>学时</label>
+            <label>总学时</label>
             <input name="totalHours" type="number" min="1" step="1" placeholder="32">
           </div>
           <div class="field">
-            <label>面向专业</label>
-            <input name="targetMajor" type="text" placeholder="计算机科学与技术">
+            <label>面向学院</label>
+            <input name="department" type="text" maxlength="20" placeholder="例如：软件学院">
           </div>
           <div class="field">
-            <label>面向年级</label>
-            <input name="targetGrade" type="text" placeholder="2024级">
+            <label>参考教材</label>
+            <input name="textbook" type="text" maxlength="200" placeholder="可选，例如：数据库系统概论">
           </div>
           <div class="field field-wide">
-            <label>课程大纲描述</label>
-            <textarea name="description" placeholder="填写课程目标、主要内容和考核方式"></textarea>
+            <label>课程描述</label>
+            <textarea name="courseSummary" placeholder="填写课程目标、主要内容和考核方式"></textarea>
           </div>
           <div class="field-actions">
             <button class="primary-button" type="submit">提交申请</button>
@@ -135,19 +148,21 @@
           <thead>
             <tr>
               <th>课程名称</th>
-              <th>类型</th>
+              <th>课程类型</th>
               <th>学分</th>
-              <th>学时</th>
-              <th>专业</th>
-              <th>年级</th>
-              <th>状态</th>
+              <th>总学时</th>
+              <th>面向学院</th>
+              <th>参考教材</th>
+              <th>课程描述</th>
+              <th>审批状态</th>
               <th>申请时间</th>
-              <th>审核意见</th>
+              <th>审批时间</th>
+              <th>审批意见</th>
             </tr>
           </thead>
           <tbody id="applications-table-body">
             <tr>
-              <td colspan="9"><div class="empty-state">正在加载申请记录...</div></td>
+              <td colspan="11"><div class="empty-state">正在加载申请记录...</div></td>
             </tr>
           </tbody>
         </table>
