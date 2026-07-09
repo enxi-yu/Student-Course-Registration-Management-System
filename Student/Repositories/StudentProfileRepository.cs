@@ -107,9 +107,16 @@ namespace StudentCourse.Student.Repositories
 
             const string gpaSql = @"
                 SELECT NVL(SUM(ss.credit_obtained), 0) AS total_credits,
-                       NVL(AVG(CASE WHEN ss.gpa > 0 THEN ss.gpa END), 0) AS avg_gpa,
-                       COUNT(*) AS total_courses
+                       NVL(
+                           SUM(CASE WHEN ss.gpa IS NOT NULL THEN ss.gpa * c.credit ELSE 0 END)
+                           / NULLIF(SUM(CASE WHEN ss.gpa IS NOT NULL THEN c.credit ELSE 0 END), 0),
+                           0
+                       ) AS avg_gpa,
+                       COUNT(CASE WHEN ss.gpa IS NOT NULL THEN 1 END) AS total_courses
                   FROM student_score ss
+                  JOIN teaching_class tc ON tc.class_id = ss.class_id
+                  JOIN section s ON s.section_id = tc.section_id
+                  JOIN course c ON c.course_id = s.course_id
                  WHERE ss.student_no = :studentNo";
 
             using (OracleConnection connection = DbConnectionFactory.OpenConnection())
@@ -128,7 +135,51 @@ namespace StudentCourse.Student.Repositories
             }
 
             summary.CreditTrend = GetCreditTrend(studentNo);
+            summary.SemesterGpas = GetSemesterGpas(studentNo);
             return summary;
+        }
+
+        private List<SemesterGpaItem> GetSemesterGpas(string studentNo)
+        {
+            var items = new List<SemesterGpaItem>();
+
+            const string semesterSql = @"
+                SELECT s.semester,
+                       NVL(SUM(ss.credit_obtained), 0) AS credits,
+                       NVL(
+                           SUM(CASE WHEN ss.gpa IS NOT NULL THEN ss.gpa * c.credit ELSE 0 END)
+                           / NULLIF(SUM(CASE WHEN ss.gpa IS NOT NULL THEN c.credit ELSE 0 END), 0),
+                           0
+                       ) AS avg_gpa,
+                       COUNT(CASE WHEN ss.gpa IS NOT NULL THEN 1 END) AS courses
+                  FROM student_score ss
+                  JOIN teaching_class tc ON tc.class_id = ss.class_id
+                  JOIN section s ON s.section_id = tc.section_id
+                  JOIN course c ON c.course_id = s.course_id
+                 WHERE ss.student_no = :studentNo
+                 GROUP BY s.semester
+                 ORDER BY s.semester DESC";
+
+            using (OracleConnection connection = DbConnectionFactory.OpenConnection())
+            using (OracleCommand command = CreateCommand(connection, semesterSql))
+            {
+                command.Parameters.Add("studentNo", OracleDbType.Varchar2).Value = studentNo;
+                using (OracleDataReader reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        items.Add(new SemesterGpaItem
+                        {
+                            Semester = SafeGetString(reader["semester"]),
+                            Credits = SafeGetDecimal(reader["credits"]),
+                            AvgGpa = Math.Round(SafeGetDecimal(reader["avg_gpa"]), 2),
+                            Courses = SafeGetInt(reader["courses"])
+                        });
+                    }
+                }
+            }
+
+            return items;
         }
 
         private List<CreditTrendItem> GetCreditTrend(string studentNo)
