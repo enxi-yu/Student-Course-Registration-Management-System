@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
-using StudentCourse.Services;
+using StudentCourse.Student.Services;
 
-namespace StudentCourse.Controllers
+namespace StudentCourse.Student.Controllers
 {
     /// <summary>
     /// 模块二：选课中心与课表管理

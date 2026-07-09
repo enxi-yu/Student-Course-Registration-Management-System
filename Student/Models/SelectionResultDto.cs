@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace StudentCourse.Models
+namespace StudentCourse.Student.Models
 {
     public sealed class SelectionResultDto
     {

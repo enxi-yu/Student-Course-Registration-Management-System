@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using Oracle.ManagedDataAccess.Client;
 using Oracle.ManagedDataAccess.Types;
 using StudentCourse.Infrastructure;
-using StudentCourse.Models;
+using StudentCourse.Student.Models;
 
-namespace StudentCourse.Repositories
+namespace StudentCourse.Student.Repositories
 {
     public sealed class StudentProfileRepository
     {
@@ -69,7 +69,7 @@ namespace StudentCourse.Repositories
         {
             var dashboard = new StudentDashboardDto();
 
-            dashboard.Profile = GetStudentInfoByStudentNo(studentNo);
+            dashboard.Profile = GetStudentInfoByStudentNo(studentNo) ?? new StudentInfo();
 
             const string semesterSql = @"
                 SELECT COUNT(DISTINCT cs.class_id) AS course_count,

@@ -1,8 +1,8 @@
 using System.Collections.Generic;
-using StudentCourse.Models;
-using StudentCourse.Repositories;
+using StudentCourse.Student.Models;
+using StudentCourse.Student.Repositories;
 
-namespace StudentCourse.Services
+namespace StudentCourse.Student.Services
 {
     public sealed class StudentGradeService
     {

@@ -1,8 +1,12 @@
 using StudentCourse.Infrastructure;
-using StudentCourse.Repositories;
-using StudentCourse.Services;
+using StudentCourse.Student.Repositories;
+using StudentCourse.Student.Services;
 
-var builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+{
+    Args = args,
+    WebRootPath = "Student/wwwroot"
+});
 
 builder.Services.AddRazorPages();
 builder.Services.AddControllers();

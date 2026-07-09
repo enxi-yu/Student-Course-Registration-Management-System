@@ -1,31 +1,31 @@
 using Microsoft.AspNetCore.Mvc;
-using StudentCourse.Services;
+using StudentCourse.Student.Services;
 
-namespace StudentCourse.Controllers
+namespace StudentCourse.Student.Controllers
 {
     /// <summary>
-    /// 模块三：成绩查询与课程评价
+    /// 模块一：个人信息与首页仪表盘
     /// </summary>
     [ApiController]
-    public sealed class StudentGradeController : ControllerBase
+    public sealed class StudentProfileController : ControllerBase
     {
-        private readonly StudentGradeService _service;
+        private readonly StudentProfileService _service;
 
-        public StudentGradeController(StudentGradeService service)
+        public StudentProfileController(StudentProfileService service)
         {
             _service = service;
         }
 
-        [HttpGet("api/student/grades")]
-        public IActionResult GetEnrolledCourses()
+        [HttpGet("api/student/current")]
+        public IActionResult GetCurrentStudent()
         {
-            return SafeOk(() => _service.GetEnrolledCourses());
+            return SafeOk(() => _service.GetCurrentStudent());
         }
 
-        [HttpGet("api/student/gpa")]
-        public IActionResult GetGpaSummary()
+        [HttpGet("api/student/dashboard")]
+        public IActionResult GetDashboard()
         {
-            return SafeOk(() => _service.GetGpaSummary());
+            return SafeOk(() => _service.GetDashboard());
         }
 
         private IActionResult SafeOk<T>(Func<T> action)

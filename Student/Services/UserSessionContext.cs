@@ -1,6 +1,6 @@
-using StudentCourse.Models;
+using StudentCourse.Student.Models;
 
-namespace StudentCourse.Services
+namespace StudentCourse.Student.Services
 {
     public static class UserSessionContext
     {

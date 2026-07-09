@@ -12,59 +12,54 @@ StudentCourse.sln
 ├── appsettings.Development.json
 ├── .gitignore
 │
-├── Infrastructure/                          # 数据库连接层
+├── Infrastructure/                          # 共享：数据库连接层
 │   └── DbConnectionFactory.cs
 │
-├── Models/                                  # 数据传输对象（DTO）
-│   ├── UserSession.cs
-│   ├── StudentInfo.cs
-│   ├── StudentDashboardDto.cs
-│   ├── CourseSelectionDto.cs
-│   ├── CourseDetailDto.cs
-│   ├── SelectionResultDto.cs
-│   ├── ScheduleItemDto.cs
-│   ├── EnrolledCourseDto.cs
-│   └── GpaSummaryDto.cs
-│
-├── Repositories/                            # 数据访问层
-│   ├── StudentProfileRepository.cs          # 模块一：学生信息 + Dashboard
-│   ├── CourseSelectionRepository.cs         # 模块二：选课/退课 + 课表
-│   └── StudentGradeRepository.cs            # 模块三：成绩 + GPA
-│
-├── Services/                                # 业务逻辑层
-│   ├── UserSessionContext.cs
-│   ├── StudentProfileService.cs             # 模块一
-│   ├── CourseSelectionService.cs            # 模块二
-│   └── StudentGradeService.cs               # 模块三
-│
-├── Controllers/                             # API 接口层
-│   ├── SystemController.cs                  # 系统：ping / 数据库测试 / Mock Session
-│   ├── StudentProfileController.cs          # 模块一
-│   ├── CourseSelectionController.cs         # 模块二
-│   └── StudentGradeController.cs            # 模块三
+├── Student/                                  # 学生端模块（独立分区）
+│   ├── Models/                               # 数据传输对象（DTO）
+│   │   ├── UserSession.cs
+│   │   ├── StudentInfo.cs
+│   │   ├── StudentDashboardDto.cs
+│   │   ├── CourseSelectionDto.cs
+│   │   ├── CourseDetailDto.cs
+│   │   ├── SelectionResultDto.cs
+│   │   ├── ScheduleItemDto.cs
+│   │   ├── EnrolledCourseDto.cs
+│   │   └── GpaSummaryDto.cs
+│   │
+│   ├── Repositories/                         # 数据访问层
+│   │   ├── StudentProfileRepository.cs       # 模块一：学生信息 + Dashboard
+│   │   ├── CourseSelectionRepository.cs      # 模块二：选课/退课 + 课表
+│   │   └── StudentGradeRepository.cs         # 模块三：成绩 + GPA
+│   │
+│   ├── Services/                             # 业务逻辑层
+│   │   ├── UserSessionContext.cs
+│   │   ├── StudentProfileService.cs          # 模块一
+│   │   ├── CourseSelectionService.cs         # 模块二
+│   │   └── StudentGradeService.cs            # 模块三
+│   │
+│   ├── Controllers/                          # API 接口层
+│   │   ├── SystemController.cs               # 系统：ping / 数据库测试 / Mock Session
+│   │   ├── StudentProfileController.cs       # 模块一
+│   │   ├── CourseSelectionController.cs      # 模块二
+│   │   └── StudentGradeController.cs         # 模块三
+│   │
+│   └── wwwroot/                              # 前端 SPA
+│       ├── index.html                        # 入口（跳转 /student.html）
+│       ├── student.html                      # 学生端 SPA 壳
+│       ├── css/
+│       │   └── student.css
+│       └── js/
+│           ├── api.js                        # 统一 API 通信层
+│           ├── student-app.js                # SPA 路由
+│           └── pages/
+│               ├── student-dashboard.js      # 首页仪表盘
+│               ├── student-courses.js        # 选课中心
+│               ├── student-schedule.js       # 我的课表
+│               ├── student-grades.js         # 成绩查询
+│               └── student-evaluation.js     # 课程评价
 │
 ├── Pages/                                   # Razor Pages（最小骨架）
-│   ├── Index.cshtml / .cs                   # 公共入口
-│   ├── Error.cshtml / .cs
-│   └── Shared/_Layout.cshtml
-│
-├── Properties/
-│   └── launchSettings.json
-│
-└── wwwroot/                                 # 前端 SPA
-    ├── index.html                           # 入口（跳转 /student.html）
-    ├── student.html                         # 学生端 SPA 壳
-    ├── css/
-    │   └── student.css
-    └── js/
-        ├── api.js                           # 统一 API 通信层
-        ├── student-app.js                   # SPA 路由
-        └── pages/
-            ├── student-dashboard.js         # 首页仪表盘
-            ├── student-courses.js           # 选课中心
-            ├── student-schedule.js          # 我的课表
-            ├── student-grades.js            # 成绩查询
-            └── student-evaluation.js        # 课程评价
 ```
 
 ## API 路由

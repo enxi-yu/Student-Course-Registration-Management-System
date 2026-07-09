@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using Oracle.ManagedDataAccess.Client;
 using StudentCourse.Infrastructure;
-using StudentCourse.Models;
+using StudentCourse.Student.Models;
 
-namespace StudentCourse.Repositories
+namespace StudentCourse.Student.Repositories
 {
     public sealed class CourseSelectionRepository
     {

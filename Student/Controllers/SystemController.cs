@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using StudentCourse.Infrastructure;
-using StudentCourse.Services;
+using StudentCourse.Student.Services;
 
-namespace StudentCourse.Controllers
+namespace StudentCourse.Student.Controllers
 {
     [ApiController]
     public sealed class SystemController : ControllerBase
