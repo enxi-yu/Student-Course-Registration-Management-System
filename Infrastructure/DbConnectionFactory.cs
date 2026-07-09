@@ -32,9 +32,24 @@ namespace StudentCourse.Infrastructure
 
         public static OracleConnection OpenConnection()
         {
-            OracleConnection connection = CreateConnection();
-            connection.Open();
-            return connection;
+            List<string> errors = new List<string>();
+
+            foreach (string connectionString in GetConnectionStringCandidates())
+            {
+                OracleConnection connection = new OracleConnection(connectionString);
+                try
+                {
+                    connection.Open();
+                    return connection;
+                }
+                catch (Exception ex)
+                {
+                    connection.Dispose();
+                    errors.Add(ex.Message);
+                }
+            }
+
+            throw new InvalidOperationException("Oracle 连接失败。已尝试 TNS 描述符和 EZCONNECT 格式。" + string.Join(" | ", errors));
         }
 
         public static DbConnectionTestResult TestConnection()
@@ -60,9 +75,18 @@ namespace StudentCourse.Infrastructure
                 return new DbConnectionTestResult
                 {
                     Success = false,
-                    Error = ex.ToString()
+                    Message = "Oracle 连接失败，请检查服务名、账号密码或数据库监听状态。",
+                    Error = ex.Message
                 };
             }
+        }
+
+        private static IEnumerable<string> GetConnectionStringCandidates()
+        {
+            yield return ConnectionString;
+            yield return "User Id=course;Password=Course2026;Data Source=47.116.104.63:1521/COURSEPDB;Connection Timeout=15;";
+            yield return "User Id=course;Password=Course2026;Data Source=//47.116.104.63:1521/COURSEPDB;Connection Timeout=15;";
+            yield return "User Id=course;Password=Course2026;Data Source=(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=47.116.104.63)(PORT=1521)))(CONNECT_DATA=(SERVER=DEDICATED)(SERVICE_NAME=COURSEPDB)));Connection Timeout=15;";
         }
     }
 

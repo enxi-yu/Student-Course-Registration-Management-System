@@ -13,6 +13,22 @@
     return "status-pending";
   }
 
+
+  function showNotice(type, message) {
+    const notice = document.getElementById("application-notice");
+    if (!notice) {
+      return;
+    }
+
+    notice.className = `form-notice ${type}`;
+    notice.textContent = message;
+    notice.hidden = false;
+
+    window.clearTimeout(showNotice.timer);
+    showNotice.timer = window.setTimeout(() => {
+      notice.hidden = true;
+    }, 3600);
+  }
   function row(application) {
     return `
       <tr>
@@ -78,6 +94,7 @@
     container.innerHTML = `
       <section class="panel">
         <h3 class="panel-title">提交开课申请</h3>
+        <div id="application-notice" class="form-notice" hidden></div>
         <form id="application-form" class="application-form">
           <div class="field">
             <label>课程名称</label>
@@ -145,9 +162,9 @@
         await window.nativeApi.request("teacher.submitCourseApplication", payload);
         event.target.reset();
         await loadApplications();
-        alert("开课申请已提交");
+        showNotice("success", "开课申请已提交");
       } catch (error) {
-        alert(error.message);
+        showNotice("error", error.message || "提交失败，请稍后重试。");
       }
     });
 

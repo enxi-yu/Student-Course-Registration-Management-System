@@ -1,4 +1,4 @@
-:root {
+﻿:root {
   --blue-950: #061f5b;
   --blue-900: #073b84;
   --blue-800: #0a55ba;
@@ -454,4 +454,31 @@ textarea {
   .profile-grid {
     grid-template-columns: repeat(2, minmax(160px, 1fr));
   }
+}
+
+.form-notice {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid #c9ddf8;
+  background: #f7fbff;
+  color: #315778;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.form-notice[hidden] {
+  display: none;
+}
+
+.form-notice.success {
+  border-color: #afe0cf;
+  background: #f2fff9;
+  color: var(--success);
+}
+
+.form-notice.error {
+  border-color: #f0b7b2;
+  background: #fff7f6;
+  color: var(--danger);
 }

@@ -77,6 +77,10 @@ namespace StudentCourse.Controllers
             {
                 return BadRequest(new { message = ex.Message });
             }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "数据库连接失败，请稍后重试或检查 Oracle 配置。", detail = ex.Message });
+            }
         }
 
         [HttpGet("api/teacher/course-applications")]
@@ -119,6 +123,10 @@ namespace StudentCourse.Controllers
             {
                 return BadRequest(new { message = ex.Message });
             }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "数据库连接失败，请稍后重试或检查 Oracle 配置。", detail = ex.Message });
+            }
         }
 
         private static string Csv(string? value)
@@ -132,3 +140,4 @@ namespace StudentCourse.Controllers
         }
     }
 }
+
