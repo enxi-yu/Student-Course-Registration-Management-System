@@ -2,11 +2,7 @@ using StudentCourse.Infrastructure;
 using StudentCourse.Student.Repositories;
 using StudentCourse.Student.Services;
 
-var builder = WebApplication.CreateBuilder(new WebApplicationOptions
-{
-    Args = args,
-    WebRootPath = "Student/wwwroot"
-});
+var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddRazorPages();
 builder.Services.AddControllers();
@@ -24,7 +20,6 @@ builder.Services.AddScoped<StudentGradeRepository>();
 builder.Services.AddScoped<StudentGradeService>();
 
 DbConnectionFactory.Initialize(builder.Configuration);
-UserSessionContext.UseDevelopmentStudentSession();
 
 var app = builder.Build();
 
