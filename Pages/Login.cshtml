@@ -1,0 +1,123 @@
+@page
+@{
+    Layout = null;
+    ViewData["Title"] = "统一登录";
+}
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="学生选课管理系统统一登录页面" />
+    <title>@ViewData["Title"] - 学生选课管理系统</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/login.css" asp-append-version="true" />
+
+    <style>
+        input[type="password"]::-webkit-credentials-auto-fill-button,
+        input[type="password"]::-webkit-reveal-button {
+            display: none !important;
+        }
+        input[type="password"]::-moz-reveal {
+            display: none !important;
+        }
+    </style>
+
+</head>
+<body class="login-body">
+    <main class="login-page">
+        <section class="login-intro">
+            <div class="intro-backdrop"></div>
+            <div class="intro-content">
+                <div class="brand-mark">
+                    <span>SC</span>
+                </div>
+                <h1>智慧选课 · 统一门户</h1>
+                <p class="lead-text">一个账号，三种身份，一键抵达</p>
+
+                <div class="intro-points">
+                    <div class="point-item">
+                        <span class="point-icon">01</span>
+                        <div>
+                            <h2>无需手动选择角色</h2>
+                            <p>账号首字母自动识别身份，省去手动切换步骤。</p>
+                        </div>
+                    </div>
+                    <div class="point-item">
+                        <span class="point-icon">02</span>
+                        <div>
+                            <h2>根据账号首字母匹配</h2>
+                            <p>S 对应学生、T 对应教师、A 对应管理员。</p>
+                        </div>
+                    </div>
+                    <div class="point-item">
+                        <span class="point-icon">03</span>
+                        <div>
+                            <h2>登录后直达专属后台</h2>
+                            <p>按身份自动跳转对应后台页面，无需二次选择。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="login-panel">
+            <div class="login-card shadow-lg">
+                <div class="card-glow"></div>
+
+                <div class="login-badge-row">
+                    <span class="login-badge">统一登录入口</span>
+                    <span class="login-badge soft">无需角色选择</span>
+                </div>
+
+                <form id="loginForm" class="login-form" novalidate>
+                    <div class="mb-3">
+                        <label for="account" class="form-label">账号</label>
+                        <input type="text"
+                               class="form-control form-control-lg"
+                               id="account"
+                               name="account"
+                               placeholder="请输入学号/工号"
+                               autocomplete="username"
+                               maxlength="32"
+                               inputmode="text" />
+                        <div class="form-hint">
+                            <span id="roleHint" class="role-hint">身份识别：等待输入</span>
+                        </div>
+                    </div>
+
+                    <div class="mb-2">
+                        <label for="password" class="form-label">密码</label>
+                        <input type="password"
+                               class="form-control form-control-lg"
+                               id="password"
+                               name="password"
+                               placeholder="请输入密码"
+                               autocomplete="current-password" />
+                    </div>
+
+                    <div id="loginMessage" class="login-message" aria-live="polite"></div>
+
+                    <button type="submit" class="btn btn-primary btn-lg w-100 login-btn" id="loginButton">
+                        <span class="btn-text">登录</span>
+                        <span class="btn-loading d-none">
+                            <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+                            登录中...
+                        </span>
+                    </button>
+
+                    <div class="login-footer-note">
+                        * 系统根据账号首字母自动识别身份
+                    </div>
+                </form>
+            </div>
+        </section>
+    </main>
+
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/login.js" asp-append-version="true"></script>
+</body>
+</html>
