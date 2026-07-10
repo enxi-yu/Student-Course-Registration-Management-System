@@ -8,6 +8,8 @@
     "app.useMockTeacherSession": { method: "POST", url: "/api/dev/session/teacher" },
     "app.logout": { method: "POST", url: "/api/auth/logout" },
     "student.getCurrentStudent": { method: "GET", url: "/api/student/current" },
+    "student.updateProfile": { method: "PUT", url: "/api/student/profile" },
+    "student.changePassword": { method: "POST", url: "/api/student/password" },
     "student.getDashboard": { method: "GET", url: "/api/student/dashboard" },
     "student.getAvailableCourses": { method: "GET", url: "/api/student/courses/available" },
     "student.getCourseDetail": { method: "GET", url: "/api/student/courses/{classId}" },

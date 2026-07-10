@@ -5,7 +5,7 @@
     schedule: { title: "我的课表", description: "查看本学期课程安排" },
     grades: { title: "成绩查询", description: "查看已修课程成绩和 GPA" },
     evaluation: { title: "课程评价", description: "对已修课程进行评价" },
-    password: { title: "修改密码", description: "维护账号安全" }
+    password: { title: "修改个人信息", description: "维护联系方式和账号安全" }
   };
 
   const state = {
@@ -169,6 +169,11 @@
 
       if (page === "grades") {
         await window.studentPages.grades.render(container);
+        return;
+      }
+
+      if (page === "password") {
+        await window.studentPages.password.render(container);
         return;
       }
 

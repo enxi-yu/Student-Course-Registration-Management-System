@@ -101,6 +101,65 @@ namespace StudentCourse.Student.Repositories
             return dashboard;
         }
 
+        public void UpdateContactInfo(int userId, string phone, string email)
+        {
+            const string sql = @"
+                UPDATE ""user""
+                   SET phone = :phone,
+                       email = :email
+                 WHERE user_id = :userId";
+
+            using (OracleConnection connection = DbConnectionFactory.OpenConnection())
+            using (OracleCommand command = CreateCommand(connection, sql))
+            {
+                command.Parameters.Add("phone", OracleDbType.Varchar2).Value =
+                    string.IsNullOrWhiteSpace(phone) ? (object)DBNull.Value : phone;
+                command.Parameters.Add("email", OracleDbType.Varchar2).Value =
+                    string.IsNullOrWhiteSpace(email) ? (object)DBNull.Value : email;
+                command.Parameters.Add("userId", OracleDbType.Int32).Value = userId;
+
+                if (command.ExecuteNonQuery() == 0)
+                {
+                    throw new InvalidOperationException("未找到当前用户，无法修改个人信息。");
+                }
+            }
+        }
+
+        public string GetPasswordHash(int userId)
+        {
+            const string sql = @"SELECT password FROM ""user"" WHERE user_id = :userId";
+
+            using (OracleConnection connection = DbConnectionFactory.OpenConnection())
+            using (OracleCommand command = CreateCommand(connection, sql))
+            {
+                command.Parameters.Add("userId", OracleDbType.Int32).Value = userId;
+                object? value = command.ExecuteScalar();
+                if (value == null || value == DBNull.Value)
+                {
+                    throw new InvalidOperationException("未找到当前用户，无法修改密码。");
+                }
+
+                return Convert.ToString(value) ?? string.Empty;
+            }
+        }
+
+        public void UpdatePassword(int userId, string passwordHash)
+        {
+            const string sql = @"UPDATE ""user"" SET password = :password WHERE user_id = :userId";
+
+            using (OracleConnection connection = DbConnectionFactory.OpenConnection())
+            using (OracleCommand command = CreateCommand(connection, sql))
+            {
+                command.Parameters.Add("password", OracleDbType.Varchar2).Value = passwordHash;
+                command.Parameters.Add("userId", OracleDbType.Int32).Value = userId;
+
+                if (command.ExecuteNonQuery() == 0)
+                {
+                    throw new InvalidOperationException("未找到当前用户，无法修改密码。");
+                }
+            }
+        }
+
         public GpaSummaryDto GetGpaSummary(string studentNo)
         {
             var summary = new GpaSummaryDto();

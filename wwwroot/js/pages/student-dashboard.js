@@ -1,10 +1,19 @@
 (function () {
+  function escapeHtml(value) {
+    return String(value || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
   function metricCard(label, value, note) {
     return `
       <article class="metric-card">
-        <div class="metric-label">${label}</div>
-        <div class="metric-value">${value}</div>
-        <div class="metric-note">${note}</div>
+        <div class="metric-label">${escapeHtml(label)}</div>
+        <div class="metric-value">${escapeHtml(value)}</div>
+        <div class="metric-note">${escapeHtml(note)}</div>
       </article>
     `;
   }
@@ -12,8 +21,8 @@
   function profileItem(label, value) {
     return `
       <div class="profile-item">
-        <div class="profile-label">${label}</div>
-        <div class="profile-value">${value || "-"}</div>
+        <div class="profile-label">${escapeHtml(label)}</div>
+        <div class="profile-value">${escapeHtml(value || "-")}</div>
       </div>
     `;
   }
@@ -25,10 +34,10 @@
 
     const rows = courses.map((item) => `
       <tr>
-        <td>${item.courseName}</td>
-        <td>${item.teacherName || "-"}</td>
-        <td>${item.classroom || "-"}</td>
-        <td>第${item.startPeriod}-${item.endPeriod}节</td>
+        <td>${escapeHtml(item.courseName)}</td>
+        <td>${escapeHtml(item.teacherName || "-")}</td>
+        <td>${escapeHtml(item.classroom || "-")}</td>
+        <td>第${escapeHtml(item.startPeriod)}-${escapeHtml(item.endPeriod)}节</td>
       </tr>
     `).join("");
 

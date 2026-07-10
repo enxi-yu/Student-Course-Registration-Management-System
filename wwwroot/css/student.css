@@ -283,6 +283,39 @@ textarea {
   font-weight: 600;
 }
 
+.profile-edit-block {
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px dashed var(--line);
+}
+
+.profile-edit-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.profile-edit-heading h4 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.profile-edit-heading span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.compact-profile-form {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: end;
+}
+
+.compact-profile-form .form-actions {
+  grid-column: 1 / -1;
+}
+
 /* ---- Data Table ---- */
 .table-panel {
   background: var(--panel);
@@ -424,6 +457,58 @@ textarea {
   padding: 40px 20px;
   color: var(--muted);
   font-size: 14px;
+}
+
+/* ---- Profile / Account Forms ---- */
+.profile-form-panel {
+  max-width: 640px;
+}
+
+.form-hint {
+  margin: -6px 0 18px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.profile-form {
+  display: grid;
+  gap: 16px;
+}
+
+.form-field {
+  display: grid;
+  gap: 7px;
+}
+
+.form-field span {
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.form-field input {
+  width: 100%;
+  height: 40px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.form-field input:focus {
+  border-color: var(--blue-700);
+  box-shadow: 0 0 0 3px rgba(18, 105, 220, 0.12);
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 4px;
 }
 
 /* ---- Dev Panel ---- */

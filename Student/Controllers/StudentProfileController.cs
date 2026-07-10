@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using StudentCourse.Student.Models;
 using StudentCourse.Student.Services;
 
 namespace StudentCourse.Student.Controllers
@@ -26,6 +27,18 @@ namespace StudentCourse.Student.Controllers
         public IActionResult GetDashboard()
         {
             return SafeOk(() => _service.GetDashboard());
+        }
+
+        [HttpPut("api/student/profile")]
+        public IActionResult UpdateProfile([FromBody] UpdateStudentProfileRequest request)
+        {
+            return SafeOk(() => _service.UpdateProfile(request));
+        }
+
+        [HttpPost("api/student/password")]
+        public IActionResult ChangePassword([FromBody] ChangePasswordRequest request)
+        {
+            return SafeOk(() => _service.ChangePassword(request));
         }
 
         private IActionResult SafeOk<T>(Func<T> action)
