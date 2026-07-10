@@ -19,7 +19,7 @@ namespace StudentCourse.Student.Controllers
         [HttpGet("api/student/courses/available")]
         public IActionResult GetAvailableCourses([FromQuery] string? semester)
         {
-            return SafeOk(() => _service.GetAvailableCourses(semester ?? GetCurrentSemester()));
+            return SafeOk(() => _service.GetAvailableCourses(semester ?? ""));
         }
 
         [HttpGet("api/student/courses/{classId:int}")]
@@ -43,7 +43,7 @@ namespace StudentCourse.Student.Controllers
         [HttpGet("api/student/schedule")]
         public IActionResult GetWeeklySchedule([FromQuery] string? semester)
         {
-            return SafeOk(() => _service.GetWeeklySchedule(semester ?? GetCurrentSemester()));
+            return SafeOk(() => _service.GetWeeklySchedule(semester ?? ""));
         }
 
         private IActionResult SafeOk<T>(Func<T> action)
@@ -60,15 +60,6 @@ namespace StudentCourse.Student.Controllers
             {
                 return StatusCode(500, new { message = "服务器内部错误：" + ex.Message });
             }
-        }
-
-        private static string GetCurrentSemester()
-        {
-            DateTime now = DateTime.Now;
-            int year = now.Year;
-            string term = now.Month >= 8 || now.Month <= 1 ? "1" : "2";
-            int startYear = now.Month >= 8 ? year : year - 1;
-            return $"{startYear}-{startYear + 1}-{term}";
         }
     }
 

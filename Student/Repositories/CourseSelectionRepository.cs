@@ -31,14 +31,15 @@ namespace StudentCourse.Student.Repositories
                   JOIN teacher t ON t.teacher_no = tc.teacher_no
                   JOIN ""user"" u ON u.user_id = t.user_id
                   LEFT JOIN course_select cs2 ON cs2.class_id = tc.class_id AND cs2.student_no = :studentNo
-                 WHERE s.semester = :semester
+                 WHERE (:semester IS NULL OR s.semester = :semester)
                  ORDER BY c.course_name, tc.class_name";
 
             using (OracleConnection connection = DbConnectionFactory.OpenConnection())
             using (OracleCommand command = CreateCommand(connection, sql))
             {
                 command.Parameters.Add("studentNo", OracleDbType.Varchar2).Value = studentNo;
-                command.Parameters.Add("semester", OracleDbType.Varchar2).Value = semester;
+                command.Parameters.Add("semester", OracleDbType.Varchar2).Value =
+                    string.IsNullOrWhiteSpace(semester) ? (object)DBNull.Value : semester;
 
                 using (OracleDataReader reader = command.ExecuteReader())
                 {
@@ -120,7 +121,6 @@ namespace StudentCourse.Student.Repositories
 
             using (OracleConnection connection = DbConnectionFactory.OpenConnection())
             {
-                connection.Open();
 
                 // 检查重复选课
                 const string checkSql = @"
@@ -200,7 +200,6 @@ namespace StudentCourse.Student.Repositories
 
             using (OracleConnection connection = DbConnectionFactory.OpenConnection())
             {
-                connection.Open();
 
                 const string deleteSql = @"
                     DELETE FROM course_select

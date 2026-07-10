@@ -26,7 +26,7 @@ namespace StudentCourse.Student.Services
             Current = new UserSession
             {
                 UserId = 9101,
-                Username = "student_demo",
+                Username = "S2024001",
                 RealName = "学生测试账号",
                 UserType = 0,
                 StudentNo = "S2024001",
@@ -43,8 +43,8 @@ namespace StudentCourse.Student.Services
             Current = new UserSession
             {
                 UserId = 9001,
-                Username = "teacher_demo",
-                RealName = "张老师",
+                Username = "T001",
+                RealName = "张教授",
                 UserType = 1,
                 IsLoggedIn = true
             };
