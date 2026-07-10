@@ -12,10 +12,12 @@ builder.Services.AddScoped<TeachingClassRepository>();
 builder.Services.AddScoped<StudentListRepository>();
 builder.Services.AddScoped<CourseApplicationRepository>();
 builder.Services.AddScoped<ScoreRepository>();
+builder.Services.AddScoped<AccountRepository>();
 builder.Services.AddScoped<TeacherService>();
 builder.Services.AddScoped<TeacherStudentService>();
 builder.Services.AddScoped<CourseApplicationService>();
 builder.Services.AddScoped<ScoreService>();
+builder.Services.AddScoped<AccountService>();
 
 DbConnectionFactory.Initialize(builder.Configuration);
 UserSessionContext.UseDevelopmentTeacherSession();

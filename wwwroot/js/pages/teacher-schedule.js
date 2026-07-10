@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
   const weekdayNames = ["", "周一", "周二", "周三", "周四", "周五", "周六", "周日"];
   const periodRows = [
     { start: 1, end: 2, label: "1-2节" },
@@ -140,7 +140,7 @@
         <div class="toolbar">
           <div class="field">
             <label for="schedule-semester-filter">学期筛选</label>
-            <input id="schedule-semester-filter" type="text" placeholder="例如：2025-2026-2">
+            <input id="schedule-semester-filter" type="text" placeholder="例如：2026-spring">
           </div>
           <button class="primary-button" type="button" id="load-schedule-button">查询课表</button>
         </div>

@@ -7,6 +7,7 @@
     "app.useMockTeacherSession": { method: "POST", url: "/api/dev/session/teacher" },
     "app.useMockStudentSession": { method: "POST", url: "/api/dev/session/student" },
     "app.logout": { method: "POST", url: "/api/auth/logout" },
+    "account.changePassword": { method: "POST", url: "/api/auth/password" },
     "teacher.getCurrentTeacher": { method: "GET", url: "/api/teacher/current" },
     "teacher.getDashboard": { method: "GET", url: "/api/teacher/dashboard" },
     "teacher.getMyCourses": { method: "GET", url: "/api/teacher/courses" },

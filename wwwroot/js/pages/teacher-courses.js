@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
   function escapeHtml(value) {
     return String(value ?? "")
       .replace(/&/g, "&amp;")
@@ -73,7 +73,7 @@
         <div class="toolbar">
           <div class="field">
             <label for="semester-filter">学期筛选</label>
-            <input id="semester-filter" type="text" placeholder="例如：2025-2026-2">
+            <input id="semester-filter" type="text" placeholder="例如：2026-spring">
           </div>
           <button class="primary-button" type="button" id="load-courses-button">查询课程</button>
         </div>

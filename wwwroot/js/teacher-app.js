@@ -1,12 +1,12 @@
-(function () {
+﻿(function () {
   const pageMeta = {
     dashboard: { title: "首页", description: "查看教师信息和本学期教学统计" },
     courses: { title: "我的课程", description: "查看当前教师自己的课程和教学班" },
-    schedule: { title: "我的课表", description: "第三阶段实现" },
-    students: { title: "选课名单", description: "第三阶段实现" },
-    scores: { title: "成绩录入", description: "第三阶段实现" },
-    applications: { title: "开课申请", description: "第三阶段实现" },
-    password: { title: "修改密码", description: "第三阶段实现" }
+    schedule: { title: "我的课表", description: "查看当前教师本学期课程安排" },
+    students: { title: "选课名单", description: "查看教学班学生名单和选课信息" },
+    scores: { title: "成绩录入", description: "录入并维护学生课程成绩" },
+    applications: { title: "开课申请", description: "提交和查看教师开课申请" },
+    password: { title: "修改密码", description: "修改当前账号登录密码" }
   };
 
   const state = {
@@ -92,11 +92,11 @@
   }
 
   function renderThirdPhase(container, page) {
-    const meta = pageMeta[page] || { title: "功能", description: "第三阶段实现" };
+    const meta = pageMeta[page] || { title: "功能", description: "功能正在完善中" };
     container.innerHTML = `
       <section class="panel">
         <h3 class="panel-title">${meta.title}</h3>
-        <div class="empty-state">第三阶段实现</div>
+        <div class="empty-state">${meta.description}</div>
       </section>
     `;
   }
@@ -141,6 +141,11 @@
 
       if (page === "applications") {
         await window.teacherPages.applications.render(container);
+        return;
+      }
+
+      if (page === "password") {
+        await window.teacherPages.password.render(container);
         return;
       }
 
