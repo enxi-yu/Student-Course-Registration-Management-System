@@ -708,3 +708,11 @@ textarea {
     justify-content: flex-start;
   }
 }
+
+.toolbar-actions {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}

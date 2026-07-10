@@ -7,6 +7,25 @@
       .replace(/"/g, "&quot;");
   }
 
+  function uniqueSemesters(items) {
+    return Array.from(new Set((items || [])
+      .map((item) => item.semester)
+      .filter((semester) => semester && String(semester).trim())))
+      .sort((left, right) => String(right).localeCompare(String(left)));
+  }
+
+  function semesterOptions(semesters, selected) {
+    if (!semesters.length) {
+      return '<option value="">暂无学期数据</option>';
+    }
+
+    return semesters.map((semester) => {
+      const value = escapeHtml(semester);
+      const isSelected = semester === selected ? " selected" : "";
+      return `<option value="${value}"${isSelected}>${value}</option>`;
+    }).join("");
+  }
+
   function row(course) {
     return `
       <tr>
@@ -30,17 +49,26 @@
     `;
   }
 
+  async function getAllCourses() {
+    return await window.nativeApi.request("teacher.getMyCourses", { semester: "" });
+  }
+
   async function loadCourses(container) {
-    const semesterInput = document.getElementById("semester-filter");
-    const semester = semesterInput ? semesterInput.value.trim() : "";
+    const semesterSelect = document.getElementById("semester-filter");
+    const semester = semesterSelect ? semesterSelect.value : "";
     const courses = await window.nativeApi.request("teacher.getMyCourses", { semester });
     const body = document.getElementById("courses-table-body");
+    const summary = document.getElementById("courses-summary");
+
+    if (summary) {
+      summary.textContent = semester ? `当前学期：${semester}` : "当前学期：未选择";
+    }
 
     if (!courses || courses.length === 0) {
       body.innerHTML = `
         <tr>
           <td colspan="8">
-            <div class="empty-state">暂无课程数据</div>
+            <div class="empty-state">当前学期暂无课程数据</div>
           </td>
         </tr>
       `;
@@ -70,12 +98,27 @@
   async function render(container) {
     container.innerHTML = `
       <section class="panel">
+        <div class="empty-state">正在读取课程学期...</div>
+      </section>
+    `;
+
+    const allCourses = await getAllCourses();
+    const semesters = uniqueSemesters(allCourses);
+    const selectedSemester = semesters[0] || "";
+
+    container.innerHTML = `
+      <section class="panel">
         <div class="toolbar">
           <div class="field">
             <label for="semester-filter">学期筛选</label>
-            <input id="semester-filter" type="text" placeholder="例如：2026-spring">
+            <select id="semester-filter" ${semesters.length ? "" : "disabled"}>
+              ${semesterOptions(semesters, selectedSemester)}
+            </select>
           </div>
-          <button class="primary-button" type="button" id="load-courses-button">查询课程</button>
+          <div class="toolbar-actions">
+            <span class="term-badge" id="courses-summary">当前学期：${escapeHtml(selectedSemester || "未选择")}</span>
+            <button class="primary-button" type="button" id="load-courses-button">查询课程</button>
+          </div>
         </div>
       </section>
 
@@ -105,6 +148,7 @@
     `;
 
     document.getElementById("load-courses-button").addEventListener("click", () => loadCourses(container));
+    document.getElementById("semester-filter").addEventListener("change", () => loadCourses(container));
     await loadCourses(container);
   }
 

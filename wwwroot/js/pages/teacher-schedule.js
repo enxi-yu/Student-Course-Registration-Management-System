@@ -17,6 +17,25 @@
       .replace(/"/g, "&quot;");
   }
 
+  function uniqueSemesters(items) {
+    return Array.from(new Set((items || [])
+      .map((item) => item.semester)
+      .filter((semester) => semester && String(semester).trim())))
+      .sort((left, right) => String(right).localeCompare(String(left)));
+  }
+
+  function semesterOptions(semesters, selected) {
+    if (!semesters.length) {
+      return '<option value="">暂无学期数据</option>';
+    }
+
+    return semesters.map((semester) => {
+      const value = escapeHtml(semester);
+      const isSelected = semester === selected ? " selected" : "";
+      return `<option value="${value}"${isSelected}>${value}</option>`;
+    }).join("");
+  }
+
   function periodText(item) {
     if (!item.startPeriod || !item.endPeriod) {
       return "-";
@@ -97,15 +116,34 @@
     `;
   }
 
-  async function loadSchedule(container) {
-    const semesterInput = document.getElementById("schedule-semester-filter");
-    const semester = semesterInput ? semesterInput.value.trim() : "";
+  async function getAllCourses() {
+    return await window.nativeApi.request("teacher.getMyCourses", { semester: "" });
+  }
+
+  async function loadSchedule() {
+    const semesterSelect = document.getElementById("schedule-semester-filter");
+    const semester = semesterSelect ? semesterSelect.value : "";
+    const summary = document.getElementById("schedule-summary");
+
+    if (summary) {
+      summary.textContent = semester ? `当前学期：${semester}` : "当前学期：未选择";
+    }
+
+    if (!semester) {
+      document.getElementById("schedule-root").innerHTML = `
+        <section class="panel">
+          <div class="empty-state">暂无可选择的学期，无法显示课表。</div>
+        </section>
+      `;
+      return;
+    }
+
     const schedule = await window.nativeApi.request("teacher.getMySchedule", { semester });
 
     if (!schedule || schedule.length === 0) {
       document.getElementById("schedule-root").innerHTML = `
         <section class="panel">
-          <div class="empty-state">暂无课表数据</div>
+          <div class="empty-state">当前学期暂无课表安排</div>
         </section>
       `;
       return;
@@ -137,12 +175,27 @@
   async function render(container) {
     container.innerHTML = `
       <section class="panel">
+        <div class="empty-state">正在读取课程学期...</div>
+      </section>
+    `;
+
+    const allCourses = await getAllCourses();
+    const semesters = uniqueSemesters(allCourses);
+    const selectedSemester = semesters[0] || "";
+
+    container.innerHTML = `
+      <section class="panel">
         <div class="toolbar">
           <div class="field">
             <label for="schedule-semester-filter">学期筛选</label>
-            <input id="schedule-semester-filter" type="text" placeholder="例如：2026-spring">
+            <select id="schedule-semester-filter" ${semesters.length ? "" : "disabled"}>
+              ${semesterOptions(semesters, selectedSemester)}
+            </select>
           </div>
-          <button class="primary-button" type="button" id="load-schedule-button">查询课表</button>
+          <div class="toolbar-actions">
+            <span class="term-badge" id="schedule-summary">当前学期：${escapeHtml(selectedSemester || "未选择")}</span>
+            <button class="primary-button" type="button" id="load-schedule-button">查询课表</button>
+          </div>
         </div>
       </section>
       <div id="schedule-root">
@@ -152,8 +205,9 @@
       </div>
     `;
 
-    document.getElementById("load-schedule-button").addEventListener("click", () => loadSchedule(container));
-    await loadSchedule(container);
+    document.getElementById("load-schedule-button").addEventListener("click", () => loadSchedule());
+    document.getElementById("schedule-semester-filter").addEventListener("change", () => loadSchedule());
+    await loadSchedule();
   }
 
   window.teacherPages = window.teacherPages || {};
