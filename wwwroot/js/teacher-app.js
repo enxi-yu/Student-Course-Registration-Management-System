@@ -124,6 +124,11 @@
         return;
       }
 
+      if (page === "schedule") {
+        await window.teacherPages.schedule.render(container);
+        return;
+      }
+
       if (page === "students") {
         await window.teacherPages.students.render(container, state.pageOptions);
         return;

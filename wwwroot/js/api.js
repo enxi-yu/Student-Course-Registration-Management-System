@@ -10,6 +10,7 @@
     "teacher.getCurrentTeacher": { method: "GET", url: "/api/teacher/current" },
     "teacher.getDashboard": { method: "GET", url: "/api/teacher/dashboard" },
     "teacher.getMyCourses": { method: "GET", url: "/api/teacher/courses" },
+    "teacher.getMySchedule": { method: "GET", url: "/api/teacher/schedule" },
     "teacher.getClassStudents": { method: "GET", url: "/api/teacher/classes/{classId}/students" },
     "teacher.exportClassStudentsCsv": { method: "GET", url: "/api/teacher/classes/{classId}/students/export" },
     "teacher.getCourseApplications": { method: "GET", url: "/api/teacher/course-applications" },

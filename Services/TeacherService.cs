@@ -82,59 +82,13 @@ namespace StudentCourse.Services
         public IList<TeacherClassDto> GetMyCourses(string semester)
         {
             TeacherInfo teacher = GetCurrentTeacher();
+            return _teacherRepository.GetMyCourses(teacher.TeacherNo, semester);
+        }
 
-            try
-            {
-                return _teacherRepository.GetMyCourses(teacher.TeacherNo, semester);
-            }
-            catch
-            {
-                return new List<TeacherClassDto>
-                {
-                    new TeacherClassDto
-                    {
-                        ClassId = 9301,
-                        ClassName = "数据库1班",
-                        CourseId = 9101,
-                        CourseName = "数据库",
-                        Semester = string.IsNullOrWhiteSpace(semester) ? "2026-spring" : semester,
-                        Credit = 3.0m,
-                        TotalHours = 48,
-                        Capacity = 60,
-                        SelectedCount = 48,
-                        Department = "计算机学院",
-                        Description = "Oracle 暂不可用时的开发测试数据"
-                    },
-                    new TeacherClassDto
-                    {
-                        ClassId = 9302,
-                        ClassName = "软件工程1班",
-                        CourseId = 9102,
-                        CourseName = "软件工程",
-                        Semester = string.IsNullOrWhiteSpace(semester) ? "2026-spring" : semester,
-                        Credit = 2.5m,
-                        TotalHours = 40,
-                        Capacity = 50,
-                        SelectedCount = 37,
-                        Department = "计算机学院",
-                        Description = "Oracle 暂不可用时的开发测试数据"
-                    },
-                    new TeacherClassDto
-                    {
-                        ClassId = 9303,
-                        ClassName = "数据结构2班",
-                        CourseId = 9103,
-                        CourseName = "数据结构",
-                        Semester = string.IsNullOrWhiteSpace(semester) ? "2026-spring" : semester,
-                        Credit = 3.5m,
-                        TotalHours = 56,
-                        Capacity = 60,
-                        SelectedCount = 43,
-                        Department = "计算机学院",
-                        Description = "Oracle 暂不可用时的开发测试数据"
-                    }
-                };
-            }
+        public IList<TeacherScheduleDto> GetMySchedule(string semester)
+        {
+            TeacherInfo teacher = GetCurrentTeacher();
+            return _teacherRepository.GetMySchedule(teacher.TeacherNo, semester);
         }
 
         public static UserSession RequireTeacherSession()

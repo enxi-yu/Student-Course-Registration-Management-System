@@ -653,6 +653,46 @@ textarea {
   line-height: 1.5;
 }
 
+.schedule-grid-panel {
+  margin-bottom: 18px;
+  overflow-x: auto;
+}
+
+.schedule-grid {
+  min-width: 980px;
+}
+
+.schedule-grid th,
+.schedule-grid td {
+  width: 12.5%;
+}
+
+.schedule-grid tbody th {
+  color: #38516f;
+  background: #f7fbff;
+  font-weight: 800;
+}
+
+.schedule-card {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border-radius: 8px;
+  color: #17365f;
+  background: #eef6ff;
+  border: 1px solid #cfe2fa;
+  line-height: 1.35;
+}
+
+.schedule-card + .schedule-card {
+  margin-top: 8px;
+}
+
+.schedule-card span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
 @media (max-width: 1120px) {
   .dashboard-hero,
   .dashboard-layout {

@@ -43,6 +43,12 @@ namespace StudentCourse.Controllers
             return SafeOk(() => _teacherService.GetMyCourses(semester));
         }
 
+        [HttpGet("api/teacher/schedule")]
+        public IActionResult GetMySchedule([FromQuery] string? semester)
+        {
+            return SafeOk(() => _teacherService.GetMySchedule(semester));
+        }
+
         [HttpGet("api/teacher/classes/{classId:int}/students")]
         public IActionResult GetClassStudents(int classId)
         {

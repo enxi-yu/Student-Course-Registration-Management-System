@@ -159,6 +159,66 @@ namespace StudentCourse.Repositories
             return courses;
         }
 
+        public IList<TeacherScheduleDto> GetMySchedule(string teacherNo, string semester)
+        {
+            const string sql = @"
+                SELECT ct.time_id,
+                       tc.class_id,
+                       tc.class_name,
+                       c.course_id,
+                       c.course_name,
+                       s.semester,
+                       ct.weekday,
+                       ct.start_period,
+                       ct.end_period,
+                       ct.week_range,
+                       ct.classroom,
+                       c.credit,
+                       c.total_hours
+                  FROM course_time ct
+                  JOIN teaching_class tc ON tc.class_id = ct.class_id
+                  JOIN section s ON s.section_id = tc.section_id
+                  JOIN course c ON c.course_id = s.course_id
+                 WHERE tc.teacher_no = :teacherNo
+                   AND (:semester IS NULL OR s.semester = :semester)
+                 ORDER BY s.semester DESC, ct.weekday, ct.start_period, c.course_name, tc.class_name";
+
+            List<TeacherScheduleDto> schedule = new List<TeacherScheduleDto>();
+
+            using (OracleConnection connection = DbConnectionFactory.OpenConnection())
+            using (OracleCommand command = CreateCommand(connection, sql))
+            {
+                command.Parameters.Add("teacherNo", OracleDbType.Varchar2).Value = teacherNo;
+                command.Parameters.Add("semester", OracleDbType.Varchar2).Value =
+                    string.IsNullOrWhiteSpace(semester) ? (object)DBNull.Value : semester.Trim();
+
+                using (OracleDataReader reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        schedule.Add(new TeacherScheduleDto
+                        {
+                            TimeId = ToInt32(reader["time_id"]),
+                            ClassId = ToInt32(reader["class_id"]),
+                            ClassName = Convert.ToString(reader["class_name"]),
+                            CourseId = ToInt32(reader["course_id"]),
+                            CourseName = Convert.ToString(reader["course_name"]),
+                            Semester = Convert.ToString(reader["semester"]),
+                            Weekday = ToInt32(reader["weekday"]),
+                            StartPeriod = ToInt32(reader["start_period"]),
+                            EndPeriod = ToInt32(reader["end_period"]),
+                            WeekRange = Convert.ToString(reader["week_range"]),
+                            Classroom = Convert.ToString(reader["classroom"]),
+                            Credit = ToDecimal(reader["credit"]),
+                            TotalHours = ToInt32(reader["total_hours"])
+                        });
+                    }
+                }
+            }
+
+            return schedule;
+        }
+
         private static OracleCommand CreateCommand(OracleConnection connection, string sql)
         {
             OracleCommand command = new OracleCommand(sql, connection);
