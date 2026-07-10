@@ -10,13 +10,30 @@ namespace StudentCourse.Repositories
     public sealed class CourseApplicationRepository
     {
         private const string PendingStatus = "待审核";
+        private static string GenerateApplyId(OracleConnection connection)
+        {
+            string datePart = DateTime.Now.ToString("yyyyMMdd");
+            string prefix = "CA" + datePart;
 
+            const string sql = @"
+        SELECT NVL(MAX(TO_NUMBER(SUBSTR(apply_id, 11))), 0) + 1
+          FROM course_application
+         WHERE apply_id LIKE :prefix";
+
+            using (OracleCommand command = TeachingClassRepository.CreateCommand(connection, sql))
+            {
+                command.Parameters.Add("prefix", OracleDbType.Varchar2).Value = prefix + "%";
+
+                int nextNo = Convert.ToInt32(command.ExecuteScalar());
+                return prefix + nextNo.ToString("D4");
+            }
+        }
         public CourseApplicationDto Insert(string teacherNo, CourseApplicationInput input)
         {
-            string applyId = Guid.NewGuid().ToString("N");
-
+            
             using (OracleConnection connection = DbConnectionFactory.OpenConnection())
             {
+                string applyId = GenerateApplyId(connection);
                 const string sql = @"
                     INSERT INTO course_application (
                         apply_id,

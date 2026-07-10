@@ -1,4 +1,6 @@
 ﻿(function () {
+  const COURSE_TYPES = ["公选", "选修", "必修"];
+
   function escapeHtml(value) {
     return String(value ?? "")
       .replace(/&/g, "&amp;")
@@ -88,6 +90,10 @@
       throw new Error("课程类型不能为空");
     }
 
+    if (!COURSE_TYPES.includes(courseType)) {
+      throw new Error("课程类型只能选择公选、选修或必修");
+    }
+
     if (!department) {
       throw new Error("面向学院不能为空");
     }
@@ -115,7 +121,12 @@
           </div>
           <div class="field">
             <label>课程类型</label>
-            <input name="courseType" type="text" maxlength="20" placeholder="例如：专业选修">
+            <select name="courseType" required>
+              <option value="">请选择课程类型</option>
+              <option value="公选">公选</option>
+              <option value="选修">选修</option>
+              <option value="必修">必修</option>
+            </select>
           </div>
           <div class="field">
             <label>学分</label>

@@ -7,6 +7,13 @@ namespace StudentCourse.Services
 {
     public sealed class CourseApplicationService
     {
+        private static readonly HashSet<string> AllowedCourseTypes = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "公选",
+            "选修",
+            "必修"
+        };
+
         private readonly CourseApplicationRepository _courseApplicationRepository;
 
         public CourseApplicationService()
@@ -101,6 +108,11 @@ namespace StudentCourse.Services
             if (input.CourseType.Trim().Length > 20)
             {
                 throw new InvalidOperationException("课程类型不能超过 20 个字符");
+            }
+
+            if (!AllowedCourseTypes.Contains(input.CourseType))
+            {
+                throw new InvalidOperationException("课程类型只能选择公选、选修或必修");
             }
 
             if (string.IsNullOrWhiteSpace(input.Department))
