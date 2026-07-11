@@ -1,6 +1,4 @@
-window.onload = function() {
-    loadCourses();
-};
+
 
 function getTypeBadge(type) {
     const badges = {
@@ -80,7 +78,7 @@ function publishCourse() {
     })
     .then(res => {
         if (res.ok) {
-            alert('🎉 课程发布成功！');
+            alert('课程发布成功！');
             loadCourses();
             clearForm();
         } else {
@@ -156,7 +154,7 @@ function updateCourse() {
     })
     .then(res => {
         if (res.ok) {
-            alert('✅ 课程更新成功！');
+            alert('课程更新成功！');
             closeModal();
             loadCourses();
         } else {
@@ -176,7 +174,7 @@ function deleteCourse(id) {
     })
     .then(res => {
         if (res.ok) {
-            alert('🗑️ 课程删除成功！');
+            alert('课程删除成功！');
             loadCourses();
         } else {
             return res.text().then(msg => alert('删除失败：' + msg));

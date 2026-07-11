@@ -86,7 +86,8 @@
       grid-column: 1 / -1;
     }
     
-    .form-actions {
+    .form-actions,
+    .modal-content .actions {
       margin-top: 24px;
       padding-top: 20px;
       border-top: 1px solid #e8e8e8;
@@ -189,15 +190,6 @@
       color: #2d3748;
     }
     
-    .modal-content .actions {
-      margin-top: 24px;
-      padding-top: 20px;
-      border-top: 1px solid #e8e8e8;
-      display: flex;
-      justify-content: flex-end;
-      gap: 12px;
-    }
-    
     .data-table {
       background: #fff;
       border-radius: 12px;
@@ -238,10 +230,55 @@
       color: #16a34a;
     }
     
+    .status-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+    
+    .status-badge.pending {
+      background: #fef3c7;
+      color: #d97706;
+    }
+    
+    .status-badge.approved {
+      background: #dcfce7;
+      color: #16a34a;
+    }
+    
+    .status-badge.rejected {
+      background: #fee2e2;
+      color: #dc2626;
+    }
+    
+    .status-badge.ongoing {
+      background: #cffafe;
+      color: #0891b2;
+    }
+    
     .empty-state {
       text-align: center;
       padding: 40px;
       color: #9ca3af;
+    }
+
+    .tab-content {
+      display: none;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+
+    .nav-item {
+      cursor: pointer;
+    }
+    
+    .nav-item.active {
+      background: #007bff !important;
+      color: #fff !important;
     }
   </style>
 </head>
@@ -256,7 +293,8 @@
         </div>
       </div>
       <nav class="nav-menu">
-        <button class="nav-item active" type="button" onclick="location.reload()">课程管理</button>
+        <button class="nav-item active" type="button" onclick="switchTab('courses')">课程管理</button>
+        <button class="nav-item" type="button" onclick="switchTab('applications')">开课申请管理</button>
         <button class="nav-item" type="button">选课批次管理</button>
       </nav>
     </aside>
@@ -268,72 +306,97 @@
       </header>
 
       <main class="content">
-        <h2>📚 课程管理后台</h2>
+        <div id="courses-tab" class="tab-content active">
+          <h2>课程管理后台</h2>
 
-        <div class="form-card">
-          <div class="form-card-header">
-            <span>➕</span>
-            <h3>发布新课程</h3>
+          <div class="form-card">
+            <div class="form-card-header">
+              <h3>发布新课程</h3>
+            </div>
+            
+            <div class="form-grid">
+              <div class="field">
+                <label>课程名称 <span class="required">*</span></label>
+                <input type="text" id="courseName" placeholder="例如：数据库系统">
+              </div>
+              <div class="field">
+                <label>课程类型 <span class="required">*</span></label>
+                <select id="courseType">
+                  <option value="">请选择课程类型</option>
+                  <option value="必修">必修</option>
+                  <option value="选修">选修</option>
+                  <option value="公选">公选</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>学分 <span class="required">*</span></label>
+                <input type="number" id="credit" step="0.5" min="0" placeholder="例如：3.0">
+              </div>
+              <div class="field">
+                <label>总学时 <span class="required">*</span></label>
+                <input type="number" id="totalHours" min="0" placeholder="例如：48">
+              </div>
+              <div class="field">
+                <label>开设院系</label>
+                <input type="text" id="department" placeholder="例如：计算机科学与技术学院">
+              </div>
+              <div class="field">
+                <label>课程编号（自动生成）</label>
+                <input type="text" readonly value="系统自动生成" style="background: #f8f9fa; color: #9ca3af;">
+              </div>
+              <div class="field full-width">
+                <label>课程简介</label>
+                <textarea id="courseDesc" rows="3" placeholder="请输入课程简介（可选）"></textarea>
+              </div>
+            </div>
+            
+            <div class="form-actions">
+              <button class="btn btn-secondary" onclick="clearForm()">重置</button>
+              <button class="btn btn-primary" onclick="publishCourse()">发布课程</button>
+            </div>
           </div>
-          
-          <div class="form-grid">
-            <div class="field">
-              <label>课程名称 <span class="required">*</span></label>
-              <input type="text" id="courseName" placeholder="例如：数据库系统">
-            </div>
-            <div class="field">
-              <label>课程类型 <span class="required">*</span></label>
-              <select id="courseType">
-                <option value="">请选择课程类型</option>
-                <option value="必修">必修</option>
-                <option value="选修">选修</option>
-                <option value="公选">公选</option>
-              </select>
-            </div>
-            <div class="field">
-              <label>学分 <span class="required">*</span></label>
-              <input type="number" id="credit" step="0.5" min="0" placeholder="例如：3.0">
-            </div>
-            <div class="field">
-              <label>总学时 <span class="required">*</span></label>
-              <input type="number" id="totalHours" min="0" placeholder="例如：48">
-            </div>
-            <div class="field">
-              <label>开设院系</label>
-              <input type="text" id="department" placeholder="例如：计算机科学与技术学院">
-            </div>
-            <div class="field">
-              <label>课程编号（自动生成）</label>
-              <input type="text" readonly value="系统自动生成" style="background: #f8f9fa; color: #9ca3af;">
-            </div>
-            <div class="field full-width">
-              <label>课程简介</label>
-              <textarea id="courseDesc" rows="3" placeholder="请输入课程简介（可选）"></textarea>
-            </div>
-          </div>
-          
-          <div class="form-actions">
-            <button class="btn btn-secondary" onclick="clearForm()">重置</button>
-            <button class="btn btn-primary" onclick="publishCourse()">发布课程</button>
-          </div>
+
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>课程编号</th>
+                <th>课程名称</th>
+                <th>课程类型</th>
+                <th>学分</th>
+                <th>总学时</th>
+                <th>开设院系</th>
+                <th>课程简介</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="courseTableBody">
+            </tbody>
+          </table>
         </div>
 
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>课程编号</th>
-              <th>课程名称</th>
-              <th>课程类型</th>
-              <th>学分</th>
-              <th>总学时</th>
-              <th>开设院系</th>
-              <th>课程简介</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody id="courseTableBody">
-          </tbody>
-        </table>
+        <div id="applications-tab" class="tab-content">
+          <h2>开课申请管理</h2>
+
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>申请编号</th>
+                <th>教师工号</th>
+                <th>课程名称</th>
+                <th>课程类型</th>
+                <th>学分</th>
+                <th>总学时</th>
+                <th>开设院系</th>
+                <th>教材</th>
+                <th>申请时间</th>
+                <th>状态</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="applicationTableBody">
+            </tbody>
+          </table>
+        </div>
       </main>
     </section>
   </div>
@@ -383,6 +446,44 @@
     </div>
   </div>
 
+  <div class="modal" id="detailModal">
+    <div class="modal-content">
+      <h3>开课申请详情</h3>
+      <input type="hidden" id="detailApplyId">
+      <div id="detailContent" style="margin-top:16px;line-height:2;"></div>
+      <div class="actions">
+        <button class="btn btn-secondary" onclick="closeDetailModal()">关闭</button>
+        <button class="btn btn-primary" id="btnApprove" onclick="openApproveModal()" style="display:none;">审批</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="approveModal">
+    <div class="modal-content">
+      <h3>审批开课申请</h3>
+      <input type="hidden" id="approveApplyId">
+      <div class="form-grid">
+        <div class="field">
+          <label>审批结果 <span class="required">*</span></label>
+          <select id="approveStatus">
+            <option value="">请选择审批结果</option>
+            <option value="通过">通过</option>
+            <option value="驳回">驳回</option>
+          </select>
+        </div>
+        <div class="field full-width">
+          <label>审批意见</label>
+          <textarea id="approveComment" rows="3" placeholder="请输入审批意见（可选）"></textarea>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-secondary" onclick="closeApproveModal()">取消</button>
+        <button class="btn btn-primary" onclick="submitApproval()">提交审批</button>
+      </div>
+    </div>
+  </div>
+
   <script src="js/pages/admin-course.js"></script>
+  <script src="js/pages/admin-application.js"></script>
 </body>
 </html>

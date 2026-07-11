@@ -1,4 +1,4 @@
-﻿using StudentCourse.Infrastructure;
+using StudentCourse.Infrastructure;
 using StudentCourse.Repositories;
 using StudentCourse.Services;
 
