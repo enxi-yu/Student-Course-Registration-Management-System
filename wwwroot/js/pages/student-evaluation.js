@@ -232,63 +232,93 @@
   };
 
   async function render(container) {
-    // Clear message
-    if (document.getElementById("message-root")) {
-      document.getElementById("message-root").innerHTML = "";
-    }
-
-    container.innerHTML = (
-      '<section class="panel">' +
-        '<h3 class="panel-title">课程评价</h3>' +
-        '<div class="empty-state">正在加载评价数据...</div>' +
-      '</section>'
-    );
-
-    try {
-      var evaluations = await window.nativeApi.request("student.getEvaluations", {});
-
-      if (!evaluations || evaluations.length === 0) {
-        container.innerHTML = (
-          '<section class="panel">' +
-            '<h3 class="panel-title">课程评价</h3>' +
-            '<div class="empty-state">暂无需要评价的课程</div>' +
-          '</section>'
-        );
-        return;
+      // 清空全局消息
+      if (document.getElementById("message-root")) {
+          document.getElementById("message-root").innerHTML = "";
       }
 
-      var pending = evaluations.filter(function(e) { return !e.hasEvaluated; });
-      var done = evaluations.filter(function(e) { return e.hasEvaluated; });
-
-      var html = "";
-
-      // Pending evaluations section
-      if (pending.length > 0) {
-        html += '<section class="panel"><h3 class="panel-title">待评价课程</h3>';
-        html += pending.map(renderPendingCard).join("");
-        html += '</section>';
-      }
-
-      // Completed evaluations section
-      if (done.length > 0) {
-        html += '<section class="panel"><h3 class="panel-title">已评价课程</h3>';
-        html += done.map(renderEvaluatedCard).join("");
-        html += '</section>';
-      }
-
-      container.innerHTML = html;
-
-      // Bind events
-      bindStarEvents(container);
-      bindSubmitEvents(container);
-    } catch (error) {
       container.innerHTML = (
-        '<section class="panel">' +
+          '<section class="panel">' +
           '<h3 class="panel-title">课程评价</h3>' +
-          '<div class="message error">加载评价数据失败：' + escapeHtml(error.message) + '</div>' +
-        '</section>'
+          '<div class="empty-state">正在加载评价数据...</div>' +
+          '</section>'
       );
-    }
+
+      try {
+          // 此时拿到的 evaluations 包含了该学生在成绩表里的所有选课记录
+          var evaluations = await window.nativeApi.request("student.getEvaluations", {});
+
+          // 如果 evaluations 数组完全为空，说明 student_score 里没有任何记录，则没选课
+          if (!evaluations || evaluations.length === 0) {
+              container.innerHTML = (
+                  '<section class="panel">' +
+                  '<h3 class="panel-title">课程评价</h3>' +
+                  '<div class="empty-state" style="padding: 40px 0;">' +
+                  '<div style="font-size: 32px; margin-bottom: 8px;">📭</div>' +
+                  '<div>你还未选修任何课程，暂无需要评价的课程</div>' +
+                  '</div>' +
+                  '</section>'
+              );
+              return;
+          }
+
+          // 待评价课程：必须【已出成绩】且【未评价】
+          var pending = evaluations.filter(function (e) { return e.isGraded && !e.hasEvaluated; });
+          // 已评价课程：【已评价】
+          var done = evaluations.filter(function (e) { return e.hasEvaluated; });
+          // 未出成绩课程：【未出成绩】且【未评价】
+          var noGradeCount = evaluations.filter(function (e) { return !e.isGraded && !e.hasEvaluated; }).length;
+
+          // 有选课数据，但是【待评价】和【已评价】加起来等于，证明选了课，但全部都没出成绩
+          if (pending.length === 0 && done.length === 0) {
+              container.innerHTML = (
+                  '<section class="panel">' +
+                  '<h3 class="panel-title">课程评价</h3>' +
+                  '<div class="empty-state" style="padding: 40px 0;">' +
+                  '<div style="font-size: 32px; margin-bottom: 8px;">⏳</div>' +
+                  '<div style="font-weight: bold; color: #334155;">课程评价将在成绩发布后开放</div>' +
+                  '<div style="font-size: 13px; color: #64748b; margin-top: 6px;">目前你有 ' + noGradeCount + ' 门课程暂未录入成绩，请耐心等待~</div>' +
+                  '</div>' +
+                  '</section>'
+              );
+              return;
+          }
+
+          // 正常渲染列表
+          var html = "";
+
+          // 上半部分：待评价课程
+          if (pending.length > 0) {
+              html += '<section class="panel"><h3 class="panel-title">待评价课程</h3>';
+              html += pending.map(renderPendingCard).join("");
+              html += '</section>';
+          } else if (noGradeCount > 0) {
+              html += '<section class="panel"><h3 class="panel-title">待评价课程</h3>';
+              html += '<div class="empty-state" style="padding: 20px 0; font-size: 13px;">本学期剩余课程将在成绩发布后开放评价~</div>';
+              html += '</section>';
+          }
+
+          // 下半部分：已评价课程
+          if (done.length > 0) {
+              html += '<section class="panel"><h3 class="panel-title">已评价课程</h3>';
+              html += done.map(renderEvaluatedCard).join("");
+              html += '</section>';
+          }
+
+          container.innerHTML = html;
+
+          // 重新绑定星星和提交事件
+          bindStarEvents(container);
+          bindSubmitEvents(container);
+
+      } catch (error) {
+          container.innerHTML = (
+              '<section class="panel">' +
+              '<h3 class="panel-title">课程评价</h3>' +
+              '<div class="message error">加载评价数据失败：' + escapeHtml(error.message) + '</div>' +
+              '</section>'
+          );
+      }
   }
 
   window.studentPages = window.studentPages || {};

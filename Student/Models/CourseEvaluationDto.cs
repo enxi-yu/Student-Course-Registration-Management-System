@@ -1,4 +1,4 @@
-namespace StudentCourse.Student.Models
+﻿namespace StudentCourse.Student.Models
 {
     public sealed class CourseEvaluationDto
     {
@@ -12,6 +12,7 @@ namespace StudentCourse.Student.Models
         public string Comment { get; set; } = string.Empty;
         public string EvaluationDate { get; set; } = string.Empty;
         public bool HasEvaluated { get; set; }
+        public bool IsGraded { get; set; }
     }
 
     public sealed class SubmitEvaluationRequest

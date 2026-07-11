@@ -172,6 +172,11 @@
         return;
       }
 
+      if (page === "evaluation") {
+        await window.studentPages.evaluation.render(container);
+        return;
+      }
+
       if (page === "password") {
         await window.studentPages.password.render(container);
         return;

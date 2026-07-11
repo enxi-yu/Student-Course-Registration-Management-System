@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
   const pending = new Map();
 
   const routeMap = {
@@ -17,7 +17,9 @@
     "student.dropCourse": { method: "POST", url: "/api/student/courses/drop" },
     "student.getSchedule": { method: "GET", url: "/api/student/schedule" },
     "student.getGrades": { method: "GET", url: "/api/student/grades" },
-    "student.getGpa": { method: "GET", url: "/api/student/gpa" }
+    "student.getGpa": { method: "GET", url: "/api/student/gpa" },
+    "student.getEvaluations": { method: "GET", url: "/api/student/evaluations" },
+    "student.submitEvaluation": { method: "POST", url: "/api/student/evaluations" },
   };
 
   function createRequestId() {
