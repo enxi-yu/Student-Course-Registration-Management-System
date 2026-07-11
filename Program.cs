@@ -1,4 +1,4 @@
-using StudentCourse.Infrastructure;
+﻿using StudentCourse.Infrastructure;
 using StudentCourse.Student.Repositories;
 using StudentCourse.Student.Services;
 
@@ -18,6 +18,8 @@ builder.Services.AddScoped<CourseSelectionService>();
 // 模块三：成绩查询与评价（Person 3）
 builder.Services.AddScoped<StudentGradeRepository>();
 builder.Services.AddScoped<StudentGradeService>();
+builder.Services.AddScoped<StudentEvaluationRepository>();
+builder.Services.AddScoped<StudentEvaluationService>();
 
 DbConnectionFactory.Initialize(builder.Configuration);
 

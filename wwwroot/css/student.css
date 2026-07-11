@@ -748,3 +748,176 @@ textarea {
   background: #fef2f2;
   color: var(--danger);
 }
+
+/* === Course Evaluation Styles === */
+
+.eval-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px 20px;
+  margin-bottom: 12px;
+  background: #fff;
+}
+
+.eval-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.eval-course-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.eval-status {
+  font-size: 12px;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-weight: 600;
+}
+
+.eval-status.done {
+  background: #f0fdf4;
+  color: var(--success);
+}
+
+.eval-status.pending-status {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.eval-card-info {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.eval-dot {
+  margin: 0 2px;
+}
+
+.eval-result {
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+
+.eval-rating-display {
+  margin-bottom: 6px;
+}
+
+.eval-star {
+  font-size: 22px;
+  color: #d4d4d8;
+  margin-right: 2px;
+}
+
+.eval-star.filled,
+.eval-star-input.filled {
+  color: #f59e0b;
+}
+
+.eval-star-input {
+  cursor: pointer;
+  transition: color 0.15s;
+  font-size: 24px;
+  margin-right: 4px;
+  user-select: none;
+}
+
+.eval-star-input:hover,
+.eval-star-input.hover {
+  color: #f59e0b;
+}
+
+.eval-star-group {
+  display: inline-flex;
+  align-items: center;
+}
+
+.eval-comment-display {
+  font-size: 13px;
+  color: var(--text);
+  background: #f8fafc;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-bottom: 6px;
+  line-height: 1.5;
+}
+
+.eval-date {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.eval-form {
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.eval-form-row {
+  margin-bottom: 12px;
+}
+
+.eval-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.eval-textarea {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-size: 13px;
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.5;
+  box-sizing: border-box;
+}
+
+.eval-textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(59,130,246,.15);
+}
+
+.eval-submit-btn {
+  padding: 8px 24px;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.eval-submit-btn:hover {
+  background: #2563eb;
+}
+
+.eval-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.eval-card.history-item .eval-card-header {
+  margin-bottom: 4px;
+}
+
+.eval-card.history-item .eval-date {
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+

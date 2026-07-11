@@ -1,19 +1,19 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using StudentCourse.Student.Services;
+using StudentCourse.Student.Models;
 
 namespace StudentCourse.Student.Controllers
 {
-    /// <summary>
-    /// 模块三：成绩查询与课程评价
-    /// </summary>
     [ApiController]
     public sealed class StudentGradeController : ControllerBase
     {
         private readonly StudentGradeService _service;
+        private readonly StudentEvaluationService _evaluationService;
 
-        public StudentGradeController(StudentGradeService service)
+        public StudentGradeController(StudentGradeService service, StudentEvaluationService evaluationService)
         {
             _service = service;
+            _evaluationService = evaluationService;
         }
 
         [HttpGet("api/student/grades")]
@@ -28,6 +28,28 @@ namespace StudentCourse.Student.Controllers
             return SafeOk(() => _service.GetGpaSummary());
         }
 
+        [HttpGet("api/student/evaluations")]
+        public IActionResult GetEvaluableCourses()
+        {
+            return SafeOk(() => _evaluationService.GetEvaluableCourses());
+        }
+
+        [HttpPost("api/student/evaluations")]
+        public IActionResult SubmitEvaluation([FromBody] SubmitEvaluationRequest request)
+        {
+            return SafeOk(() =>
+            {
+                _evaluationService.SubmitEvaluation(request.ClassId, request.Rating, request.Comment);
+                return new { success = true };
+            });
+        }
+
+        [HttpGet("api/student/evaluations/history")]
+        public IActionResult GetEvaluationHistory()
+        {
+            return SafeOk(() => _evaluationService.GetEvaluationHistory());
+        }
+
         private IActionResult SafeOk<T>(Func<T> action)
         {
             try
@@ -40,7 +62,7 @@ namespace StudentCourse.Student.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "服务器内部错误：" + ex.Message });
+                return StatusCode(500, new { message = ex.Message });
             }
         }
     }
