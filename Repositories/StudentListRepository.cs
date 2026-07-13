@@ -38,11 +38,11 @@ namespace StudentCourse.Repositories
                     {
                         students.Add(new StudentListDto
                         {
-                            StudentNo = Convert.ToString(reader["student_no"]),
-                            StudentName = Convert.ToString(reader["student_name"]),
-                            Major = Convert.ToString(reader["major"]),
-                            Grade = Convert.ToString(reader["grade"]),
-                            SelectTime = string.Empty
+                            StudentNo = Convert.ToString(reader["student_no"]) ?? string.Empty,
+                            StudentName = Convert.ToString(reader["student_name"]) ?? string.Empty,
+                            Major = Convert.ToString(reader["major"]) ?? string.Empty,
+                            Grade = Convert.ToString(reader["grade"]) ?? string.Empty,
+                            SelectTime = "-"
                         });
                     }
                 }

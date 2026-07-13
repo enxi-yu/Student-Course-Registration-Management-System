@@ -2,11 +2,11 @@
   const pageMeta = {
     dashboard: { title: "首页" },
     courses: { title: "我的课程", description: "查看当前教师自己的课程和教学班" },
-    schedule: { title: "我的课表", description: "查看当前教师本学期课程安排" },
-    students: { title: "选课名单", description: "查看教学班学生名单和选课信息" },
-    scores: { title: "成绩录入", description: "录入并维护学生课程成绩" },
+    schedule: { title: "我的课表", description: "查看本学期授课安排和上课地点。" },
+    students: { title: "选课名单", description: "查看当前教学班的选课学生信息，并支持导出名单。" },
+    scores: { title: "成绩录入", description: "录入和维护学生课程成绩，系统自动生成成绩等级。" },
     applications: { title: "开课申请", description: "提交和查看教师开课申请" },
-    password: { title: "修改密码", description: "修改当前账号登录密码" }
+    password: { title: "修改密码", description: "修改当前账号密码，保障账户安全。" }
   };
 
   const state = {
@@ -32,10 +32,10 @@
     }
 
     if (text.indexOf("请先登录") >= 0) {
-      return "请先登录";
+      return "请先登录后查看教师端信息。";
     }
 
-    return text || "请先登录";
+    return text || "请先登录后查看教师端信息。";
   }
 
   function updateTeacherSummary(teacher) {
@@ -58,7 +58,6 @@
     const meta = pageMeta[page] || pageMeta.dashboard;
     document.getElementById("view-title").textContent = meta.title;
     document.getElementById("view-description").textContent = meta.description;
-    document.getElementById("view-subtitle").textContent = meta.description;
   }
 
   function renderAccessMessage(message) {
@@ -72,7 +71,6 @@
     document.getElementById("page-root").innerHTML = `
       <section class="panel">
         <h3 class="panel-title">${title}</h3>
-        <p>教师端不提供独立登录入口。请通过公共登录入口登录后进入教师端。</p>
         <div class="dev-panel">
           <button class="primary-button" type="button" id="dev-teacher-button">开发测试：使用教师 Mock Session</button>
           <button class="ghost-button" type="button" id="dev-student-button">开发测试：使用非教师 Mock Session</button>
@@ -159,7 +157,7 @@
     document.getElementById("page-root").innerHTML = `
       <section class="panel">
         <h3 class="panel-title">正在进入教师端...</h3>
-        <div class="empty-state">正在读取当前 UserSession</div>
+        <div class="empty-state">正在读取当前登录状态</div>
       </section>
     `;
 

@@ -51,7 +51,7 @@ namespace StudentCourse.Services
                         throw new InvalidOperationException("该学生未选择此教学班");
                     }
 
-                    ScoreDto existing = _scoreRepository.GetScore(connection, transaction, request.ClassId, request.StudentNo);
+                    ScoreDto? existing = _scoreRepository.GetScore(connection, transaction, request.ClassId, request.StudentNo);
                     if (existing != null && existing.TotalScore.HasValue && string.IsNullOrWhiteSpace(request.UpdateRemark))
                     {
                         throw new InvalidOperationException("修改已有成绩时必须填写修改备注");
@@ -112,7 +112,7 @@ namespace StudentCourse.Services
                             throw new InvalidOperationException("学生 " + row.StudentNo + " 未选择此教学班");
                         }
 
-                        ScoreDto existing = _scoreRepository.GetScore(connection, transaction, row.ClassId, row.StudentNo);
+                        ScoreDto? existing = _scoreRepository.GetScore(connection, transaction, row.ClassId, row.StudentNo);
                         if (existing != null && existing.TotalScore.HasValue && string.IsNullOrWhiteSpace(row.UpdateRemark))
                         {
                             throw new InvalidOperationException("修改学生 " + row.StudentNo + " 的已有成绩时必须填写修改备注");
@@ -147,27 +147,53 @@ namespace StudentCourse.Services
 
         public ScoreCalculation Calculate(decimal totalScore, decimal credit)
         {
+            string gradeLevel = CalculateGradeLevel(totalScore);
+            if (gradeLevel == "A")
+            {
+                return new ScoreCalculation(gradeLevel, 4.0m, credit);
+            }
+
+            if (gradeLevel == "B")
+            {
+                return new ScoreCalculation(gradeLevel, 3.0m, credit);
+            }
+
+            if (gradeLevel == "C")
+            {
+                return new ScoreCalculation(gradeLevel, 2.0m, credit);
+            }
+
+            if (gradeLevel == "D")
+            {
+                return new ScoreCalculation(gradeLevel, 1.0m, credit);
+            }
+
+            return new ScoreCalculation(gradeLevel, 0m, 0m);
+        }
+
+        public string CalculateGradeLevel(decimal totalScore)
+        {
             if (totalScore >= 90m)
             {
-                return new ScoreCalculation("A", 4.0m, credit);
+                return "A";
             }
 
             if (totalScore >= 80m)
             {
-                return new ScoreCalculation("B", 3.0m, credit);
+                return "B";
             }
 
             if (totalScore >= 70m)
             {
-                return new ScoreCalculation("C", 2.0m, credit);
+                return "C";
             }
 
             if (totalScore >= 60m)
             {
-                return new ScoreCalculation("D", 1.0m, credit);
+                return "D";
             }
 
-            return new ScoreCalculation("F", 0m, 0m);
+            return "F";
         }
 
         private static void ValidateScoreRequest(ScoreSaveRequest request)

@@ -23,6 +23,8 @@ namespace StudentCourse.Repositories
                        TO_CHAR(ss.update_time, 'YYYY-MM-DD HH24:MI:SS') AS update_time
                   FROM course_select cs
                   JOIN teaching_class tc ON tc.class_id = cs.class_id
+                  JOIN section sec ON sec.section_id = tc.section_id
+                  JOIN course c ON c.course_id = sec.course_id
                   JOIN student s ON s.student_no = cs.student_no
                   JOIN ""user"" u ON u.user_id = s.user_id
                   LEFT JOIN student_score ss ON ss.class_id = cs.class_id
@@ -91,10 +93,16 @@ namespace StudentCourse.Repositories
                 UpdateScore(connection, transaction, scoreId, totalScore, gradeLevel, gpa, creditObtained, updateRemark);
             }
 
-            return GetScore(connection, transaction, classId, studentNo);
+            ScoreDto? saved = GetScore(connection, transaction, classId, studentNo);
+            if (saved == null)
+            {
+                throw new InvalidOperationException("成绩保存失败，请刷新后重试");
+            }
+
+            return saved;
         }
 
-        public ScoreDto GetScore(OracleConnection connection, OracleTransaction transaction, int classId, string studentNo)
+        public ScoreDto? GetScore(OracleConnection connection, OracleTransaction transaction, int classId, string studentNo)
         {
             const string sql = @"
                 SELECT s.student_no,
@@ -146,8 +154,8 @@ namespace StudentCourse.Repositories
                 command.Transaction = transaction;
                 command.Parameters.Add("classId", OracleDbType.Int32).Value = classId;
                 command.Parameters.Add("studentNo", OracleDbType.Varchar2).Value = studentNo;
-                object result = command.ExecuteScalar();
-                return result == null || result == DBNull.Value ? string.Empty : Convert.ToString(result);
+                object? result = command.ExecuteScalar();
+                return result == null || result == DBNull.Value ? string.Empty : Convert.ToString(result) ?? string.Empty;
             }
         }
 
@@ -254,15 +262,15 @@ namespace StudentCourse.Repositories
         {
             return new ScoreDto
             {
-                StudentNo = Convert.ToString(reader["student_no"]),
-                StudentName = Convert.ToString(reader["student_name"]),
+                StudentNo = Convert.ToString(reader["student_no"]) ?? string.Empty,
+                StudentName = Convert.ToString(reader["student_name"]) ?? string.Empty,
                 ClassId = ToInt32(reader["class_id"]),
                 TotalScore = ToNullableDecimal(reader["total_score"]),
-                GradeLevel = Convert.ToString(reader["grade_level"]),
+                GradeLevel = Convert.ToString(reader["grade_level"]) ?? string.Empty,
                 Gpa = ToNullableDecimal(reader["gpa"]),
                 CreditObtained = ToDecimal(reader["credit_obtained"]),
-                UpdateRemark = Convert.ToString(reader["update_remark"]),
-                UpdateTime = Convert.ToString(reader["update_time"])
+                UpdateRemark = Convert.ToString(reader["update_remark"]) ?? string.Empty,
+                UpdateTime = Convert.ToString(reader["update_time"]) ?? string.Empty
             };
         }
 

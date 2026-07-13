@@ -18,6 +18,7 @@ builder.Services.AddScoped<TeacherStudentService>();
 builder.Services.AddScoped<CourseApplicationService>();
 builder.Services.AddScoped<ScoreService>();
 builder.Services.AddScoped<AccountService>();
+builder.Services.AddScoped<ExportService>();
 
 DbConnectionFactory.Initialize(builder.Configuration);
 UserSessionContext.UseDevelopmentTeacherSession();

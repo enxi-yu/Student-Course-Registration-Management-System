@@ -7,7 +7,17 @@ namespace StudentCourse.Services
 {
     public sealed class ExportService
     {
+        public byte[] BuildClassStudentsCsv(IList<StudentListDto> students)
+        {
+            return new UTF8Encoding(true).GetBytes(BuildClassStudentsCsvText(students));
+        }
+
         public void ExportClassStudentsCsv(string path, IList<StudentListDto> students)
+        {
+            File.WriteAllBytes(path, BuildClassStudentsCsv(students));
+        }
+
+        private static string BuildClassStudentsCsvText(IList<StudentListDto> students)
         {
             StringBuilder builder = new StringBuilder();
             builder.AppendLine("学号,姓名,专业,年级,选课时间");
@@ -22,10 +32,10 @@ namespace StudentCourse.Services
                     Csv(student.SelectTime));
             }
 
-            File.WriteAllText(path, builder.ToString(), new UTF8Encoding(true));
+            return builder.ToString();
         }
 
-        private static string Csv(string value)
+        private static string Csv(string? value)
         {
             if (string.IsNullOrEmpty(value))
             {

@@ -41,8 +41,8 @@
         <td>${course.selectedCount}</td>
         <td>
           <div class="row-actions">
-            <button class="secondary-button js-view-students" type="button" data-class-id="${course.classId}" data-class-name="${escapeHtml(course.className)}">查看学生</button>
-            <button class="primary-button js-score-entry" type="button" data-class-id="${course.classId}" data-class-name="${escapeHtml(course.className)}">录入成绩</button>
+            <button class="secondary-button js-view-students" type="button" data-class-id="${course.classId}" data-class-name="${escapeHtml(course.className)}" data-course-name="${escapeHtml(course.courseName)}">查看学生</button>
+            <button class="primary-button js-score-entry" type="button" data-class-id="${course.classId}" data-class-name="${escapeHtml(course.className)}" data-course-name="${escapeHtml(course.courseName)}">录入成绩</button>
           </div>
         </td>
       </tr>
@@ -80,7 +80,8 @@
       button.addEventListener("click", () => {
         window.openTeacherPage("students", {
           classId: Number(button.dataset.classId),
-          className: button.dataset.className
+          className: button.dataset.className,
+          courseName: button.dataset.courseName
         });
       });
     });
@@ -89,7 +90,8 @@
       button.addEventListener("click", () => {
         window.openTeacherPage("scores", {
           classId: Number(button.dataset.classId),
-          className: button.dataset.className
+          className: button.dataset.className,
+          courseName: button.dataset.courseName
         });
       });
     });

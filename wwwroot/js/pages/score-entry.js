@@ -28,7 +28,7 @@
         </td>
         <td class="grade-cell">${escapeHtml(score.gradeLevel || "-")}</td>
         <td class="gpa-cell">${score.gpa === null || score.gpa === undefined ? "-" : score.gpa}</td>
-        <td class="credit-cell">${score.creditObtained || 0}</td>
+        <td class="credit-cell">${hasScore ? (score.creditObtained ?? "-") : "-"}</td>
         <td>
           <input class="remark-input" type="text" value="${escapeHtml(score.updateRemark || "")}" placeholder="${hasScore ? "修改原因" : "可选"}">
         </td>
@@ -111,6 +111,7 @@
   async function render(container, options) {
     const classId = Number(options && options.classId);
     const className = options && options.className ? options.className : `教学班 ${classId || "-"}`;
+    const courseName = options && options.courseName ? options.courseName : "";
 
     if (!classId) {
       container.innerHTML = `
@@ -126,8 +127,8 @@
       <section class="panel">
         <div class="toolbar">
           <div>
-            <h3 class="panel-title">${escapeHtml(className)}</h3>
-            <p class="metric-note">教学班编号：${classId}</p>
+            <h3 class="panel-title">${escapeHtml(courseName || "成绩录入")}</h3>
+            <p class="metric-note">教学班：${escapeHtml(className)} · 教学班编号：${classId}</p>
           </div>
           <button class="primary-button" type="button" id="batch-save-scores">批量保存</button>
         </div>
@@ -140,7 +141,7 @@
               <th>学号</th>
               <th>姓名</th>
               <th>总评成绩</th>
-              <th>等级</th>
+              <th>成绩等级</th>
               <th>GPA</th>
               <th>获得学分</th>
               <th>修改备注</th>

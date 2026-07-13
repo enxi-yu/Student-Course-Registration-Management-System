@@ -40,9 +40,37 @@
     body.innerHTML = students.map(row).join("");
   }
 
+  async function downloadStudentsCsv(classId) {
+    const url = `/api/teacher/classes/${encodeURIComponent(classId)}/students/export`;
+    const response = await fetch(url, {
+      method: "GET",
+      credentials: "include"
+    });
+
+    if (!response.ok) {
+      const contentType = response.headers.get("content-type") || "";
+      const data = contentType.includes("application/json")
+        ? await response.json()
+        : await response.text();
+      const message = data && data.message ? data.message : String(data || "导出名单失败");
+      throw new Error(message);
+    }
+
+    const blob = await response.blob();
+    const objectUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = objectUrl;
+    link.download = `class_students_${classId}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(objectUrl);
+  }
+
   async function render(container, options) {
     const classId = Number(options && options.classId);
     const className = options && options.className ? options.className : `教学班 ${classId || "-"}`;
+    const courseName = options && options.courseName ? options.courseName : "";
 
     if (!classId) {
       container.innerHTML = `
@@ -58,10 +86,10 @@
       <section class="panel">
         <div class="toolbar">
           <div>
-            <h3 class="panel-title">${escapeHtml(className)}</h3>
-            <p class="metric-note">教学班编号：${classId}</p>
+            <h3 class="panel-title">${escapeHtml(courseName || "选课名单")}</h3>
+            <p class="metric-note">教学班：${escapeHtml(className)} · 教学班编号：${classId}</p>
           </div>
-          <button class="primary-button" type="button" id="export-students-button">导出 CSV</button>
+          <button class="primary-button" type="button" id="export-students-button">导出名单</button>
         </div>
       </section>
 
@@ -83,8 +111,7 @@
 
     document.getElementById("export-students-button").addEventListener("click", async () => {
       try {
-        const result = await window.nativeApi.request("teacher.exportClassStudentsCsv", { classId });
-        alert(result.path ? `导出成功：${result.path}` : result.message);
+        await downloadStudentsCsv(classId);
       } catch (error) {
         alert(error.message);
       }
