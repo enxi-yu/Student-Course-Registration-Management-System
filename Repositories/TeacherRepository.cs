@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Oracle.ManagedDataAccess.Client;
 using Oracle.ManagedDataAccess.Types;
@@ -57,7 +57,7 @@ namespace StudentCourse.Repositories
             }
         }
 
-        public TeacherDashboardDto GetDashboard(string teacherNo)
+        public TeacherDashboardDto GetDashboard(string teacherNo, string semester)
         {
             const string sql = @"
                 SELECT COUNT(DISTINCT tc.class_id) AS class_count,
@@ -80,12 +80,15 @@ namespace StudentCourse.Repositories
                   FROM teaching_class tc
                   JOIN section s ON s.section_id = tc.section_id
                   LEFT JOIN course_select cs ON cs.class_id = tc.class_id
-                 WHERE tc.teacher_no = :teacherNo";
+                 WHERE tc.teacher_no = :teacherNo
+                   AND (:semester IS NULL OR s.semester = :semester)";
 
             using (OracleConnection connection = DbConnectionFactory.OpenConnection())
             using (OracleCommand command = CreateCommand(connection, sql))
             {
                 command.Parameters.Add("teacherNo", OracleDbType.Varchar2).Value = teacherNo;
+                command.Parameters.Add("semester", OracleDbType.Varchar2).Value =
+                    string.IsNullOrWhiteSpace(semester) ? (object)DBNull.Value : semester.Trim();
                 using (OracleDataReader reader = command.ExecuteReader())
                 {
                     if (!reader.Read())

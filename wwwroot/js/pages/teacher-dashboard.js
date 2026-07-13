@@ -11,6 +11,25 @@
     return Number.isFinite(Number(value)) ? Number(value) : 0;
   }
 
+  function uniqueSemesters(items) {
+    return Array.from(new Set((items || [])
+      .map((item) => item.semester)
+      .filter((semester) => semester && String(semester).trim())))
+      .sort((left, right) => String(right).localeCompare(String(left)));
+  }
+
+  function semesterOptions(semesters, selected) {
+    if (!semesters.length) {
+      return '<option value="">暂无学期数据</option>';
+    }
+
+    return semesters.map((semester) => {
+      const value = escapeHtml(semester);
+      const isSelected = semester === selected ? " selected" : "";
+      return `<option value="${value}"${isSelected}>${value}</option>`;
+    }).join("");
+  }
+
   function metricCard(label, value, note, tone) {
     return `
       <article class="metric-card metric-card-${tone || "blue"}">
@@ -34,18 +53,6 @@
     return `<button class="${style || "secondary-button"} dashboard-action" type="button" data-dashboard-page="${page}">${escapeHtml(label)}</button>`;
   }
 
-  function todoItem(title, detail, state) {
-    return `
-      <li class="todo-item">
-        <span class="todo-dot ${state || ""}"></span>
-        <div>
-          <div class="todo-title">${escapeHtml(title)}</div>
-          <div class="todo-detail">${escapeHtml(detail)}</div>
-        </div>
-      </li>
-    `;
-  }
-
   function formatToday() {
     return new Intl.DateTimeFormat("zh-CN", {
       year: "numeric",
@@ -65,6 +72,35 @@
     });
   }
 
+  async function loadDashboard(container) {
+    const semesterSelect = document.getElementById("dashboard-semester-filter");
+    const semester = semesterSelect ? semesterSelect.value : "";
+    const data = await window.nativeApi.request("teacher.getDashboard", { semester });
+    const pendingScoreCount = numberValue(data.pendingScoreCount);
+    const courseCount = numberValue(data.courseCount);
+    const classCount = numberValue(data.classCount);
+    const studentCount = numberValue(data.studentCount);
+
+    document.getElementById("dashboard-metrics").innerHTML = `
+      ${metricCard("本学期课程", courseCount, semester ? `${semester} 课程数` : "当前教师负责的课程数", "blue")}
+      ${metricCard("教学班", classCount, semester ? `${semester} 教学班` : "可进入名单与成绩管理", "cyan")}
+      ${metricCard("选课学生", studentCount, semester ? `${semester} 已选人数` : "所有教学班已选人数", "green")}
+      ${metricCard("待录成绩", pendingScoreCount, pendingScoreCount > 0 ? "建议优先处理" : "暂无待处理", "amber")}
+    `;
+
+    document.getElementById("dashboard-profile").innerHTML = `
+      ${profileItem("教师姓名", data.teacherName)}
+      ${profileItem("教师工号", data.teacherNo)}
+      ${profileItem("职称", data.title)}
+      ${profileItem("所属院系", data.department)}
+    `;
+
+    const summary = document.getElementById("dashboard-summary");
+    if (summary) {
+      summary.textContent = semester ? `当前统计学期：${semester}` : "当前统计学期：未选择";
+    }
+  }
+
   async function render(container) {
     container.innerHTML = `
       <section class="panel dashboard-loading">
@@ -73,18 +109,16 @@
       </section>
     `;
 
-    const data = await window.nativeApi.request("teacher.getDashboard", {});
-    const pendingScoreCount = numberValue(data.pendingScoreCount);
-    const courseCount = numberValue(data.courseCount);
-    const classCount = numberValue(data.classCount);
-    const studentCount = numberValue(data.studentCount);
+    const allCourses = await window.nativeApi.request("teacher.getMyCourses", { semester: "" });
+    const semesters = uniqueSemesters(allCourses);
+    const selectedSemester = semesters[0] || "";
 
     container.innerHTML = `
       <section class="dashboard-hero">
         <div>
           <div class="hero-kicker">${escapeHtml(formatToday())}</div>
-          <h3>欢迎回来，${escapeHtml(data.teacherName || "老师")}</h3>
-          <p>${escapeHtml(data.department || "-")} · ${escapeHtml(data.title || "教师")} · 工号 ${escapeHtml(data.teacherNo || "-")}</p>
+          <h3>教师工作台</h3>
+          <p id="dashboard-summary">当前统计学期：${escapeHtml(selectedSemester || "未选择")}</p>
         </div>
         <div class="hero-actions">
           ${actionButton("查看我的课程", "courses", "primary-button")}
@@ -92,12 +126,21 @@
         </div>
       </section>
 
-      <section class="dashboard-grid">
-        ${metricCard("本学期课程", courseCount, "当前教师负责的课程数", "blue")}
-        ${metricCard("教学班", classCount, "可进入名单与成绩管理", "cyan")}
-        ${metricCard("选课学生", studentCount, "所有教学班已选人数", "green")}
-        ${metricCard("待录成绩", pendingScoreCount, pendingScoreCount > 0 ? "建议优先处理" : "暂无待处理", "amber")}
+      <section class="panel">
+        <div class="toolbar">
+          <div class="field">
+            <label for="dashboard-semester-filter">首页统计学期</label>
+            <select id="dashboard-semester-filter" ${semesters.length ? "" : "disabled"}>
+              ${semesterOptions(semesters, selectedSemester)}
+            </select>
+          </div>
+          <div class="toolbar-actions">
+            <button class="primary-button" type="button" id="load-dashboard-button">刷新统计</button>
+          </div>
+        </div>
       </section>
+
+      <section class="dashboard-grid" id="dashboard-metrics"></section>
 
       <section class="dashboard-layout">
         <article class="panel dashboard-profile">
@@ -105,12 +148,7 @@
             <h3 class="panel-title">个人信息</h3>
             <span class="status-badge status-approved">已登录</span>
           </div>
-          <div class="profile-grid profile-grid-compact">
-            ${profileItem("教师姓名", data.teacherName)}
-            ${profileItem("教师工号", data.teacherNo)}
-            ${profileItem("职称", data.title)}
-            ${profileItem("所属院系", data.department)}
-          </div>
+          <div class="profile-grid profile-grid-compact" id="dashboard-profile"></div>
         </article>
 
         <article class="panel quick-panel">
@@ -125,7 +163,10 @@
       </section>
     `;
 
+    document.getElementById("load-dashboard-button").addEventListener("click", () => loadDashboard(container));
+    document.getElementById("dashboard-semester-filter").addEventListener("change", () => loadDashboard(container));
     bindDashboardActions(container);
+    await loadDashboard(container);
   }
 
   window.teacherPages = window.teacherPages || {};

@@ -32,9 +32,9 @@ namespace StudentCourse.Controllers
         }
 
         [HttpGet("api/teacher/dashboard")]
-        public IActionResult GetDashboard()
+        public IActionResult GetDashboard([FromQuery] string? semester)
         {
-            return SafeOk(() => _teacherService.GetDashboard());
+            return SafeOk(() => _teacherService.GetDashboard(semester));
         }
 
         [HttpGet("api/teacher/courses")]

@@ -1,6 +1,6 @@
 ﻿(function () {
   const pageMeta = {
-    dashboard: { title: "首页", description: "查看教师信息和本学期教学统计" },
+    dashboard: { title: "首页" },
     courses: { title: "我的课程", description: "查看当前教师自己的课程和教学班" },
     schedule: { title: "我的课表", description: "查看当前教师本学期课程安排" },
     students: { title: "选课名单", description: "查看教学班学生名单和选课信息" },

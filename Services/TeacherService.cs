@@ -50,13 +50,13 @@ namespace StudentCourse.Services
             return info;
         }
 
-        public TeacherDashboardDto GetDashboard()
+        public TeacherDashboardDto GetDashboard(string semester)
         {
             TeacherInfo teacher = GetCurrentTeacher();
 
             try
             {
-                TeacherDashboardDto dashboard = _teacherRepository.GetDashboard(teacher.TeacherNo);
+                TeacherDashboardDto dashboard = _teacherRepository.GetDashboard(teacher.TeacherNo, semester);
                 dashboard.TeacherName = teacher.TeacherName;
                 dashboard.TeacherNo = teacher.TeacherNo;
                 dashboard.Title = teacher.Title;
