@@ -20,23 +20,27 @@ StudentCourse.sln
 │   │   ├── UserSession.cs
 │   │   ├── StudentInfo.cs
 │   │   ├── StudentDashboardDto.cs
+│   │   ├── StudentProfileRequests.cs
 │   │   ├── CourseSelectionDto.cs
 │   │   ├── CourseDetailDto.cs
 │   │   ├── SelectionResultDto.cs
 │   │   ├── ScheduleItemDto.cs
 │   │   ├── EnrolledCourseDto.cs
-│   │   └── GpaSummaryDto.cs
+│   │   ├── GpaSummaryDto.cs
+│   │   └── CourseEvaluationDto.cs
 │   │
 │   ├── Repositories/                         # 数据访问层
 │   │   ├── StudentProfileRepository.cs       # 模块一：学生信息 + Dashboard
 │   │   ├── CourseSelectionRepository.cs      # 模块二：选课/退课 + 课表
-│   │   └── StudentGradeRepository.cs         # 模块三：成绩 + GPA
+│   │   ├── StudentGradeRepository.cs         # 模块三：成绩 + GPA
+│   │   └── StudentEvaluationRepository.cs
 │   │
 │   ├── Services/                             # 业务逻辑层
 │   │   ├── UserSessionContext.cs
 │   │   ├── StudentProfileService.cs          # 模块一
 │   │   ├── CourseSelectionService.cs         # 模块二
-│   │   └── StudentGradeService.cs            # 模块三
+│   │   ├── StudentGradeService.cs            # 模块三
+│   │   └── StudentEvaluationService.cs
 │   │
 │   ├── Controllers/                          # API 接口层
 │   │   ├── SystemController.cs               # 系统：ping / 数据库测试 / Mock Session
@@ -48,12 +52,14 @@ StudentCourse.sln
 │       ├── index.html                        # 入口（跳转 /student.html）
 │       ├── student.html                      # 学生端 SPA 壳
 │       ├── css/
-│       │   └── student.css
+│       │   ├── student.css
+│       │   └── site.css
 │       └── js/
 │           ├── api.js                        # 统一 API 通信层
 │           ├── student-app.js                # SPA 路由
 │           └── pages/
 │               ├── student-dashboard.js      # 首页仪表盘
+│               ├── student-profile.js        # 修改个人信息
 │               ├── student-courses.js        # 选课中心
 │               ├── student-schedule.js       # 我的课表
 │               ├── student-grades.js         # 成绩查询
@@ -73,6 +79,8 @@ StudentCourse.sln
 | POST | `/api/auth/logout` | 系统 | 退出登录 |
 | GET | `/api/student/current` | 模块一 | 当前学生信息 |
 | GET | `/api/student/dashboard` | 模块一 | 首页仪表盘 |
+| PUT | `/api/student/profile` | 模块一 | 修改联系方式 |
+| POST | `/api/student/password` | 模块一 | 修改密码 |
 | GET | `/api/student/courses/available` | 模块二 | 可选课程列表 |
 | GET | `/api/student/courses/{id}` | 模块二 | 课程详情 |
 | POST | `/api/student/courses/select` | 模块二 | 选课 |
@@ -80,6 +88,9 @@ StudentCourse.sln
 | GET | `/api/student/schedule` | 模块二 | 周课表 |
 | GET | `/api/student/grades` | 模块三 | 已修课程成绩 |
 | GET | `/api/student/gpa` | 模块三 | GPA 汇总 |
+| GET | `/api/student/evaluations` | 模块三 | 课程评价 |
+| POST | `/api/student/evaluations` | 模块三 | 提交评价 |
+| GET | `/api/student/evaluations/history` | 模块三 | 评价历史 |
 
 ## 数据流
 
