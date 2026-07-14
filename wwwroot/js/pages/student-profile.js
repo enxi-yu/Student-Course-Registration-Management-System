@@ -152,7 +152,7 @@
   }
 
   window.studentPages = window.studentPages || {};
-  window.studentPages.password = {
+  window.studentPages.profile = {
     render
   };
 })();

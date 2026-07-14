@@ -107,12 +107,12 @@ namespace StudentCourse.Student.Services
             }
 
             string storedPassword = _repository.GetPasswordHash(student.UserId);
-            if (!string.Equals(storedPassword, Md5Hex(oldPassword), StringComparison.OrdinalIgnoreCase))
+            if (!PasswordMatches(storedPassword, oldPassword))
             {
                 throw new InvalidOperationException("原密码不正确。");
             }
 
-            _repository.UpdatePassword(student.UserId, Md5Hex(newPassword));
+            _repository.UpdatePassword(student.UserId, FormatNewPassword(storedPassword, newPassword));
             return new OperationResultDto
             {
                 Success = true,
@@ -123,6 +123,22 @@ namespace StudentCourse.Student.Services
         private static string Normalize(string? value)
         {
             return (value ?? string.Empty).Trim();
+        }
+
+        private static bool PasswordMatches(string storedPassword, string inputPassword)
+        {
+            return string.Equals(storedPassword, inputPassword, StringComparison.Ordinal)
+                || string.Equals(storedPassword, Md5Hex(inputPassword), StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string FormatNewPassword(string storedPassword, string newPassword)
+        {
+            return IsMd5Hex(storedPassword) ? Md5Hex(newPassword) : newPassword;
+        }
+
+        private static bool IsMd5Hex(string value)
+        {
+            return value.Length == 32 && value.All(Uri.IsHexDigit);
         }
 
         private static string Md5Hex(string value)
