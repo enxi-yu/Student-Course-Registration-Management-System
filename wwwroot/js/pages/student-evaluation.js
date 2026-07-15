@@ -1,4 +1,4 @@
-﻿(function () {
+(function () {
   function escapeHtml(value) {
     return String(value === null || value === undefined ? "" : value)
       .replace(/&/g, "&amp;")

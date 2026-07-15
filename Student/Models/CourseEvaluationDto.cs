@@ -1,4 +1,4 @@
-﻿namespace StudentCourse.Student.Models
+namespace StudentCourse.Student.Models
 {
     public sealed class CourseEvaluationDto
     {

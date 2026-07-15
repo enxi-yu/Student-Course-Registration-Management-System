@@ -65,6 +65,9 @@ namespace StudentCourse.Student.Repositories
 
             const string overallSql = @"
                 SELECT NVL(SUM(ss.credit_obtained), 0) AS total_credits,
+
+                       NVL(SUM(CASE WHEN c.course_type = '必修' THEN ss.credit_obtained ELSE 0 END), 0) AS mandatory_credits,
+                       NVL(SUM(CASE WHEN c.course_type IN ('选修', '公选') THEN ss.credit_obtained ELSE 0 END), 0) AS elective_credits,
                        NVL(
                            SUM(CASE WHEN ss.gpa IS NOT NULL THEN ss.gpa * c.credit ELSE 0 END)
                            / NULLIF(SUM(CASE WHEN ss.gpa IS NOT NULL THEN c.credit ELSE 0 END), 0),
@@ -87,6 +90,8 @@ namespace StudentCourse.Student.Repositories
                         if (reader.Read())
                         {
                             summary.TotalCreditsFinished = StudentProfileRepository.SafeGetDecimal(reader["total_credits"]);
+                            summary.MandatoryCreditsFinished = StudentProfileRepository.SafeGetDecimal(reader["mandatory_credits"]);
+                            summary.ElectiveCreditsFinished = StudentProfileRepository.SafeGetDecimal(reader["elective_credits"]);
                             summary.AvgGpa = Math.Round(StudentProfileRepository.SafeGetDecimal(reader["avg_gpa"]), 2);
                             summary.TotalCourses = StudentProfileRepository.SafeGetInt(reader["total_courses"]);
                         }

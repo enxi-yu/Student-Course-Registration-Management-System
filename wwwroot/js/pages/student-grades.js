@@ -17,24 +17,28 @@
       .replace(/'/g, "&#39;");
   }
 
-  function renderGpaCards(gpa) {
+function renderGpaCards(gpa) {
     return `
-      <div class="gpa-grid">
-        <div class="gpa-card">
-          <div class="gpa-label">总平均绩点</div>
-          <div class="gpa-value">${formatNumber(gpa.avgGpa, 2)}</div>
-        </div>
-        <div class="gpa-card">
-          <div class="gpa-label">已修学分</div>
-          <div class="gpa-value">${formatNumber(gpa.totalCreditsFinished, 1, "0.0")}</div>
-        </div>
-        <div class="gpa-card">
-          <div class="gpa-label">已出成绩课程</div>
-          <div class="gpa-value">${gpa.totalCourses || 0}</div>
-        </div>
-      </div>
-    `;
-  }
+    <div class="gpa-grid">
+    <div class="gpa-card">
+        <div class="gpa-label">总平均绩点</div>
+        <div class="gpa-value" style="color: #2563eb;">${formatNumber(gpa.avgGpa, 2)}</div>
+    </div>
+    <div class="gpa-card">
+        <div class="gpa-label">总已修学分</div>
+        <div class="gpa-value">${formatNumber(gpa.totalCreditsFinished, 1, "0.0")}</div>
+    </div>
+    <div class="gpa-card">
+        <div class="gpa-label">必修学分</div>
+        <div class="gpa-value" style="color: #16a34a;">${formatNumber(gpa.mandatoryCreditsFinished, 1, "0.0")}</div>
+    </div>
+    <div class="gpa-card">
+        <div class="gpa-label">选修/公选学分</div>
+        <div class="gpa-value" style="color: #ea580c;">${formatNumber(gpa.electiveCreditsFinished, 1, "0.0")}</div>
+    </div>
+    </div>
+`;
+}
 
   function groupCoursesBySemester(courses) {
     const groups = new Map();
