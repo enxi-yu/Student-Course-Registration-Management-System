@@ -61,7 +61,17 @@ function renderGpaCards(gpa) {
 
   function renderSemesterTable(group, gpa, index) {
     const summary = findSemesterSummary(gpa, group.semester);
-    const rows = group.items.map((item, rowIndex) => `
+    const rows = group.items.map((item, rowIndex) => {
+      const isGraded = item.totalScore != null;
+
+      let passBadge = "";
+      if (!isGraded) {
+          passBadge = `<span class="pass-badge" style="background: #f1f5f9; color: #94a3b8;">-</span>`;
+      } else {
+          passBadge = `<span class="pass-badge ${item.isPassed ? "passed" : "pending"}" ${!item.isPassed ? 'style="background: #fee2e2; color: #ef4444;"' : ''}>${item.isPassed ? "是" : "否"}</span>`;
+      }
+
+      return `
       <tr>
         <td>${rowIndex + 1}</td>
         <td>${escapeHtml(item.courseCode || "-")}</td>
@@ -69,9 +79,10 @@ function renderGpaCards(gpa) {
         <td>${formatNumber(item.credit, 1)}</td>
         <td>${item.gpa != null ? formatNumber(item.gpa, 2) : "-"}</td>
         <td>${item.totalScore != null ? formatNumber(item.totalScore, 1) : escapeHtml(item.gradeLevel || "未录入")}</td>
-        <td><span class="pass-badge ${item.isPassed ? "passed" : "pending"}">${item.isPassed ? "是" : "否"}</span></td>
+        <td>${passBadge}</td>
       </tr>
-    `).join("");
+    `;
+    }).join("");
 
     return `
       <section class="panel semester-grade-panel">
@@ -99,7 +110,6 @@ function renderGpaCards(gpa) {
             <tbody>${rows}</tbody>
           </table>
         </div>
-        <div class="semester-grade-footer">第 ${index + 1} 个学期统计：平均绩点 ${formatNumber(summary.avgGpa, 2)}</div>
       </section>
     `;
   }

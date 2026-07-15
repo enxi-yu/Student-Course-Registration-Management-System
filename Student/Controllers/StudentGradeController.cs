@@ -39,7 +39,14 @@ namespace StudentCourse.Student.Controllers
         {
             return SafeOk(() =>
             {
-                _evaluationService.SubmitEvaluation(request.ClassId, request.Rating, request.Comment);
+                _evaluationService.SubmitEvaluation(
+                    request.ClassId,
+                    request.D1Score,
+                    request.D2Score,
+                    request.D3Score,
+                    request.D4Score,
+                    request.Comment
+                );
                 return new { success = true };
             });
         }

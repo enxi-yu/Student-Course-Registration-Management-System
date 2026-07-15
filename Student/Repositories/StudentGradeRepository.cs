@@ -17,15 +17,16 @@ namespace StudentCourse.Student.Repositories
                        c.course_name,
                        s.semester,
                        c.credit,
-                       ss.credit_obtained,
+                       NVL(ss.credit_obtained, 0) AS credit_obtained,
                        ss.total_score,
                        ss.grade_level,
                        ss.gpa
-                  FROM student_score ss
-                  JOIN teaching_class tc ON tc.class_id = ss.class_id
+                  FROM course_select cs
+                  JOIN teaching_class tc ON tc.class_id = cs.class_id
                   JOIN section s ON s.section_id = tc.section_id
                   JOIN course c ON c.course_id = s.course_id
-                 WHERE ss.student_no = :studentNo
+                  LEFT JOIN student_score ss ON ss.class_id = cs.class_id AND ss.student_no = cs.student_no
+                 WHERE cs.student_no = :studentNo
                  ORDER BY s.semester DESC, c.course_name";
 
             using (OracleConnection connection = DbConnectionFactory.OpenConnection())

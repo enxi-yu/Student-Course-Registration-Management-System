@@ -24,15 +24,15 @@ namespace StudentCourse.Student.Services
             return _repository.GetEvaluableCourses(student.StudentNo);
         }
 
-        public void SubmitEvaluation(int classId, int rating, string comment)
+        public void SubmitEvaluation(int classId, int d1, int d2, int d3, int d4, string comment)
         {
-            if (rating < 1 || rating > 5)
+            if (d1 < 1 || d1 > 5 || d2 < 1 || d2 > 5 || d3 < 1 || d3 > 5 || d4 < 1 || d4 > 5)
             {
-                throw new InvalidOperationException("评分必须在1-5之间");
+                throw new InvalidOperationException("所有各项评分均必须在1-5之间");
             }
 
             StudentInfo student = GetCurrentStudent();
-            _repository.SubmitEvaluation(student.StudentNo, classId, rating, comment);
+            _repository.SubmitEvaluation(student.StudentNo, classId, d1, d2, d3, d4, comment);
         }
 
         public List<CourseEvaluationDto> GetEvaluationHistory()

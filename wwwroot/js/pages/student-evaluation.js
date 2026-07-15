@@ -32,16 +32,16 @@
   }
 
   // Render clickable star input
-  function renderStarInput(currentRating, classId) {
-    var stars = "";
-    for (var i = 1; i <= 5; i++) {
-      if (i <= currentRating) {
-        stars += '<span class="eval-star eval-star-input filled" data-rating="' + i + '" data-class="' + classId + '">&#9733;</span>';
-      } else {
-        stars += '<span class="eval-star eval-star-input" data-rating="' + i + '" data-class="' + classId + '">&#9734;</span>';
+  function renderStarInput(currentRating, classId, dimension) {
+      var stars = "";
+      for (var i = 1; i <= 5; i++) {
+          if (i <= currentRating) {
+              stars += '<span class="eval-star eval-star-input filled" data-rating="' + i + '" data-class="' + classId + '" data-dimension="' + dimension + '">&#9733;</span>';
+          } else {
+              stars += '<span class="eval-star eval-star-input" data-rating="' + i + '" data-class="' + classId + '" data-dimension="' + dimension + '">&#9734;</span>';
+          }
       }
-    }
-    return stars;
+      return stars;
   }
 
   // Render evaluated course card
@@ -72,13 +72,13 @@
 
   // Render pending evaluation card (not yet evaluated, with input)
   function renderPendingCard(item) {
-    return (
-      '<div class="eval-card pending">' +
-        '<div class="eval-card-header">' +
+      return (
+          '<div class="eval-card pending">' +
+          '<div class="eval-card-header">' +
           '<div class="eval-course-name">' + escapeHtml(item.courseName) + '</div>' +
           '<div class="eval-status pending-status">待评价</div>' +
-        '</div>' +
-        '<div class="eval-card-info">' +
+          '</div>' +
+          '<div class="eval-card-info">' +
           '<span>' + escapeHtml(item.courseCode) + '</span>' +
           '<span class="eval-dot">·</span>' +
           '<span>' + escapeHtml(item.teacherName) + '</span>' +
@@ -86,24 +86,41 @@
           '<span>' + escapeHtml(item.semester) + '</span>' +
           '<span class="eval-dot">·</span>' +
           '<span>' + item.credit + ' 学分</span>' +
-        '</div>' +
-        '<div class="eval-form" data-class="' + item.classId + '">' +
+          '</div>' +
+          '<div class="eval-form" data-class="' + item.classId + '">' +
+
           '<div class="eval-form-row">' +
-            '<label class="eval-label">评分</label>' +
-            '<div class="eval-star-group" id="star-group-' + item.classId + '">' +
-              renderStarInput(0, item.classId) +
-            '</div>' +
+          '<label class="eval-label">评分指标</label>' +
+          '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 4px; background: #f8fafc; padding: 12px; border-radius: 8px;">' +
+          '<div style="display:flex; justify-content:space-between; align-items:center;">' +
+          '<span style="font-size: 13px; color: #475569; font-weight: bold;">教学质量</span>' +
+          '<div class="eval-star-group" id="star-group-d1-' + item.classId + '" data-rating="0">' + renderStarInput(0, item.classId, 'd1') + '</div>' +
+          '</div>' +
+          '<div style="display:flex; justify-content:space-between; align-items:center;">' +
+          '<span style="font-size: 13px; color: #475569; font-weight: bold;">作业量</span>' +
+          '<div class="eval-star-group" id="star-group-d2-' + item.classId + '" data-rating="0">' + renderStarInput(0, item.classId, 'd2') + '</div>' +
+          '</div>' +
+          '<div style="display:flex; justify-content:space-between; align-items:center;">' +
+          '<span style="font-size: 13px; color: #475569; font-weight: bold;">课堂氛围</span>' +
+          '<div class="eval-star-group" id="star-group-d3-' + item.classId + '" data-rating="0">' + renderStarInput(0, item.classId, 'd3') + '</div>' +
+          '</div>' +
+          '<div style="display:flex; justify-content:space-between; align-items:center;">' +
+          '<span style="font-size: 13px; color: #475569; font-weight: bold;">教师态度</span>' +
+          '<div class="eval-star-group" id="star-group-d4-' + item.classId + '" data-rating="0">' + renderStarInput(0, item.classId, 'd4') + '</div>' +
+          '</div>' +
+          '</div>' +
+          '</div>' +
+
+          '<div class="eval-form-row">' +
+          '<label class="eval-label">评语</label>' +
+          '<textarea class="eval-textarea" id="eval-comment-' + item.classId + '" placeholder="请输入你的课程评价..." maxlength="500" rows="3"></textarea>' +
           '</div>' +
           '<div class="eval-form-row">' +
-            '<label class="eval-label">评语</label>' +
-            '<textarea class="eval-textarea" id="eval-comment-' + item.classId + '" placeholder="请输入你的课程评价..." maxlength="500" rows="3"></textarea>' +
+          '<button class="eval-submit-btn" type="button" data-class="' + item.classId + '">提交评价</button>' +
           '</div>' +
-          '<div class="eval-form-row">' +
-            '<button class="eval-submit-btn" type="button" data-class="' + item.classId + '">提交评价</button>' +
           '</div>' +
-        '</div>' +
-      '</div>'
-    );
+          '</div>'
+      );
   }
 
   // Render evaluation history section
@@ -143,82 +160,98 @@
   }
 
   function bindStarEvents(container) {
-    var starInputs = container.querySelectorAll(".eval-star-input");
-    starInputs.forEach(function(star) {
-      star.addEventListener("click", function() {
-        var rating = parseInt(this.dataset.rating);
-        var classId = parseInt(this.dataset.class);
-        var group = document.getElementById("star-group-" + classId);
-        if (!group) return;
-        group.dataset.rating = rating;
-        group.querySelectorAll(".eval-star-input").forEach(function(s, idx) {
-          if (idx < rating) {
-            s.classList.add("filled");
-            s.innerHTML = "&#9733;";
-          } else {
-            s.classList.remove("filled");
-            s.innerHTML = "&#9734;";
-          }
-        });
-      });
+      var starInputs = container.querySelectorAll(".eval-star-input");
+      starInputs.forEach(function (star) {
+          star.addEventListener("click", function () {
+              var rating = parseInt(this.dataset.rating);
+              var classId = parseInt(this.dataset.class);
+              var dimension = this.dataset.dimension;
+              var group = document.getElementById("star-group-" + dimension + "-" + classId);
+              if (!group) return;
+              group.dataset.rating = rating;
+              group.querySelectorAll(".eval-star-input").forEach(function (s, idx) {
+                  if (idx < rating) {
+                      s.classList.add("filled");
+                      s.innerHTML = "&#9733;";
+                  } else {
+                      s.classList.remove("filled");
+                      s.innerHTML = "&#9734;";
+                  }
+              });
+          });
 
-      star.addEventListener("mouseenter", function() {
-        var rating = parseInt(this.dataset.rating);
-        var classId = parseInt(this.dataset.class);
-        var group = document.getElementById("star-group-" + classId);
-        if (!group) return;
-        group.querySelectorAll(".eval-star-input").forEach(function(s, idx) {
-          if (idx < rating) {
-            s.classList.add("hover");
-          }
-        });
-      });
+          star.addEventListener("mouseenter", function () {
+              var rating = parseInt(this.dataset.rating);
+              var classId = parseInt(this.dataset.class);
+              var dimension = this.dataset.dimension;
+              var group = document.getElementById("star-group-" + dimension + "-" + classId);
+              if (!group) return;
+              group.querySelectorAll(".eval-star-input").forEach(function (s, idx) {
+                  if (idx < rating) {
+                      s.classList.add("hover");
+                  }
+              });
+          });
 
-      star.addEventListener("mouseleave", function() {
-        var classId = parseInt(this.dataset.class);
-        var group = document.getElementById("star-group-" + classId);
-        if (!group) return;
-        group.querySelectorAll(".eval-star-input").forEach(function(s) {
-          s.classList.remove("hover");
-        });
+          star.addEventListener("mouseleave", function () {
+              var classId = parseInt(this.dataset.class);
+              var dimension = this.dataset.dimension;
+              var group = document.getElementById("star-group-" + dimension + "-" + classId);
+              if (!group) return;
+              group.querySelectorAll(".eval-star-input").forEach(function (s) {
+                  s.classList.remove("hover");
+              });
+          });
       });
-    });
   }
 
   function bindSubmitEvents(container) {
-    var buttons = container.querySelectorAll(".eval-submit-btn");
-    buttons.forEach(function(btn) {
-      btn.addEventListener("click", async function() {
-        var classId = parseInt(this.dataset.class);
-        var group = document.getElementById("star-group-" + classId);
-        var rating = parseInt(group ? group.dataset.rating || 0 : 0);
-        var textarea = document.getElementById("eval-comment-" + classId);
-        var comment = textarea ? textarea.value.trim() : "";
+      var buttons = container.querySelectorAll(".eval-submit-btn");
+      buttons.forEach(function (btn) {
+          btn.addEventListener("click", async function () {
+              var classId = parseInt(this.dataset.class);
 
-        if (rating < 1 || rating > 5) {
-          window.setStudentMessage("请先选择评分（1-5星）", "error");
-          return;
-        }
+              var groupD1 = document.getElementById("star-group-d1-" + classId);
+              var d1 = parseInt(groupD1 ? groupD1.dataset.rating || 0 : 0);
 
-        btn.disabled = true;
-        btn.textContent = "提交中...";
+              var groupD2 = document.getElementById("star-group-d2-" + classId);
+              var d2 = parseInt(groupD2 ? groupD2.dataset.rating || 0 : 0);
 
-        try {
-          await window.nativeApi.request("student.submitEvaluation", {
-            classId: classId,
-            rating: rating,
-            comment: comment
+              var groupD3 = document.getElementById("star-group-d3-" + classId);
+              var d3 = parseInt(groupD3 ? groupD3.dataset.rating || 0 : 0);
+
+              var groupD4 = document.getElementById("star-group-d4-" + classId);
+              var d4 = parseInt(groupD4 ? groupD4.dataset.rating || 0 : 0);
+
+              var textarea = document.getElementById("eval-comment-" + classId);
+              var comment = textarea ? textarea.value.trim() : "";
+
+              if (d1 < 1 || d2 < 1 || d3 < 1 || d4 < 1) {
+                  window.setStudentMessage("请完成所有 4 项指标的评分（1-5星）", "error");
+                  return;
+              }
+
+              btn.disabled = true;
+              btn.textContent = "提交中...";
+
+              try {
+                  await window.nativeApi.request("student.submitEvaluation", {
+                      classId: classId,
+                      d1Score: d1,
+                      d2Score: d2,
+                      d3Score: d3,
+                      d4Score: d4,
+                      comment: comment
+                  });
+                  window.setStudentMessage("评价提交成功！", "success");
+                  render(container);
+              } catch (error) {
+                  btn.disabled = false;
+                  btn.textContent = "提交评价";
+                  window.setStudentMessage("提交失败：" + error.message, "error");
+              }
           });
-          window.setStudentMessage("评价提交成功！", "success");
-          // Reload the page
-          render(container);
-        } catch (error) {
-          btn.disabled = false;
-          btn.textContent = "提交评价";
-          window.setStudentMessage("提交失败：" + error.message, "error");
-        }
       });
-    });
   }
 
   // Expose setMessage to global for the module's use

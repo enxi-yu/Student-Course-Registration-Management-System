@@ -56,29 +56,42 @@ namespace StudentCourse.Student.Repositories
             return courses;
         }
 
-        public void SubmitEvaluation(string studentNo, int classId, int rating, string comment)
+        public void SubmitEvaluation(string studentNo, int classId, int d1, int d2, int d3, int d4, string comment)
         {
             const string mergeSql = @"
                 MERGE INTO course_evaluation ce
                 USING (SELECT :studentNo AS student_no, :classId AS class_id FROM dual) src
                    ON (ce.student_no = src.student_no AND ce.class_id = src.class_id)
                  WHEN MATCHED THEN
-                      UPDATE SET ce.eval_score = :rating,
+                      UPDATE SET ce.d1_score = :d1,
+                                 ce.d2_score = :d2,
+                                 ce.d3_score = :d3,
+                                 ce.d4_score = :d4,
+                                 ce.eval_score = :evalScore,
                                  ce.eval_content = :comment,
                                  ce.eval_time = SYSDATE
                  WHEN NOT MATCHED THEN
                       INSERT (eval_id, student_no, class_id, d1_score, d2_score, d3_score, d4_score, eval_score, eval_content, eval_time)
-                      VALUES (:evalId, :studentNo, :classId, :rating, :rating, :rating, :rating, :rating, :comment, SYSDATE)";
+                      VALUES (:evalId, :studentNo, :classId, :d1, :d2, :d3, :d4, :evalScore, :comment, SYSDATE)";
 
             using (OracleConnection connection = DbConnectionFactory.OpenConnection())
             using (OracleCommand command = CreateCommand(connection, mergeSql))
             {
+                decimal evalScore = (d1 + d2 + d3 + d4) / 4.0m;
+
                 string evalId = Guid.NewGuid().ToString("N").Substring(0, 32);
                 command.Parameters.Add("evalId", OracleDbType.Varchar2).Value = evalId;
                 command.Parameters.Add("studentNo", OracleDbType.Varchar2).Value = studentNo;
                 command.Parameters.Add("classId", OracleDbType.Int32).Value = classId;
-                command.Parameters.Add("rating", OracleDbType.Int32).Value = rating;
+
+                command.Parameters.Add("d1", OracleDbType.Int32).Value = d1;
+                command.Parameters.Add("d2", OracleDbType.Int32).Value = d2;
+                command.Parameters.Add("d3", OracleDbType.Int32).Value = d3;
+                command.Parameters.Add("d4", OracleDbType.Int32).Value = d4;
+
+                command.Parameters.Add("evalScore", OracleDbType.Decimal).Value = evalScore;
                 command.Parameters.Add("comment", OracleDbType.Clob).Value = string.IsNullOrEmpty(comment) ? (object)DBNull.Value : comment;
+
                 command.ExecuteNonQuery();
             }
         }
