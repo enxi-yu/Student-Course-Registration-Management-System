@@ -483,23 +483,23 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\GGLiu\\.nuget\\packages\\": {},
-    "D:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
+    "C:\\Users\\exiao\\.nuget\\packages\\": {},
+    "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\workspace\\Student-Course-Registration-Management-System\\Student-Course.csproj",
+      "projectUniqueName": "E:\\reference\\数据库\\gitclone\\Student-Course.csproj",
       "projectName": "Student-Course",
-      "projectPath": "D:\\workspace\\Student-Course-Registration-Management-System\\Student-Course.csproj",
-      "packagesPath": "C:\\Users\\GGLiu\\.nuget\\packages\\",
-      "outputPath": "D:\\workspace\\Student-Course-Registration-Management-System\\obj\\",
+      "projectPath": "E:\\reference\\数据库\\gitclone\\Student-Course.csproj",
+      "packagesPath": "C:\\Users\\exiao\\.nuget\\packages\\",
+      "outputPath": "E:\\reference\\数据库\\gitclone\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
-        "D:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
       ],
       "configFilePaths": [
-        "C:\\Users\\GGLiu\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Users\\exiao\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
@@ -508,7 +508,9 @@
       ],
       "sources": {
         "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
-        "https://api.nuget.org/v3/index.json": {}
+        "C:\\Program Files\\dotnet\\library-packs": {},
+        "https://api.nuget.org/v3/index.json": {},
+        "https://nuget.cdn.azure.cn/v3/index.json": {}
       },
       "frameworks": {
         "net8.0": {
@@ -559,5 +561,13 @@
         "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.308/PortableRuntimeIdentifierGraph.json"
       }
     }
-  }
+  },
+  "logs": [
+    {
+      "code": "NU1900",
+      "level": "Warning",
+      "warningLevel": 1,
+      "message": "获取包漏洞数据时出错: 无法加载源 https://nuget.cdn.azure.cn/v3/index.json 的服务索引。"
+    }
+  ]
 }

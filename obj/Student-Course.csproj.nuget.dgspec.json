@@ -1,23 +1,23 @@
 {
   "format": 1,
   "restore": {
-    "D:\\workspace\\Student-Course-Registration-Management-System\\Student-Course.csproj": {}
+    "E:\\reference\\数据库\\gitclone\\Student-Course.csproj": {}
   },
   "projects": {
-    "D:\\workspace\\Student-Course-Registration-Management-System\\Student-Course.csproj": {
+    "E:\\reference\\数据库\\gitclone\\Student-Course.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\workspace\\Student-Course-Registration-Management-System\\Student-Course.csproj",
+        "projectUniqueName": "E:\\reference\\数据库\\gitclone\\Student-Course.csproj",
         "projectName": "Student-Course",
-        "projectPath": "D:\\workspace\\Student-Course-Registration-Management-System\\Student-Course.csproj",
-        "packagesPath": "C:\\Users\\GGLiu\\.nuget\\packages\\",
-        "outputPath": "D:\\workspace\\Student-Course-Registration-Management-System\\obj\\",
+        "projectPath": "E:\\reference\\数据库\\gitclone\\Student-Course.csproj",
+        "packagesPath": "C:\\Users\\exiao\\.nuget\\packages\\",
+        "outputPath": "E:\\reference\\数据库\\gitclone\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
-          "D:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\GGLiu\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\exiao\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -26,7 +26,9 @@
         ],
         "sources": {
           "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
-          "https://api.nuget.org/v3/index.json": {}
+          "C:\\Program Files\\dotnet\\library-packs": {},
+          "https://api.nuget.org/v3/index.json": {},
+          "https://nuget.cdn.azure.cn/v3/index.json": {}
         },
         "frameworks": {
           "net8.0": {

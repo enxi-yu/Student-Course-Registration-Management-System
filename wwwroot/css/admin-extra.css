@@ -1,0 +1,94 @@
+.toolbar-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.inline-field input {
+  min-width: 280px;
+}
+
+.inline-message {
+  margin-right: auto;
+  color: #64748b;
+}
+
+.inline-message.success {
+  color: #0f8f68;
+}
+
+.inline-message.error {
+  color: #c4362f;
+}
+
+.table-scroll {
+  overflow-x: auto;
+  background: #fff;
+  border-radius: 12px;
+}
+
+.table-scroll .data-table {
+  min-width: 980px;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.info-item {
+  padding: 12px;
+  border: 1px solid #e1ecf9;
+  border-radius: 8px;
+  background: #f7fbff;
+}
+
+.info-label {
+  color: #63758c;
+  font-size: 13px;
+}
+
+.info-value {
+  margin-top: 6px;
+  color: #172033;
+  font-weight: 700;
+}
+
+.row-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.muted-text {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.status-badge.disabled {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.status-badge.active {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.status-badge.ended {
+  background: #e5e7eb;
+  color: #4b5563;
+}
+
+.status-badge.not-started {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+@media (max-width: 1180px) {
+  .info-grid {
+    grid-template-columns: repeat(2, minmax(150px, 1fr));
+  }
+}

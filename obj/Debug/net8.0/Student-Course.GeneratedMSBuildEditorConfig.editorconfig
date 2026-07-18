@@ -9,41 +9,41 @@ build_property.EnforceExtendedAnalyzerRules =
 build_property._SupportedPlatformList = Linux,macOS,Windows
 build_property.RootNamespace = StudentCourse
 build_property.RootNamespace = StudentCourse
-build_property.ProjectDir = D:\workspace\Student-Course-Registration-Management-System\
+build_property.ProjectDir = E:\reference\数据库\gitclone\
 build_property.EnableComHosting = 
 build_property.EnableGeneratedComInterfaceComImportInterop = 
 build_property.RazorLangVersion = 8.0
 build_property.SupportLocalizedComponentNames = 
 build_property.GenerateRazorMetadataSourceChecksumAttributes = 
-build_property.MSBuildProjectDirectory = D:\workspace\Student-Course-Registration-Management-System
+build_property.MSBuildProjectDirectory = E:\reference\数据库\gitclone
 build_property._RazorSourceGeneratorDebug = 
 build_property.EffectiveAnalysisLevelStyle = 8.0
 build_property.EnableCodeStyleSeverity = 
 
-[D:/workspace/Student-Course-Registration-Management-System/Pages/Error.cshtml]
+[E:/reference/数据库/gitclone/Pages/Error.cshtml]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcRXJyb3IuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[D:/workspace/Student-Course-Registration-Management-System/Pages/Index.cshtml]
+[E:/reference/数据库/gitclone/Pages/Index.cshtml]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcSW5kZXguY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[D:/workspace/Student-Course-Registration-Management-System/Pages/Privacy.cshtml]
+[E:/reference/数据库/gitclone/Pages/Privacy.cshtml]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcUHJpdmFjeS5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[D:/workspace/Student-Course-Registration-Management-System/Pages/Shared/_ValidationScriptsPartial.cshtml]
+[E:/reference/数据库/gitclone/Pages/Shared/_ValidationScriptsPartial.cshtml]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcU2hhcmVkXF9WYWxpZGF0aW9uU2NyaXB0c1BhcnRpYWwuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[D:/workspace/Student-Course-Registration-Management-System/Pages/_ViewImports.cshtml]
+[E:/reference/数据库/gitclone/Pages/_ViewImports.cshtml]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcX1ZpZXdJbXBvcnRzLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[D:/workspace/Student-Course-Registration-Management-System/Pages/_ViewStart.cshtml]
+[E:/reference/数据库/gitclone/Pages/_ViewStart.cshtml]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcX1ZpZXdTdGFydC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[D:/workspace/Student-Course-Registration-Management-System/Pages/Shared/_Layout.cshtml]
+[E:/reference/数据库/gitclone/Pages/Shared/_Layout.cshtml]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcU2hhcmVkXF9MYXlvdXQuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = b-o0dgnbzyu9

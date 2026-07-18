@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>管理员端 - 学生选课管理系统</title>
   <link rel="stylesheet" href="css/teacher.css">
+  <link rel="stylesheet" href="css/admin-extra.css">
   <style>
     table, th, td { border: 1px solid #e0e0e0 !important; border-collapse: collapse; }
     th, td { padding: 12px 16px; }
@@ -293,16 +294,21 @@
         </div>
       </div>
       <nav class="nav-menu">
-        <button class="nav-item active" type="button" onclick="switchTab('courses')">课程管理</button>
-        <button class="nav-item" type="button" onclick="switchTab('applications')">开课申请管理</button>
-        <button class="nav-item" type="button">选课批次管理</button>
+        <button class="nav-item active" type="button" data-tab="courses" onclick="switchTab('courses')">课程管理</button>
+        <button class="nav-item" type="button" data-tab="applications" onclick="switchTab('applications')">开课申请管理</button>
+        <button class="nav-item" type="button" data-tab="students" onclick="switchTab('students')">学生管理</button>
+        <button class="nav-item" type="button" data-tab="teachers" onclick="switchTab('teachers')">教师管理</button>
+        <button class="nav-item" type="button" data-tab="batches" onclick="switchTab('batches')">选课批次管理</button>
+        <button class="nav-item" type="button" data-tab="classes" onclick="switchTab('classes')">容量调整</button>
+        <button class="nav-item" type="button" data-tab="logs" onclick="switchTab('logs')">系统日志</button>
+        <button class="nav-item" type="button" data-tab="permissions" onclick="switchTab('permissions')">权限管理</button>
       </nav>
     </aside>
 
     <section class="workspace">
       <header class="topbar">
         <h1>学生选课管理系统</h1>
-        <span class="role-pill">当前角色：系统管理员</span>
+        <span class="role-pill" id="adminCurrentRole">当前角色：系统管理员</span>
       </header>
 
       <main class="content">
@@ -397,6 +403,339 @@
             </tbody>
           </table>
         </div>
+
+        <div id="students-tab" class="tab-content">
+          <h2>学生信息管理</h2>
+          <div class="form-card">
+            <div class="form-card-header">
+              <h3 id="studentFormTitle">新增学生账号</h3>
+            </div>
+            <input type="hidden" id="studentUserId">
+            <div class="form-grid">
+              <div class="field">
+                <label>登录账号 <span class="required">*</span></label>
+                <input type="text" id="studentUsername" placeholder="通常填写学号">
+              </div>
+              <div class="field">
+                <label>初始/重置密码 <span class="required">*</span></label>
+                <input type="password" id="studentPassword" placeholder="新增时必填，编辑时可留空">
+              </div>
+              <div class="field">
+                <label>姓名 <span class="required">*</span></label>
+                <input type="text" id="studentRealName">
+              </div>
+              <div class="field">
+                <label>学号 <span class="required">*</span></label>
+                <input type="text" id="studentNo">
+              </div>
+              <div class="field">
+                <label>专业 <span class="required">*</span></label>
+                <input type="text" id="studentMajor">
+              </div>
+              <div class="field">
+                <label>年级 <span class="required">*</span></label>
+                <input type="text" id="studentGrade" placeholder="例如：2024级">
+              </div>
+              <div class="field">
+                <label>联系电话</label>
+                <input type="text" id="studentPhone" maxlength="11">
+              </div>
+              <div class="field">
+                <label>电子邮箱</label>
+                <input type="email" id="studentEmail">
+              </div>
+              <div class="field">
+                <label>账号状态</label>
+                <select id="studentStatus">
+                  <option value="1">激活</option>
+                  <option value="0">禁用</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>平均绩点</label>
+                <input type="number" id="studentAvgGpa" min="0" max="5" step="0.01" value="0">
+              </div>
+              <div class="field">
+                <label>已获学分</label>
+                <input type="number" id="studentCreditFinished" min="0" step="0.5" value="0">
+              </div>
+            </div>
+            <div class="form-actions">
+              <button class="btn btn-secondary" onclick="clearStudentForm()">重置</button>
+              <button class="btn btn-primary" onclick="saveStudent()">保存学生</button>
+            </div>
+          </div>
+          <div class="form-card">
+            <div class="toolbar-row">
+              <div class="field inline-field">
+                <label>搜索学生</label>
+                <input type="text" id="studentKeyword" placeholder="学号 / 姓名 / 专业">
+              </div>
+              <button class="btn btn-primary" onclick="loadStudents()">查询</button>
+            </div>
+          </div>
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>学号</th>
+                  <th>姓名</th>
+                  <th>专业</th>
+                  <th>年级</th>
+                  <th>绩点</th>
+                  <th>已获学分</th>
+                  <th>账号状态</th>
+                  <th>联系方式</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="studentTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="teachers-tab" class="tab-content">
+          <h2>教师信息管理</h2>
+          <div class="form-card">
+            <div class="form-card-header">
+              <h3 id="teacherFormTitle">新增教师账号</h3>
+            </div>
+            <input type="hidden" id="teacherUserId">
+            <div class="form-grid">
+              <div class="field">
+                <label>登录账号 <span class="required">*</span></label>
+                <input type="text" id="teacherUsername" placeholder="通常填写工号">
+              </div>
+              <div class="field">
+                <label>初始/重置密码 <span class="required">*</span></label>
+                <input type="password" id="teacherPassword" placeholder="新增时必填，编辑时可留空">
+              </div>
+              <div class="field">
+                <label>姓名 <span class="required">*</span></label>
+                <input type="text" id="teacherRealName">
+              </div>
+              <div class="field">
+                <label>工号 <span class="required">*</span></label>
+                <input type="text" id="teacherNo">
+              </div>
+              <div class="field">
+                <label>职称 <span class="required">*</span></label>
+                <input type="text" id="teacherTitle" placeholder="教授 / 副教授 / 讲师">
+              </div>
+              <div class="field">
+                <label>所属院系 <span class="required">*</span></label>
+                <input type="text" id="teacherDepartment">
+              </div>
+              <div class="field">
+                <label>联系电话</label>
+                <input type="text" id="teacherPhone" maxlength="11">
+              </div>
+              <div class="field">
+                <label>电子邮箱</label>
+                <input type="email" id="teacherEmail">
+              </div>
+              <div class="field">
+                <label>账号状态</label>
+                <select id="teacherStatus">
+                  <option value="1">激活</option>
+                  <option value="0">禁用</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button class="btn btn-secondary" onclick="clearTeacherForm()">重置</button>
+              <button class="btn btn-primary" onclick="saveTeacher()">保存教师</button>
+            </div>
+          </div>
+          <div class="form-card">
+            <div class="toolbar-row">
+              <div class="field inline-field">
+                <label>搜索教师</label>
+                <input type="text" id="teacherKeyword" placeholder="工号 / 姓名 / 院系">
+              </div>
+              <button class="btn btn-primary" onclick="loadTeachers()">查询</button>
+            </div>
+          </div>
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>工号</th>
+                  <th>姓名</th>
+                  <th>职称</th>
+                  <th>所属院系</th>
+                  <th>账号状态</th>
+                  <th>联系方式</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="teacherTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="batches-tab" class="tab-content">
+          <h2>选课批次管理</h2>
+          <div class="form-card">
+            <div class="form-card-header">
+              <h3 id="batchFormTitle">新增选课批次</h3>
+            </div>
+            <input type="hidden" id="batchId">
+            <div class="form-grid">
+              <div class="field">
+                <label>批次名称 <span class="required">*</span></label>
+                <input type="text" id="batchName" placeholder="例如：第一轮选课">
+              </div>
+              <div class="field">
+                <label>开始时间 <span class="required">*</span></label>
+                <input type="datetime-local" id="batchStartTime">
+              </div>
+              <div class="field">
+                <label>结束时间 <span class="required">*</span></label>
+                <input type="datetime-local" id="batchEndTime">
+              </div>
+              <div class="field">
+                <label>批次状态</label>
+                <select id="batchStatus">
+                  <option value="">按时间自动计算</option>
+                  <option value="0">未开始</option>
+                  <option value="1">进行中</option>
+                  <option value="2">已结束</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button class="btn btn-secondary" onclick="clearBatchForm()">重置</button>
+              <button class="btn btn-primary" onclick="saveBatch()">保存批次</button>
+            </div>
+          </div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>批次编号</th>
+                <th>批次名称</th>
+                <th>开始时间</th>
+                <th>结束时间</th>
+                <th>状态</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="batchTableBody"></tbody>
+          </table>
+        </div>
+
+        <div id="classes-tab" class="tab-content">
+          <h2>选课容量调整</h2>
+          <div class="form-card">
+            <div class="toolbar-row">
+              <div class="field inline-field">
+                <label>搜索教学班</label>
+                <input type="text" id="classKeyword" placeholder="课程 / 教学班 / 教师 / 学期">
+              </div>
+              <button class="btn btn-primary" onclick="loadAdminClasses()">查询</button>
+            </div>
+          </div>
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>教学班编号</th>
+                  <th>教学班</th>
+                  <th>课程</th>
+                  <th>学期</th>
+                  <th>授课教师</th>
+                  <th>容量</th>
+                  <th>已选人数</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="classTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="logs-tab" class="tab-content">
+          <h2>系统日志</h2>
+          <div class="form-card">
+            <div class="form-grid">
+              <div class="field">
+                <label>关键词</label>
+                <input type="text" id="logKeyword" placeholder="账号 / 对象 / 描述">
+              </div>
+              <div class="field">
+                <label>操作类型</label>
+                <input type="text" id="logOperationType" placeholder="登录 / 新增 / 修改">
+              </div>
+              <div class="field">
+                <label>开始时间</label>
+                <input type="datetime-local" id="logStartTime">
+              </div>
+              <div class="field">
+                <label>结束时间</label>
+                <input type="datetime-local" id="logEndTime">
+              </div>
+            </div>
+            <div class="form-actions">
+              <button class="btn btn-secondary" onclick="clearLogFilters()">重置</button>
+              <button class="btn btn-primary" onclick="loadLogs()">查询日志</button>
+            </div>
+          </div>
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>时间</th>
+                  <th>操作人</th>
+                  <th>类型</th>
+                  <th>描述</th>
+                  <th>对象</th>
+                  <th>结果</th>
+                  <th>IP</th>
+                </tr>
+              </thead>
+              <tbody id="logTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="permissions-tab" class="tab-content">
+          <h2>管理员登录与权限管理</h2>
+          <div class="form-card">
+            <div class="form-card-header">
+              <h3>管理员登录</h3>
+            </div>
+            <div class="form-grid">
+              <div class="field">
+                <label>管理员账号</label>
+                <input type="text" id="adminLoginUsername" placeholder="admin">
+              </div>
+              <div class="field">
+                <label>管理员密码</label>
+                <input type="password" id="adminLoginPassword" placeholder="admin123">
+              </div>
+            </div>
+            <div class="form-actions">
+              <span id="adminLoginMessage" class="inline-message"></span>
+              <button class="btn btn-primary" onclick="loginAdmin()">登录</button>
+            </div>
+          </div>
+          <div class="form-card">
+            <div class="form-card-header">
+              <h3>当前管理员</h3>
+            </div>
+            <div id="adminCurrentInfo" class="info-grid"></div>
+          </div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>权限编码</th>
+                <th>权限名称</th>
+                <th>所属模块</th>
+              </tr>
+            </thead>
+            <tbody id="permissionTableBody"></tbody>
+          </table>
+        </div>
       </main>
     </section>
   </div>
@@ -485,5 +824,12 @@
 
   <script src="js/pages/admin-course.js"></script>
   <script src="js/pages/admin-application.js"></script>
+  <script src="js/pages/admin-shell.js"></script>
+  <script src="js/pages/admin-auth.js"></script>
+  <script src="js/pages/admin-student.js"></script>
+  <script src="js/pages/admin-teacher.js"></script>
+  <script src="js/pages/admin-batch.js"></script>
+  <script src="js/pages/admin-class.js"></script>
+  <script src="js/pages/admin-log.js"></script>
 </body>
 </html>
