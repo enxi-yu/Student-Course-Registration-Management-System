@@ -220,4 +220,11 @@ namespace StudentCourse.Models
 
         public string LogTime { get; set; } = string.Empty;
     }
+
+    public sealed class ApprovalRequest
+    {
+        public string Status { get; set; } = string.Empty;
+
+        public string Comment { get; set; } = string.Empty;
+    }
 }

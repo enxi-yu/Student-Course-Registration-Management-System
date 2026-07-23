@@ -7,6 +7,284 @@ namespace StudentCourse.Repositories
 {
     public sealed class AdminRepository
     {
+        /// <summary>
+        /// 获取所有课程列表
+        /// </summary>
+        public IList<CourseDto> GetCourses()
+        {
+            var list = new List<CourseDto>();
+            
+            using (var conn = DbConnectionFactory.OpenConnection())
+            {
+                string sql = "SELECT course_id, course_name, course_type, credit, total_hours, department, course_desc FROM course";
+                using (var cmd = new OracleCommand(sql, conn))
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        list.Add(new CourseDto
+                        {
+                            CourseId = Convert.ToInt32(reader["course_id"]),
+                            CourseName = reader["course_name"].ToString() ?? "",
+                            CourseType = reader["course_type"].ToString() ?? "",
+                            Credit = Convert.ToDecimal(reader["credit"]),
+                            TotalHours = Convert.ToInt32(reader["total_hours"]),
+                            Department = reader["department"]?.ToString() ?? "",
+                            CourseDesc = reader["course_desc"]?.ToString() ?? ""
+                        });
+                    }
+                }
+            }
+            
+            return list;
+        }
+
+        /// <summary>
+        /// 根据课程ID获取课程详情
+        /// </summary>
+        public CourseDto? GetCourseById(int courseId)
+        {
+            using (var conn = DbConnectionFactory.OpenConnection())
+            {
+                string sql = "SELECT course_id, course_name, course_type, credit, total_hours, department, course_desc FROM course WHERE course_id = :courseId";
+                using (var cmd = new OracleCommand(sql, conn))
+                {
+                    cmd.Parameters.Add(new OracleParameter("courseId", courseId));
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            return new CourseDto
+                            {
+                                CourseId = Convert.ToInt32(reader["course_id"]),
+                                CourseName = reader["course_name"].ToString() ?? "",
+                                CourseType = reader["course_type"].ToString() ?? "",
+                                Credit = Convert.ToDecimal(reader["credit"]),
+                                TotalHours = Convert.ToInt32(reader["total_hours"]),
+                                Department = reader["department"]?.ToString() ?? "",
+                                CourseDesc = reader["course_desc"]?.ToString() ?? ""
+                            };
+                        }
+                    }
+                }
+            }
+            
+            return null;
+        }
+
+
+        ///<summary>
+        /// 插入课程
+        /// </summary>
+        public CourseDto InsertCourse(CourseDto input)
+        {
+            int newId;
+            
+            using (var conn = DbConnectionFactory.OpenConnection())
+            {
+                string maxIdSql = "SELECT NVL(MAX(course_id), 0) FROM course";
+                using (var maxCmd = new OracleCommand(maxIdSql, conn))
+                {
+                    newId = Convert.ToInt32(maxCmd.ExecuteScalar()) + 1;
+                }
+
+                string sql = "INSERT INTO course (course_id, course_name, course_type, credit, total_hours, department, course_desc) VALUES (:id, :name, :type, :credit, :hours, :dept, :cdesc)";
+                using (var cmd = new OracleCommand(sql, conn))
+                {
+                    cmd.Parameters.Add(new OracleParameter("id", newId));
+                    cmd.Parameters.Add(new OracleParameter("name", input.CourseName));
+                    cmd.Parameters.Add(new OracleParameter("type", input.CourseType));
+                    cmd.Parameters.Add(new OracleParameter("credit", input.Credit));
+                    cmd.Parameters.Add(new OracleParameter("hours", input.TotalHours));
+                    cmd.Parameters.Add(new OracleParameter("dept", string.IsNullOrEmpty(input.Department) ? DBNull.Value : (object)input.Department));
+                    cmd.Parameters.Add(new OracleParameter("cdesc", string.IsNullOrEmpty(input.CourseDesc) ? DBNull.Value : (object)input.CourseDesc));
+                    cmd.ExecuteNonQuery();
+                }
+            }
+            
+            return GetCourseById(newId);
+        }
+
+        /// <summary>
+        /// 更新课程信息
+        /// </summary>
+        public CourseDto UpdateCourse(int id, CourseDto input)
+        {
+            using (var conn = DbConnectionFactory.OpenConnection())
+            {
+                string sql = "UPDATE course SET course_name = :name, course_type = :type, credit = :credit, total_hours = :hours, department = :dept, course_desc = :cdesc WHERE course_id = :id";
+                using (var cmd = new OracleCommand(sql, conn))
+                {
+                    cmd.Parameters.Add(new OracleParameter("name", input.CourseName));
+                    cmd.Parameters.Add(new OracleParameter("type", input.CourseType));
+                    cmd.Parameters.Add(new OracleParameter("credit", input.Credit));
+                    cmd.Parameters.Add(new OracleParameter("hours", input.TotalHours));
+                    cmd.Parameters.Add(new OracleParameter("dept", string.IsNullOrEmpty(input.Department) ? DBNull.Value : (object)input.Department));
+                    cmd.Parameters.Add(new OracleParameter("cdesc", string.IsNullOrEmpty(input.CourseDesc) ? DBNull.Value : (object)input.CourseDesc));
+                    cmd.Parameters.Add(new OracleParameter("id", id));
+                    int rowsAffected = cmd.ExecuteNonQuery();
+                    if (rowsAffected == 0)
+                    {
+                        throw new InvalidOperationException("课程不存在");
+                    }
+                }
+            }
+            return GetCourseById(id);
+        }
+
+        /// <summary>
+        /// 删除课程（需先检查是否有section关联）
+        /// </summary>
+        public void DeleteCourse(int id)
+        {
+          using (var conn = DbConnectionFactory.OpenConnection())
+          {
+              try
+              {
+                  string checkSql = "SELECT COUNT(*) FROM section WHERE course_id = :id";
+                  using (var checkCmd = new OracleCommand(checkSql, conn))
+                  {
+                      checkCmd.Parameters.Add(new OracleParameter("id", id));
+                      int count = Convert.ToInt32(checkCmd.ExecuteScalar());
+                      if (count > 0)
+                      {
+                          throw new InvalidOperationException($"无法删除该课程，存在 {count} 次开课");
+                      }
+                  }
+              }
+              catch (OracleException ex) when (ex.Number == 942)
+              {
+                  // section表不存在，无需检查
+              }
+              string sql = "DELETE FROM course WHERE course_id = :id";
+              using (var cmd = new OracleCommand(sql, conn))
+              {
+                  cmd.Parameters.Add(new OracleParameter("id", id));
+                  int rowsAffected = cmd.ExecuteNonQuery();
+                  if (rowsAffected == 0)
+                  {
+                      throw new InvalidOperationException("课程不存在");
+                  }
+              }
+            }
+        }
+
+        /// <summary>
+        /// 获取所有开课申请列表
+        /// </summary>
+        public IList<CourseApplicationDto> GetApplications()
+        {
+            List<CourseApplicationDto> list = new List<CourseApplicationDto>();
+            try{
+                using (var conn = DbConnectionFactory.OpenConnection()){
+                    string sql = @"SELECT apply_id, teacher_no, course_name, credit, total_hours, textbook, 
+                                       course_summary, course_type, department, apply_time, status, 
+                                       approve_time, approve_comment 
+                                FROM course_application";
+                    using (var cmd = new OracleCommand(sql, conn))
+                    using (var reader = cmd.ExecuteReader()){
+                        while (reader.Read()) {
+                            list.Add(new CourseApplicationDto{
+                                ApplyId = reader["apply_id"].ToString() ?? "",
+                                TeacherNo = reader["teacher_no"].ToString() ?? "",
+                                CourseName = reader["course_name"].ToString() ?? "",
+                                Credit = Convert.ToDecimal(reader["credit"]),
+                                TotalHours = Convert.ToInt32(reader["total_hours"]),
+                                Textbook = reader["textbook"]?.ToString() ?? "",
+                                CourseSummary = reader["course_summary"]?.ToString() ?? "",
+                                CourseType = reader["course_type"].ToString() ?? "",
+                                Department = reader["department"].ToString() ?? "",
+                                ApplyTime = reader["apply_time"]?.ToString() ?? "",
+                                Status = reader["status"].ToString() ?? "",
+                                ApproveTime = reader["approve_time"]?.ToString() ?? "",
+                                ApproveComment = reader["approve_comment"]?.ToString() ?? ""
+                            });
+                        }
+                    }
+                }
+                return list;
+            }
+            catch (OracleException ex) when (ex.Number == 942){
+                return list;
+            }
+        }
+
+        ///<summary>
+        /// 根据申请ID获取申请详情
+        /// </summary>
+        public CourseApplicationDto? GetApplicationById(string applyId)
+        {
+            using (var conn = DbConnectionFactory.OpenConnection())
+            {
+                string sql = @"SELECT apply_id, teacher_no, course_name, credit, total_hours, textbook, 
+                                       course_summary, course_type, department, apply_time, status, 
+                                       approve_time, approve_comment 
+                                FROM course_application
+                                WHERE apply_id = :applyID";
+                    using (var cmd = new OracleCommand(sql, conn))
+                    {
+                        cmd.Parameters.Add(new OracleParameter("applyID", applyId));
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                return new CourseApplicationDto
+                                {
+                                ApplyId = reader["apply_id"].ToString() ?? "",
+                                TeacherNo = reader["teacher_no"].ToString() ?? "",
+                                CourseName = reader["course_name"].ToString() ?? "",
+                                Credit = Convert.ToDecimal(reader["credit"]),
+                                TotalHours = Convert.ToInt32(reader["total_hours"]),
+                                Textbook = reader["textbook"]?.ToString() ?? "",
+                                CourseSummary = reader["course_summary"]?.ToString() ?? "",
+                                CourseType = reader["course_type"].ToString() ?? "",
+                                Department = reader["department"].ToString() ?? "",
+                                ApplyTime = reader["apply_time"]?.ToString() ?? "",
+                                Status = reader["status"].ToString() ?? "",
+                                ApproveTime = reader["approve_time"]?.ToString() ?? "",
+                                ApproveComment = reader["approve_comment"]?.ToString() ?? ""
+                            };
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// 审批开课申请（通过/驳回）
+        /// </summary>
+        public CourseApplicationDto ApproveApplication(string applyId, string status, string comment)
+        {
+            //更新 course_application 表
+            using (var conn = DbConnectionFactory.OpenConnection())
+            {
+                string sql=@"UPDATE course_application
+                            SET status=:status, approve_time=SYSDATE,approve_comment=:approve_comment
+                            WHERE apply_id=:applyID";
+                using (var cmd = new OracleCommand(sql, conn)){
+                    cmd.Parameters.Add(new OracleParameter("status", status));
+                    cmd.Parameters.Add(new OracleParameter("approve_comment", comment));
+                    cmd.Parameters.Add(new OracleParameter("applyID",applyId));
+                    int rowsAffected = cmd.ExecuteNonQuery();
+                    if (rowsAffected == 0) {
+                        throw new InvalidOperationException("申请不存在");
+                    }
+                }
+                //审核通过时，同步把课程加入到course表
+                CourseApplicationDto application=GetApplicationById(applyId);
+                if (status == "通过"){
+                    if(application!=null){
+                        InsertCourse(new CourseDto{
+                            CourseName=application.CourseName,CourseType=application.CourseType,
+                            Credit=application.Credit,TotalHours=application.TotalHours,Department=application.Department,CourseDesc=application.CourseSummary
+                    });
+                    }   
+                }
+            }
+            return GetApplicationById(applyId);
+        }
+
         public AdminCredentialDto? GetAdminCredential(string username)
         {
             const string sql = @"

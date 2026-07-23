@@ -1,407 +1,262 @@
 using Microsoft.AspNetCore.Mvc;
-using Oracle.ManagedDataAccess.Client;
-using StudentCourse.Infrastructure;
 using StudentCourse.Models;
-using System;
-using System.Collections.Generic;
+using StudentCourse.Services;
 
 namespace StudentCourse.Controllers
 {
     [ApiController]
     [Route("api/admin")]
-    public class AdminController : ControllerBase
+    public sealed class AdminController : ControllerBase
     {
-        /// <summary>
-        /// 获取所有课程列表
-        /// </summary>
+        private readonly AdminAuthService _adminAuthService;
+        private readonly AdminUserService _adminUserService;
+        private readonly SelectionBatchService _selectionBatchService;
+        private readonly AdminClassService _adminClassService;
+        private readonly SystemLogService _systemLogService;
+        private readonly AdminCourseService _adminCourseService;
+        private readonly AdminApplicationService _adminApplicationService;
+
+        public AdminController(
+            AdminAuthService adminAuthService,
+            AdminUserService adminUserService,
+            SelectionBatchService selectionBatchService,
+            AdminClassService adminClassService,
+            SystemLogService systemLogService,
+            AdminCourseService adminCourseService,
+            AdminApplicationService adminApplicationService)
+        {
+            _adminAuthService = adminAuthService;
+            _adminUserService = adminUserService;
+            _selectionBatchService = selectionBatchService;
+            _adminClassService = adminClassService;
+            _systemLogService = systemLogService;
+            _adminCourseService = adminCourseService;
+            _adminApplicationService = adminApplicationService;
+        }
+
         [HttpGet("courses")]
         public IActionResult GetCourses()
         {
-            var list = new List<CourseDto>();
-            try
-            {
-                using (var conn = DbConnectionFactory.OpenConnection())
-                {
-                    string sql = "SELECT course_id, course_name, course_type, credit, total_hours, department, course_desc FROM course";
-                    using (var cmd = new OracleCommand(sql, conn))
-                    using (var reader = cmd.ExecuteReader())
-                    {
-                        while (reader.Read())
-                        {
-                            list.Add(new CourseDto
-                            {
-                                CourseId = Convert.ToInt32(reader["course_id"]),
-                                CourseName = reader["course_name"].ToString() ?? "",
-                                CourseType = reader["course_type"].ToString() ?? "",
-                                Credit = Convert.ToDecimal(reader["credit"]),
-                                TotalHours = Convert.ToInt32(reader["total_hours"]),
-                                Department = reader["department"]?.ToString() ?? "",
-                                CourseDesc = reader["course_desc"]?.ToString() ?? ""
-                            });
-                        }
-                    }
-                }
-                return Ok(list);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"数据库连接失败: {ex.Message}");
-            }
+            return SafeOk(() => _adminCourseService.GetCourses());
         }
 
-        /// <summary>
-        /// 根据课程ID获取课程详情
-        /// </summary>
-        [HttpGet("courses/{id}")]
-        public IActionResult GetCourse(int id)
+        [HttpGet("courses/{courseId:int}")]
+        public IActionResult GetCourse(int courseId)
         {
-            try
-            {
-                using (var conn = DbConnectionFactory.OpenConnection())
-                {
-                    string sql = "SELECT course_id, course_name, course_type, credit, total_hours, department, course_desc FROM course WHERE course_id = :id";
-                    using (var cmd = new OracleCommand(sql, conn))
-                    {
-                        cmd.Parameters.Add(new OracleParameter("id", id));
-                        using (var reader = cmd.ExecuteReader())
-                        {
-                            if (reader.Read())
-                            {
-                                return Ok(new CourseDto
-                                {
-                                    CourseId = Convert.ToInt32(reader["course_id"]),
-                                    CourseName = reader["course_name"].ToString() ?? "",
-                                    CourseType = reader["course_type"].ToString() ?? "",
-                                    Credit = Convert.ToDecimal(reader["credit"]),
-                                    TotalHours = Convert.ToInt32(reader["total_hours"]),
-                                    Department = reader["department"]?.ToString() ?? "",
-                                    CourseDesc = reader["course_desc"]?.ToString() ?? ""
-                                });
-                            }
-                        }
-                    }
-                }
-                return NotFound("课程不存在");
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"数据库连接失败: {ex.Message}");
-            }
+            return SafeOk(() => _adminCourseService.GetCourse(courseId));
         }
 
-
-        ///<summary>
-        /// 插入课程
-        /// <summary>
-        private void InsertCourse(OracleConnection conn,
-                                string courseName,string courseType,
-                                decimal credit, int totalHours,
-                                string department,string courseDesc)
-        {
-            string maxIdSql = "SELECT NVL(MAX(course_id), 0) FROM course";
-            using (var maxCmd = new OracleCommand(maxIdSql, conn))
-            {
-                int newId = Convert.ToInt32(maxCmd.ExecuteScalar()) + 1;
-
-                string sql = "INSERT INTO course (course_id, course_name, course_type, credit, total_hours, department, course_desc) VALUES (:id, :name, :type, :credit, :hours, :dept, :cdesc)";
-                using (var cmd = new OracleCommand(sql, conn))
-                {
-                    cmd.Parameters.Add(new OracleParameter("id", newId));
-                    cmd.Parameters.Add(new OracleParameter("name", courseName));
-                    cmd.Parameters.Add(new OracleParameter("type", courseType));
-                    cmd.Parameters.Add(new OracleParameter("credit", credit));
-                    cmd.Parameters.Add(new OracleParameter("hours", totalHours));
-                    cmd.Parameters.Add(new OracleParameter("dept", string.IsNullOrEmpty(department) ? DBNull.Value : (object)department));
-                    cmd.Parameters.Add(new OracleParameter("cdesc", string.IsNullOrEmpty(courseDesc) ? DBNull.Value : (object)courseDesc));
-                    cmd.ExecuteNonQuery();
-                }
-            }
-        }
-
-
-
-        /// <summary>
-        /// 发布新课程
-        /// </summary>
         [HttpPost("courses")]
-        public IActionResult AddCourse([FromBody] CourseDto input)
+        public IActionResult CreateCourse([FromBody] CourseDto input)
         {
-            if (input == null || string.IsNullOrEmpty(input.CourseName))
-            {
-                return BadRequest("课程名称不能为空");
-            }
-
-            if (string.IsNullOrEmpty(input.CourseType))
-            {
-                return BadRequest("课程类型不能为空");
-            }
-
-            try
-            {
-                using (var conn = DbConnectionFactory.OpenConnection())
-                {
-                    InsertCourse(conn, input.CourseName, input.CourseType,
-                        input.Credit, input.TotalHours, input.Department, input.CourseDesc);
-                }
-                return Ok();
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"写入数据库失败: {ex.Message}");
-            }
+            return SafeOk(() => _adminCourseService.CreateCourse(input, ClientIp()));
         }
 
-        /// <summary>
-        /// 更新课程信息
-        /// </summary>
-        [HttpPut("courses/{id}")]
-        public IActionResult UpdateCourse(int id, [FromBody] CourseDto input)
+        [HttpPut("courses/{courseId:int}")]
+        public IActionResult UpdateCourse(int courseId, [FromBody] CourseDto input)
         {
-            if (input == null || string.IsNullOrEmpty(input.CourseName))
-            {
-                return BadRequest("课程名称不能为空");
-            }
-
-            if (string.IsNullOrEmpty(input.CourseType))
-            {
-                return BadRequest("课程类型不能为空");
-            }
-
-            try
-            {
-                using (var conn = DbConnectionFactory.OpenConnection())
-                {
-                    string sql = "UPDATE course SET course_name = :name, course_type = :type, credit = :credit, total_hours = :hours, department = :dept, course_desc = :cdesc WHERE course_id = :id";
-                    using (var cmd = new OracleCommand(sql, conn))
-                    {
-                        cmd.Parameters.Add(new OracleParameter("name", input.CourseName));
-                        cmd.Parameters.Add(new OracleParameter("type", input.CourseType));
-                        cmd.Parameters.Add(new OracleParameter("credit", input.Credit));
-                        cmd.Parameters.Add(new OracleParameter("hours", input.TotalHours));
-                        cmd.Parameters.Add(new OracleParameter("dept", string.IsNullOrEmpty(input.Department) ? DBNull.Value : (object)input.Department));
-                        cmd.Parameters.Add(new OracleParameter("cdesc", string.IsNullOrEmpty(input.CourseDesc) ? DBNull.Value : (object)input.CourseDesc));
-                        cmd.Parameters.Add(new OracleParameter("id", id));
-                        int rowsAffected = cmd.ExecuteNonQuery();
-                        if (rowsAffected == 0)
-                        {
-                            return NotFound("课程不存在");
-                        }
-                    }
-                }
-                return Ok();
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"更新数据库失败: {ex.Message}");
-            }
+            return SafeOk(() => _adminCourseService.UpdateCourse(courseId, input, ClientIp()));
         }
 
-        /// <summary>
-        /// 删除课程（需先检查是否有section关联）
-        /// </summary>
-        [HttpDelete("courses/{id}")]
-        public IActionResult DeleteCourse(int id)
+        [HttpDelete("courses/{courseId:int}")]
+        public IActionResult DeleteCourse(int courseId)
         {
-            try
+            return SafeOk(() =>
             {
-                using (var conn = DbConnectionFactory.OpenConnection())
-                {
-                    try
-                    {
-                        string checkSql = "SELECT COUNT(*) FROM section WHERE course_id = :id";
-                        using (var checkCmd = new OracleCommand(checkSql, conn))
-                        {
-                            checkCmd.Parameters.Add(new OracleParameter("id", id));
-                            int count = Convert.ToInt32(checkCmd.ExecuteScalar());
-                            if (count > 0)
-                            {
-                                return BadRequest($"无法删除该课程，存在 {count} 次开课");
-                            }
-                        }
-                    }
-                    catch (OracleException ex) when (ex.Number == 942)
-                    {
-                        // section表不存在，无需检查
-                    }
-
-                    string sql = "DELETE FROM course WHERE course_id = :id";
-                    using (var cmd = new OracleCommand(sql, conn))
-                    {
-                        cmd.Parameters.Add(new OracleParameter("id", id));
-                        int rowsAffected = cmd.ExecuteNonQuery();
-                        if (rowsAffected == 0)
-                        {
-                            return NotFound("课程不存在");
-                        }
-                    }
-                }
-                return Ok();
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"删除失败: {ex.Message}");
-            }
+                _adminCourseService.DeleteCourse(courseId, ClientIp());
+                return new { deleted = true };
+            });
         }
 
-        /// <summary>
-        /// 获取所有开课申请列表
-        /// </summary>
         [HttpGet("applications")]
         public IActionResult GetApplications()
         {
-            var list = new List<CourseApplicationDto>();
-            try{
-                using (var conn = DbConnectionFactory.OpenConnection()){
-                    string sql = @"SELECT apply_id, teacher_no, course_name, credit, total_hours, textbook, 
-                                       course_summary, course_type, department, apply_time, status, 
-                                       approve_time, approve_comment 
-                                FROM course_application";
-                    using (var cmd = new OracleCommand(sql, conn))
-                    using (var reader = cmd.ExecuteReader()){
-                        while (reader.Read()) {
-                            list.Add(new CourseApplicationDto{
-                                ApplyId = reader["apply_id"].ToString() ?? "",
-                                TeacherNo = reader["teacher_no"].ToString() ?? "",
-                                CourseName = reader["course_name"].ToString() ?? "",
-                                Credit = Convert.ToDecimal(reader["credit"]),
-                                TotalHours = Convert.ToInt32(reader["total_hours"]),
-                                Textbook = reader["textbook"]?.ToString() ?? "",
-                                CourseSummary = reader["course_summary"]?.ToString() ?? "",
-                                CourseType = reader["course_type"].ToString() ?? "",
-                                Department = reader["department"].ToString() ?? "",
-                                ApplyTime = reader["apply_time"]?.ToString() ?? "",
-                                Status = reader["status"].ToString() ?? "",
-                                ApproveTime = reader["approve_time"]?.ToString() ?? "",
-                                ApproveComment = reader["approve_comment"]?.ToString() ?? ""
-                            });
-                        }
-                    }
-                }
-                return Ok(list);
-            }
-            catch (OracleException ex) when (ex.Number == 942){
-                return Ok(list);
-            }
-            catch (Exception ex) {
-                return StatusCode(500, $"数据库连接失败: {ex.Message}");
-            }
+            return SafeOk(() => _adminApplicationService.GetApplications());
         }
 
-        ///<summary>
-        /// 查询申请详情的私有方法
-        /// <summary>
-        private CourseApplicationDto? GetApplicationById(OracleConnection conn,string applyId){
-            string sql = @"SELECT apply_id, teacher_no, course_name, credit, total_hours, textbook, 
-                                       course_summary, course_type, department, apply_time, status, 
-                                       approve_time, approve_comment 
-                                FROM course_application
-                                WHERE apply_id = :applyID";
-                    using (var cmd = new OracleCommand(sql, conn))
-                    {
-                        cmd.Parameters.Add(new OracleParameter("applyID", applyId));
-                        using (var reader = cmd.ExecuteReader())
-                        {
-                            if (reader.Read())
-                            {
-                                return new CourseApplicationDto
-                                {
-                                ApplyId = reader["apply_id"].ToString() ?? "",
-                                TeacherNo = reader["teacher_no"].ToString() ?? "",
-                                CourseName = reader["course_name"].ToString() ?? "",
-                                Credit = Convert.ToDecimal(reader["credit"]),
-                                TotalHours = Convert.ToInt32(reader["total_hours"]),
-                                Textbook = reader["textbook"]?.ToString() ?? "",
-                                CourseSummary = reader["course_summary"]?.ToString() ?? "",
-                                CourseType = reader["course_type"].ToString() ?? "",
-                                Department = reader["department"].ToString() ?? "",
-                                ApplyTime = reader["apply_time"]?.ToString() ?? "",
-                                Status = reader["status"].ToString() ?? "",
-                                ApproveTime = reader["approve_time"]?.ToString() ?? "",
-                                ApproveComment = reader["approve_comment"]?.ToString() ?? ""
-                                };
-                            }
-                        }
-                    }
-            return null;
-        }
-
-        /// <summary>
-        /// 根据申请ID获取申请详情
-        /// </summary>
         [HttpGet("applications/{applyId}")]
         public IActionResult GetApplication(string applyId)
         {
-            try
-            {
-                using (var conn = DbConnectionFactory.OpenConnection())
-                {
-                    var application=GetApplicationById(conn,applyId);
-                    if(application!=null){
-                        return Ok(application);
-                    }   
-                }
-                return NotFound("申请不存在");
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"获取失败: {ex.Message}");
-            }
+            return SafeOk(() => _adminApplicationService.GetApplication(applyId));
         }
 
-        /// <summary>
-        /// 待审核->通过/驳回->已开课（当section表中存在对应记录时）
-        /// </summary>
         [HttpPut("applications/{applyId}/approve")]
         public IActionResult ApproveApplication(string applyId, [FromBody] ApprovalRequest request)
         {
-            // 验证请求参数
-            if (request == null){
-                return BadRequest("请求参数不能为空");
-            }
-            if (string.IsNullOrEmpty(request.Status)){
-                return BadRequest("审批状态不能为空");
-            }
-            if (request.Status != "通过" && request.Status != "驳回"){
-                return BadRequest("审批状态只能为'通过'或'驳回'");
-            }
-            else{
-                //更新 course_application 表
-                using (var conn = DbConnectionFactory.OpenConnection())
-                {
-                    string sql=@"UPDATE course_application
-                                SET status=:status, approve_time=SYSDATE,approve_comment=:approve_comment
-                                WHERE apply_id=:applyID";
-                    using (var cmd = new OracleCommand(sql, conn)){
-                        cmd.Parameters.Add(new OracleParameter("status", request.Status));
-                        cmd.Parameters.Add(new OracleParameter("approve_comment", request.Comment));
-                        cmd.Parameters.Add(new OracleParameter("applyID",applyId));
-                        int rowsAffected = cmd.ExecuteNonQuery();
-                        if (rowsAffected == 0) {
-                            return NotFound("申请不存在");
-                        }
-                    }
-                    //审核通过时，同步把课程加入到course表
-                    if (request.Status == "通过"){
-                        var application=GetApplicationById(conn,applyId);
-                        if(application!=null){
-                            InsertCourse(conn,application.CourseName,application.CourseType,
-                                        application.Credit,application.TotalHours,application.Department,application.CourseSummary);
-                        }   
-                    }
-                }
-            }
-            return Ok();
+            return SafeOk(() => _adminApplicationService.ApproveApplication(applyId, request, ClientIp()));
         }
-    }
 
-    /// <summary>
-    /// 审批请求 DTO
-    /// </summary>
-    public class ApprovalRequest
-    {
-        //审批状态
-        public string Status { get; set; } = string.Empty;
-        //审批意见
-        public string Comment { get; set; } = string.Empty;
+        [HttpPost("auth/login")]
+        public IActionResult Login([FromBody] AdminLoginRequest request)
+        {
+            return SafeOk(() => _adminAuthService.Login(request, ClientIp()));
+        }
+
+        [HttpGet("current")]
+        public IActionResult GetCurrent()
+        {
+            return SafeOk(() => _adminAuthService.GetCurrent());
+        }
+
+        [HttpGet("permissions")]
+        public IActionResult GetPermissions()
+        {
+            return SafeOk(() => _adminAuthService.GetPermissions());
+        }
+
+        [HttpGet("students")]
+        public IActionResult GetStudents([FromQuery] string? keyword)
+        {
+            return SafeOk(() => _adminUserService.GetStudents(keyword));
+        }
+
+        [HttpPost("students")]
+        public IActionResult CreateStudent([FromBody] AdminUserInput input)
+        {
+            return SafeOk(() => _adminUserService.CreateStudent(input, ClientIp()));
+        }
+
+        [HttpPut("students/{userId:int}")]
+        public IActionResult UpdateStudent(int userId, [FromBody] AdminUserInput input)
+        {
+            return SafeOk(() => _adminUserService.UpdateStudent(userId, input, ClientIp()));
+        }
+
+        [HttpPut("students/{userId:int}/disable")]
+        public IActionResult DisableStudent(int userId)
+        {
+            return SafeOk(() =>
+            {
+                _adminUserService.DisableUser(userId, ClientIp());
+                return new { disabled = true };
+            });
+        }
+
+        [HttpPut("students/{userId:int}/enable")]
+        public IActionResult EnableStudent(int userId)
+        {
+            return SafeOk(() =>
+            {
+                _adminUserService.EnableUser(userId, ClientIp());
+                return new { enabled = true };
+            });
+        }
+
+        [HttpPut("students/{userId:int}/password")]
+        public IActionResult ResetStudentPassword(int userId, [FromBody] ResetPasswordRequest request)
+        {
+            return SafeOk(() =>
+            {
+                _adminUserService.ResetPassword(userId, request, ClientIp());
+                return new { reset = true };
+            });
+        }
+
+        [HttpGet("teachers")]
+        public IActionResult GetTeachers([FromQuery] string? keyword)
+        {
+            return SafeOk(() => _adminUserService.GetTeachers(keyword));
+        }
+
+        [HttpPost("teachers")]
+        public IActionResult CreateTeacher([FromBody] AdminUserInput input)
+        {
+            return SafeOk(() => _adminUserService.CreateTeacher(input, ClientIp()));
+        }
+
+        [HttpPut("teachers/{userId:int}")]
+        public IActionResult UpdateTeacher(int userId, [FromBody] AdminUserInput input)
+        {
+            return SafeOk(() => _adminUserService.UpdateTeacher(userId, input, ClientIp()));
+        }
+
+        [HttpPut("teachers/{userId:int}/disable")]
+        public IActionResult DisableTeacher(int userId)
+        {
+            return SafeOk(() =>
+            {
+                _adminUserService.DisableUser(userId, ClientIp());
+                return new { disabled = true };
+            });
+        }
+
+        [HttpPut("teachers/{userId:int}/enable")]
+        public IActionResult EnableTeacher(int userId)
+        {
+            return SafeOk(() =>
+            {
+                _adminUserService.EnableUser(userId, ClientIp());
+                return new { enabled = true };
+            });
+        }
+
+        [HttpPut("teachers/{userId:int}/password")]
+        public IActionResult ResetTeacherPassword(int userId, [FromBody] ResetPasswordRequest request)
+        {
+            return SafeOk(() =>
+            {
+                _adminUserService.ResetPassword(userId, request, ClientIp());
+                return new { reset = true };
+            });
+        }
+
+        [HttpGet("batches")]
+        public IActionResult GetBatches()
+        {
+            return SafeOk(() => _selectionBatchService.GetBatches());
+        }
+
+        [HttpPost("batches")]
+        public IActionResult CreateBatch([FromBody] SelectionBatchInput input)
+        {
+            return SafeOk(() => _selectionBatchService.Create(input, ClientIp()));
+        }
+
+        [HttpPut("batches/{batchId:int}")]
+        public IActionResult UpdateBatch(int batchId, [FromBody] SelectionBatchInput input)
+        {
+            return SafeOk(() => _selectionBatchService.Update(batchId, input, ClientIp()));
+        }
+
+        [HttpGet("classes")]
+        public IActionResult GetClasses([FromQuery] string? keyword)
+        {
+            return SafeOk(() => _adminClassService.GetClasses(keyword));
+        }
+
+        [HttpPut("classes/{classId:int}/capacity")]
+        public IActionResult UpdateCapacity(int classId, [FromBody] CapacityUpdateRequest request)
+        {
+            return SafeOk(() => _adminClassService.UpdateCapacity(classId, request, ClientIp()));
+        }
+
+        [HttpGet("logs")]
+        public IActionResult GetLogs([FromQuery] string? keyword, [FromQuery] string? operationType, [FromQuery] DateTime? startTime, [FromQuery] DateTime? endTime)
+        {
+            return SafeOk(() => _systemLogService.GetLogs(keyword, operationType, startTime, endTime));
+        }
+
+        
+
+        private IActionResult SafeOk<T>(Func<T> action)
+        {
+            try
+            {
+                return Ok(action());
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Oracle.ManagedDataAccess.Client.OracleException ex)
+            {
+                return StatusCode(500, new { message = "数据库操作失败", detail = ex.Message });
+            }
+        }
+
+        private string ClientIp()
+        {
+            return HttpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
+        }
     }
 }

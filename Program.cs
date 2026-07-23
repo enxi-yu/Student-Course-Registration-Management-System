@@ -16,6 +16,8 @@ builder.Services.AddScoped<StudentListRepository>();
 builder.Services.AddScoped<CourseApplicationRepository>();
 builder.Services.AddScoped<ScoreRepository>();
 builder.Services.AddScoped<AdminRepository>();
+builder.Services.AddScoped<AdminCourseService>();
+builder.Services.AddScoped<AdminApplicationService>();
 builder.Services.AddScoped<TeacherService>();
 builder.Services.AddScoped<TeacherStudentService>();
 builder.Services.AddScoped<CourseApplicationService>();
