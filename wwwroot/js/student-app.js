@@ -5,7 +5,8 @@
     schedule: { title: "我的课表", description: "查看本学期课程安排" },
     grades: { title: "成绩查询", description: "查看已修课程成绩和 GPA" },
     evaluation: { title: "课程评价", description: "对已修课程进行评价" },
-    profile: { title: "修改个人信息", description: "维护联系方式和账号安全" }
+    profile: { title: "修改个人信息", description: "维护联系方式和账号安全" },
+    detail: { title: "课程详情", description: "查看课程详细信息" }
   };
 
   const state = {
@@ -179,6 +180,11 @@
 
       if (page === "profile") {
         await window.studentPages.profile.render(container);
+        return;
+      }
+
+      if (page === "detail") {
+        await window.studentPages.detail.render(container, state.pageOptions.classId);
         return;
       }
 

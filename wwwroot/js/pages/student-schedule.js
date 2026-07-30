@@ -38,7 +38,7 @@
         const item = grid[p][d];
         if (item) {
           html += `
-            <div class="schedule-cell has-course">
+            <div class="schedule-cell has-course" data-class-id="${item.classId}" style="cursor:pointer;">
               <div class="course-name">${item.courseName}</div>
               <div class="course-info">${item.teacherName || ""}</div>
               <div class="course-info">${item.classroom || ""}</div>
@@ -94,6 +94,13 @@
         ${buildScheduleGrid(items)}
       </section>
     `;
+
+    container.querySelectorAll(".schedule-cell.has-course").forEach((cell) => {
+      cell.addEventListener("click", () => {
+        var cid = parseInt(cell.dataset.classId);
+        if (!isNaN(cid) && window.openStudentPage) window.openStudentPage("detail", { classId: cid });
+      });
+    });
   }
 
   window.studentPages = window.studentPages || {};
