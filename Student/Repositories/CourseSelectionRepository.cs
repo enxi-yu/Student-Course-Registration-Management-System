@@ -120,77 +120,87 @@ namespace StudentCourse.Student.Repositories
             var result = new SelectionResultDto { Success = false };
 
             using (OracleConnection connection = DbConnectionFactory.OpenConnection())
+            using (OracleTransaction tx = connection.BeginTransaction())
             {
-
-                // 检查重复选课
-                const string checkSql = @"
-                    SELECT COUNT(*) FROM course_select
-                     WHERE student_no = :studentNo AND class_id = :classId";
-
-                using (OracleCommand cmd = CreateCommand(connection, checkSql))
+                try
                 {
-                    cmd.Parameters.Add("studentNo", OracleDbType.Varchar2).Value = studentNo;
-                    cmd.Parameters.Add("classId", OracleDbType.Int32).Value = classId;
-                    if (Convert.ToInt32(cmd.ExecuteScalar()) > 0)
-                    {
-                        result.Message = "已选择该课程，不能重复选课。";
-                        return result;
-                    }
-                }
+                    // 检查重复选课
+                    const string checkSql = @"
+                        SELECT COUNT(*) FROM course_select
+                         WHERE student_no = :studentNo AND class_id = :classId";
 
-                // 检查容量
-                const string capSql = @"
-                    SELECT capacity, selected_count FROM teaching_class WHERE class_id = :classId";
-
-                using (OracleCommand cmd = CreateCommand(connection, capSql))
-                {
-                    cmd.Parameters.Add("classId", OracleDbType.Int32).Value = classId;
-                    using (OracleDataReader reader = cmd.ExecuteReader())
+                    using (OracleCommand cmd = CreateCommand(connection, checkSql))
                     {
-                        if (reader.Read())
+                        cmd.Parameters.Add("studentNo", OracleDbType.Varchar2).Value = studentNo;
+                        cmd.Parameters.Add("classId", OracleDbType.Int32).Value = classId;
+                        if (Convert.ToInt32(cmd.ExecuteScalar()) > 0)
                         {
-                            int capacity = StudentProfileRepository.SafeGetInt(reader["capacity"]);
-                            int selected = StudentProfileRepository.SafeGetInt(reader["selected_count"]);
-                            if (selected >= capacity)
-                            {
-                                result.Message = "该课程已满，无法选课。";
-                                return result;
-                            }
-                        }
-                        else
-                        {
-                            result.Message = "教学班不存在。";
+                            result.Message = "已选择该课程，不能重复选课。";
                             return result;
                         }
                     }
-                }
 
-                // 检查时间冲突
-                result.ConflictCourses = CheckTimeConflict(connection, studentNo, classId);
-                if (result.ConflictCourses != null && result.ConflictCourses.Count > 0)
-                {
-                    result.Message = "选课失败：与已选课程存在时间冲突。";
+                    // 检查容量（FOR UPDATE 防并发超选）
+                    const string capSql = @"
+                        SELECT capacity, selected_count FROM teaching_class
+                         WHERE class_id = :classId FOR UPDATE";
+
+                    using (OracleCommand cmd = CreateCommand(connection, capSql))
+                    {
+                        cmd.Parameters.Add("classId", OracleDbType.Int32).Value = classId;
+                        using (OracleDataReader reader = cmd.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                int capacity = StudentProfileRepository.SafeGetInt(reader["capacity"]);
+                                int selected = StudentProfileRepository.SafeGetInt(reader["selected_count"]);
+                                if (selected >= capacity)
+                                {
+                                    result.Message = "该课程已满，无法选课。";
+                                    return result;
+                                }
+                            }
+                            else
+                            {
+                                result.Message = "教学班不存在。";
+                                return result;
+                            }
+                        }
+                    }
+
+                    // 检查时间冲突
+                    result.ConflictCourses = CheckTimeConflict(connection, studentNo, classId);
+                    if (result.ConflictCourses != null && result.ConflictCourses.Count > 0)
+                    {
+                        result.Message = "选课失败：与已选课程存在时间冲突。";
+                        return result;
+                    }
+
+                    // 执行选课
+                    const string insertSql = @"
+                        INSERT INTO course_select (select_id, class_id, batch_id, student_no)
+                        VALUES ((SELECT NVL(MAX(select_id), 0) + 1 FROM course_select), :classId, :batchId, :studentNo)";
+
+                    using (OracleCommand cmd = CreateCommand(connection, insertSql))
+                    {
+                        cmd.Parameters.Add("classId", OracleDbType.Int32).Value = classId;
+                        cmd.Parameters.Add("batchId", OracleDbType.Int32).Value = batchId;
+                        cmd.Parameters.Add("studentNo", OracleDbType.Varchar2).Value = studentNo;
+                        cmd.ExecuteNonQuery();
+                    }
+
+                    UpdateSelectedCount(connection, classId);
+
+                    tx.Commit();
+                    result.Success = true;
+                    result.Message = "选课成功！";
                     return result;
                 }
-
-                // 执行选课
-                const string insertSql = @"
-                    INSERT INTO course_select (select_id, class_id, batch_id, student_no)
-                    VALUES ((SELECT NVL(MAX(select_id), 0) + 1 FROM course_select), :classId, :batchId, :studentNo)";
-
-                using (OracleCommand cmd = CreateCommand(connection, insertSql))
+                catch
                 {
-                    cmd.Parameters.Add("classId", OracleDbType.Int32).Value = classId;
-                    cmd.Parameters.Add("batchId", OracleDbType.Int32).Value = batchId;
-                    cmd.Parameters.Add("studentNo", OracleDbType.Varchar2).Value = studentNo;
-                    cmd.ExecuteNonQuery();
+                    result.Message = "选课失败，请重试。";
+                    return result;
                 }
-
-                UpdateSelectedCount(connection, classId);
-
-                result.Success = true;
-                result.Message = "选课成功！";
-                return result;
             }
         }
 
