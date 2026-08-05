@@ -1,0 +1,61 @@
+using Microsoft.AspNetCore.Mvc;
+using StudentCourse.Student.Models;
+using StudentCourse.Student.Services;
+
+namespace StudentCourse.Student.Controllers
+{
+    /// <summary>
+    /// 模块一：个人信息与首页仪表盘
+    /// </summary>
+    [ApiController]
+    [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Student")]
+    public sealed class StudentProfileController : ControllerBase
+    {
+        private readonly StudentProfileService _service;
+
+        public StudentProfileController(StudentProfileService service)
+        {
+            _service = service;
+        }
+
+        [HttpGet("api/student/current")]
+        public IActionResult GetCurrentStudent()
+        {
+            return SafeOk(() => _service.GetCurrentStudent());
+        }
+
+        [HttpGet("api/student/dashboard")]
+        public IActionResult GetDashboard()
+        {
+            return SafeOk(() => _service.GetDashboard());
+        }
+
+        [HttpPut("api/student/profile")]
+        public IActionResult UpdateProfile([FromBody] UpdateStudentProfileRequest request)
+        {
+            return SafeOk(() => _service.UpdateProfile(request));
+        }
+
+        [HttpPost("api/student/password")]
+        public IActionResult ChangePassword([FromBody] ChangePasswordRequest request)
+        {
+            return SafeOk(() => _service.ChangePassword(request));
+        }
+
+        private IActionResult SafeOk<T>(Func<T> action)
+        {
+            try
+            {
+                return Ok(action());
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "服务暂不可用，请稍后重试。", traceId = HttpContext.TraceIdentifier });
+            }
+        }
+    }
+}
