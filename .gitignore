@@ -1,0 +1,4 @@
+**/appsettings.Local.json
+database_tables_extracted.txt
+.build-check/
+**/logs/
