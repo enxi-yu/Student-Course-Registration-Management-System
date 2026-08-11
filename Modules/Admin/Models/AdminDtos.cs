@@ -1,6 +1,6 @@
 namespace StudentCourse.Models
 {
-    public sealed class AdminLoginRequest
+    public sealed class LoginRequest
     {
         public string Username { get; set; } = string.Empty;
 

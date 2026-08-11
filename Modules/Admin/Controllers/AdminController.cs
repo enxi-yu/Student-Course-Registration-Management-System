@@ -90,29 +90,6 @@ namespace StudentCourse.Controllers
             return SafeOk(() => _adminApplicationService.ApproveApplication(applyId, request, ClientIp()));
         }
 
-        [HttpPost("auth/login")]
-        [AllowAnonymous]
-        public async Task<IActionResult> Login([FromBody] AdminLoginRequest request)
-        {
-            try
-            {
-                AdminCurrentDto current = _adminAuthService.Login(request, ClientIp());
-                var claims = new[]
-                {
-                    new Claim(ClaimTypes.NameIdentifier, current.UserId.ToString()),
-                    new Claim(ClaimTypes.Name, current.Username),
-                    new Claim(ClaimTypes.GivenName, current.RealName),
-                    new Claim(ClaimTypes.Role, "Admin")
-                };
-                await HttpContext.SignInAsync(new ClaimsPrincipal(new ClaimsIdentity(claims, "Cookies")));
-                return Ok(current);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-        }
-
         [HttpGet("current")]
         public IActionResult GetCurrent()
         {

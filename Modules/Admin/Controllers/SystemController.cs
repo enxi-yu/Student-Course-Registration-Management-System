@@ -21,13 +21,5 @@ namespace StudentCourse.Controllers
         {
             return Ok(DbConnectionFactory.TestConnection());
         }
-
-        [AllowAnonymous]
-        [HttpPost("api/auth/logout")]
-        public async Task<IActionResult> Logout()
-        {
-            await HttpContext.SignOutAsync();
-            return Ok(new { loggedOut = true });
-        }
     }
 }

@@ -9,7 +9,7 @@
   const roleConfig = {
     student: { label: "学生", api: "http://localhost:5101/api/auth/login", target: "http://localhost:5101/student.html" },
     teacher: { label: "教师", api: "http://localhost:5102/api/auth/login", target: "http://localhost:5102/teacher.html" },
-    admin: { label: "管理员", api: "http://localhost:5103/api/admin/auth/login", target: "http://localhost:5103/admin.html" }
+    admin: { label: "管理员", api: "http://localhost:5103/api/auth/login", target: "http://localhost:5103/admin.html" }
   };
 
   const roleOf = value => ({ S: "student", T: "teacher", A: "admin" })[(value || "").trim().charAt(0).toUpperCase()] || "";

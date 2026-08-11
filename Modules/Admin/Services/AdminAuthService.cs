@@ -17,7 +17,7 @@ namespace StudentCourse.Services
             _systemLogService = systemLogService;
         }
 
-        public AdminCurrentDto Login(AdminLoginRequest request, string ipAddress)
+        public AdminCurrentDto Login(LoginRequest request, string ipAddress)
         {
             if (request == null || string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Password))
             {
