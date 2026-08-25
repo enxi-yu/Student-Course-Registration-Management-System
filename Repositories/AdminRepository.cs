@@ -7,31 +7,45 @@ namespace StudentCourse.Repositories
 {
     public sealed class AdminRepository
     {
-        /// <summary>
-        /// 获取所有课程列表
-        /// </summary>
-        public IList<CourseDto> GetCourses()
+        //查询课程
+        public IList<CourseDto> GetCourses(string? keyword, string? coursetype)
         {
             var list = new List<CourseDto>();
-            
             using (var conn = DbConnectionFactory.OpenConnection())
             {
                 string sql = "SELECT course_id, course_name, course_type, credit, total_hours, department, course_desc FROM course";
-                using (var cmd = new OracleCommand(sql, conn))
-                using (var reader = cmd.ExecuteReader())
-                {
-                    while (reader.Read())
+                if(!string.IsNullOrEmpty(keyword)){
+                    sql+=@" WHERE (course_name LIKE :keyword
+                    OR TO_CHAR(course_id) LIKE :keyword
+                    OR department LIKE :keyword)";
+                }
+                if(!string.IsNullOrEmpty(coursetype)){
+                    sql+= !string.IsNullOrEmpty(keyword)?" AND ":" WHERE ";
+                    sql+="course_type=:coursetype";
+                }
+                using (var cmd = new OracleCommand(sql, conn)){
+                    cmd.BindByName= true;
+                    if(!string.IsNullOrEmpty(keyword)){
+                        cmd.Parameters.Add("keyword", OracleDbType.Varchar2).Value = "%" + keyword.Trim() + "%";
+                    }
+                    if(!string.IsNullOrEmpty(coursetype)){
+                        cmd.Parameters.Add("coursetype", OracleDbType.Varchar2).Value = coursetype;
+                    }
+                    using (var reader = cmd.ExecuteReader())
                     {
-                        list.Add(new CourseDto
+                        while (reader.Read())
                         {
-                            CourseId = Convert.ToInt32(reader["course_id"]),
-                            CourseName = reader["course_name"].ToString() ?? "",
-                            CourseType = reader["course_type"].ToString() ?? "",
-                            Credit = Convert.ToDecimal(reader["credit"]),
-                            TotalHours = Convert.ToInt32(reader["total_hours"]),
-                            Department = reader["department"]?.ToString() ?? "",
-                            CourseDesc = reader["course_desc"]?.ToString() ?? ""
-                        });
+                            list.Add(new CourseDto
+                            {
+                                CourseId = Convert.ToInt32(reader["course_id"]),
+                                CourseName = reader["course_name"].ToString() ?? "",
+                                CourseType = reader["course_type"].ToString() ?? "",
+                                Credit = Convert.ToDecimal(reader["credit"]),
+                                TotalHours = Convert.ToInt32(reader["total_hours"]),
+                                Department = reader["department"]?.ToString() ?? "",
+                                CourseDesc = reader["course_desc"]?.ToString() ?? ""
+                            });
+                        }
                     }
                 }
             }
@@ -39,9 +53,7 @@ namespace StudentCourse.Repositories
             return list;
         }
 
-        /// <summary>
-        /// 根据课程ID获取课程详情
-        /// </summary>
+        // 根据课程ID获取课程详情
         public CourseDto? GetCourseById(int courseId)
         {
             using (var conn = DbConnectionFactory.OpenConnection())
@@ -72,20 +84,17 @@ namespace StudentCourse.Repositories
             return null;
         }
 
-
-        ///<summary>
-        /// 插入课程
-        /// </summary>
+        // 插入课程
         public CourseDto InsertCourse(CourseDto input)
         {
             int newId;
             
             using (var conn = DbConnectionFactory.OpenConnection())
             {
-                string maxIdSql = "SELECT NVL(MAX(course_id), 0) FROM course";
-                using (var maxCmd = new OracleCommand(maxIdSql, conn))
+                const string nextIdSql = "SELECT course_id_seq.NEXTVAL FROM dual";
+                using (var maxCmd = new OracleCommand(nextIdSql, conn))
                 {
-                    newId = Convert.ToInt32(maxCmd.ExecuteScalar()) + 1;
+                    newId = Convert.ToInt32(maxCmd.ExecuteScalar());
                 }
 
                 string sql = "INSERT INTO course (course_id, course_name, course_type, credit, total_hours, department, course_desc) VALUES (:id, :name, :type, :credit, :hours, :dept, :cdesc)";
@@ -105,9 +114,7 @@ namespace StudentCourse.Repositories
             return GetCourseById(newId);
         }
 
-        /// <summary>
-        /// 更新课程信息
-        /// </summary>
+        // 更新课程信息
         public CourseDto UpdateCourse(int id, CourseDto input)
         {
             using (var conn = DbConnectionFactory.OpenConnection())
@@ -132,9 +139,7 @@ namespace StudentCourse.Repositories
             return GetCourseById(id);
         }
 
-        /// <summary>
-        /// 删除课程（需先检查是否有section关联）
-        /// </summary>
+        // 删除课程（需先检查是否有section关联）
         public void DeleteCourse(int id)
         {
           using (var conn = DbConnectionFactory.OpenConnection())
@@ -169,10 +174,8 @@ namespace StudentCourse.Repositories
             }
         }
 
-        /// <summary>
-        /// 获取所有开课申请列表
-        /// </summary>
-        public IList<CourseApplicationDto> GetApplications()
+        //查询开课申请
+        public IList<CourseApplicationDto> GetApplications(string? keyword, string? status)
         {
             List<CourseApplicationDto> list = new List<CourseApplicationDto>();
             try{
@@ -181,24 +184,42 @@ namespace StudentCourse.Repositories
                                        course_summary, course_type, department, apply_time, status, 
                                        approve_time, approve_comment 
                                 FROM course_application";
-                    using (var cmd = new OracleCommand(sql, conn))
-                    using (var reader = cmd.ExecuteReader()){
-                        while (reader.Read()) {
-                            list.Add(new CourseApplicationDto{
-                                ApplyId = reader["apply_id"].ToString() ?? "",
-                                TeacherNo = reader["teacher_no"].ToString() ?? "",
-                                CourseName = reader["course_name"].ToString() ?? "",
-                                Credit = Convert.ToDecimal(reader["credit"]),
-                                TotalHours = Convert.ToInt32(reader["total_hours"]),
-                                Textbook = reader["textbook"]?.ToString() ?? "",
-                                CourseSummary = reader["course_summary"]?.ToString() ?? "",
-                                CourseType = reader["course_type"].ToString() ?? "",
-                                Department = reader["department"].ToString() ?? "",
-                                ApplyTime = reader["apply_time"]?.ToString() ?? "",
-                                Status = reader["status"].ToString() ?? "",
-                                ApproveTime = reader["approve_time"]?.ToString() ?? "",
-                                ApproveComment = reader["approve_comment"]?.ToString() ?? ""
-                            });
+                    if(!string.IsNullOrEmpty(keyword)){
+                        sql+=@" WHERE (apply_id LIKE :keyword
+                        OR course_name LIKE :keyword
+                        OR teacher_no LIKE :keyword
+                        OR department LIKE :keyword)";
+                    }
+                    if(!string.IsNullOrEmpty(status)){
+                        sql+= !string.IsNullOrEmpty(keyword)?" AND ":" WHERE ";
+                        sql+="status=:status";
+                    }
+                    using (var cmd = new OracleCommand(sql, conn)){
+                        cmd.BindByName =true;
+                        if(!string.IsNullOrEmpty(keyword)){
+                            cmd.Parameters.Add("keyword", OracleDbType.Varchar2).Value = "%" + keyword.Trim() + "%";
+                        }
+                        if(!string.IsNullOrEmpty(status)){
+                            cmd.Parameters.Add("status", OracleDbType.Varchar2).Value = status;
+                        }
+                        using (var reader = cmd.ExecuteReader()){
+                            while (reader.Read()) {
+                                list.Add(new CourseApplicationDto{
+                                    ApplyId = reader["apply_id"].ToString() ?? "",
+                                    TeacherNo = reader["teacher_no"].ToString() ?? "",
+                                    CourseName = reader["course_name"].ToString() ?? "",
+                                    Credit = Convert.ToDecimal(reader["credit"]),
+                                    TotalHours = Convert.ToInt32(reader["total_hours"]),
+                                    Textbook = reader["textbook"]?.ToString() ?? "",
+                                    CourseSummary = reader["course_summary"]?.ToString() ?? "",
+                                    CourseType = reader["course_type"].ToString() ?? "",
+                                    Department = reader["department"].ToString() ?? "",
+                                    ApplyTime = reader["apply_time"]?.ToString() ?? "",
+                                    Status = reader["status"].ToString() ?? "",
+                                    ApproveTime = reader["approve_time"]?.ToString() ?? "",
+                                    ApproveComment = reader["approve_comment"]?.ToString() ?? ""
+                                });
+                            }
                         }
                     }
                 }
@@ -209,9 +230,7 @@ namespace StudentCourse.Repositories
             }
         }
 
-        ///<summary>
-        /// 根据申请ID获取申请详情
-        /// </summary>
+        // 根据申请ID获取申请详情
         public CourseApplicationDto? GetApplicationById(string applyId)
         {
             using (var conn = DbConnectionFactory.OpenConnection())
@@ -251,9 +270,7 @@ namespace StudentCourse.Repositories
             return null;
         }
 
-        /// <summary>
-        /// 审批开课申请（通过/驳回）
-        /// </summary>
+        // 审批开课申请（通过/驳回）
         public CourseApplicationDto ApproveApplication(string applyId, string status, string comment)
         {
             //更新 course_application 表
@@ -326,10 +343,34 @@ namespace StudentCourse.Repositories
                 roleCommand.ExecuteNonQuery();
             }
 
-            int userId = FindUserId(connection, transaction, "admin");
+            const string baseRolesSql = @"
+                MERGE INTO role r
+                USING (SELECT 0 AS role_id, 'student' AS role_name, '学生' AS role_desc FROM dual) src
+                   ON (r.role_id = src.role_id)
+                 WHEN NOT MATCHED THEN
+                   INSERT (role_id, role_name, role_desc)
+                   VALUES (src.role_id, src.role_name, src.role_desc)";
+            using (OracleCommand studentRoleCommand = CreateCommand(connection, baseRolesSql, transaction))
+            {
+                studentRoleCommand.ExecuteNonQuery();
+            }
+
+            const string teacherRoleSql = @"
+                MERGE INTO role r
+                USING (SELECT 1 AS role_id, 'teacher' AS role_name, '教师' AS role_desc FROM dual) src
+                   ON (r.role_id = src.role_id)
+                 WHEN NOT MATCHED THEN
+                   INSERT (role_id, role_name, role_desc)
+                   VALUES (src.role_id, src.role_name, src.role_desc)";
+            using (OracleCommand teacherRoleCommand = CreateCommand(connection, teacherRoleSql, transaction))
+            {
+                teacherRoleCommand.ExecuteNonQuery();
+            }
+
+            int userId = FindUserId(connection, transaction, "Aadmin");
             if (userId == 0)
             {
-                userId = GetNextIntId(connection, transaction, @"""user""", "user_id");
+                userId = GetNextIntId(connection, transaction, "user_id_seq");
 
                 const string insertUserSql = @"
                     INSERT INTO ""user"" (
@@ -342,7 +383,7 @@ namespace StudentCourse.Repositories
                         create_time
                     ) VALUES (
                         :userId,
-                        'admin',
+                        'Aadmin',
                         :password,
                         2,
                         '系统管理员',
@@ -375,7 +416,7 @@ namespace StudentCourse.Repositories
                 MERGE INTO administrator a
                 USING (
                     SELECT :userId AS user_id,
-                           'ADM001' AS admin_no,
+                           'AADMIN001' AS admin_no,
                            0 AS admin_level,
                            '{""scope"":""all""}' AS managed_scope
                       FROM dual
@@ -820,7 +861,7 @@ namespace StudentCourse.Repositories
         public SelectionBatchDto InsertBatch(SelectionBatchInput input, int status)
         {
             using OracleConnection connection = DbConnectionFactory.OpenConnection();
-            int batchId = GetNextIntId(connection, null, "selection_batch", "batch_id");
+            int batchId = GetNextIntId(connection, null, "selection_batch_id_seq");
 
             const string sql = @"
                 INSERT INTO selection_batch (
@@ -1099,7 +1140,7 @@ namespace StudentCourse.Repositories
 
         private static int InsertUser(OracleConnection connection, OracleTransaction transaction, AdminUserInput input, string passwordHash, int roleId)
         {
-            int userId = GetNextIntId(connection, transaction, @"""user""", "user_id");
+            int userId = GetNextIntId(connection, transaction, "user_id_seq");
 
             const string sql = @"
                 INSERT INTO ""user"" (
@@ -1163,9 +1204,9 @@ namespace StudentCourse.Repositories
             }
         }
 
-        private static int GetNextIntId(OracleConnection connection, OracleTransaction? transaction, string tableName, string idColumn)
+        private static int GetNextIntId(OracleConnection connection, OracleTransaction? transaction, string sequenceName)
         {
-            string sql = $"SELECT NVL(MAX({idColumn}), 0) + 1 FROM {tableName}";
+            string sql = $"SELECT {sequenceName}.NEXTVAL FROM dual";
             using OracleCommand command = CreateCommand(connection, sql, transaction);
             return Convert.ToInt32(command.ExecuteScalar());
         }

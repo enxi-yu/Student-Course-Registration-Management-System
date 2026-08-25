@@ -1,11 +1,15 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
 using StudentCourse.Models;
 using StudentCourse.Services;
+using System.Security.Claims;
 
 namespace StudentCourse.Controllers
 {
     [ApiController]
     [Route("api/admin")]
+    [Authorize(Roles = "Admin")]
     public sealed class AdminController : ControllerBase
     {
         private readonly AdminAuthService _adminAuthService;
@@ -15,6 +19,7 @@ namespace StudentCourse.Controllers
         private readonly SystemLogService _systemLogService;
         private readonly AdminCourseService _adminCourseService;
         private readonly AdminApplicationService _adminApplicationService;
+        private readonly AdminSelectionService _adminSelectionService;
 
         public AdminController(
             AdminAuthService adminAuthService,
@@ -23,7 +28,8 @@ namespace StudentCourse.Controllers
             AdminClassService adminClassService,
             SystemLogService systemLogService,
             AdminCourseService adminCourseService,
-            AdminApplicationService adminApplicationService)
+            AdminApplicationService adminApplicationService,
+            AdminSelectionService adminSelectionService)
         {
             _adminAuthService = adminAuthService;
             _adminUserService = adminUserService;
@@ -32,12 +38,13 @@ namespace StudentCourse.Controllers
             _systemLogService = systemLogService;
             _adminCourseService = adminCourseService;
             _adminApplicationService = adminApplicationService;
+            _adminSelectionService = adminSelectionService;
         }
 
         [HttpGet("courses")]
-        public IActionResult GetCourses()
+        public IActionResult GetCourses([FromQuery] string? keyword,[FromQuery] string? coursetype)
         {
-            return SafeOk(() => _adminCourseService.GetCourses());
+            return SafeOk(() => _adminCourseService.GetCourses(keyword,coursetype));
         }
 
         [HttpGet("courses/{courseId:int}")]
@@ -69,9 +76,9 @@ namespace StudentCourse.Controllers
         }
 
         [HttpGet("applications")]
-        public IActionResult GetApplications()
+        public IActionResult GetApplications([FromQuery] string? keyword,[FromQuery] string? status)
         {
-            return SafeOk(() => _adminApplicationService.GetApplications());
+            return SafeOk(() => _adminApplicationService.GetApplications(keyword,status));
         }
 
         [HttpGet("applications/{applyId}")]
@@ -84,12 +91,6 @@ namespace StudentCourse.Controllers
         public IActionResult ApproveApplication(string applyId, [FromBody] ApprovalRequest request)
         {
             return SafeOk(() => _adminApplicationService.ApproveApplication(applyId, request, ClientIp()));
-        }
-
-        [HttpPost("auth/login")]
-        public IActionResult Login([FromBody] AdminLoginRequest request)
-        {
-            return SafeOk(() => _adminAuthService.Login(request, ClientIp()));
         }
 
         [HttpGet("current")]
@@ -236,6 +237,30 @@ namespace StudentCourse.Controllers
             return SafeOk(() => _systemLogService.GetLogs(keyword, operationType, startTime, endTime));
         }
 
+        [HttpGet("selection/classes")]
+        public IActionResult GetSelectionClasses([FromQuery] string? semester, [FromQuery] string? keyword)
+        {
+            return SafeOk(() => _adminSelectionService.GetSelectableClasses(semester, keyword));
+        }
+
+        [HttpGet("selection/students/{studentNo}/enrollments")]
+        public IActionResult GetStudentEnrollments(string studentNo, [FromQuery] string? semester)
+        {
+            return SafeOk(() => _adminSelectionService.GetStudentEnrollments(studentNo, semester));
+        }
+
+        [HttpPost("selection/students/{studentNo}/classes/{classId:int}")]
+        public IActionResult SelectForStudent(string studentNo, int classId, [FromQuery] bool force = false)
+        {
+            return SafeOk(() => _adminSelectionService.SelectForStudent(studentNo, classId, force, ClientIp()));
+        }
+
+        [HttpDelete("selection/students/{studentNo}/classes/{classId:int}")]
+        public IActionResult DropForStudent(string studentNo, int classId)
+        {
+            return SafeOk(() => _adminSelectionService.DropForStudent(studentNo, classId, ClientIp()));
+        }
+
         
 
         private IActionResult SafeOk<T>(Func<T> action)
@@ -250,7 +275,7 @@ namespace StudentCourse.Controllers
             }
             catch (Oracle.ManagedDataAccess.Client.OracleException ex)
             {
-                return StatusCode(500, new { message = "数据库操作失败", detail = ex.Message });
+                return StatusCode(500, new { message = "服务暂不可用，请稍后重试。", traceId = HttpContext.TraceIdentifier });
             }
         }
 

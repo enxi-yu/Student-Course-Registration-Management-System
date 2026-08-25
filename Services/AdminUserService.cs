@@ -1,5 +1,6 @@
 using StudentCourse.Models;
 using StudentCourse.Repositories;
+using StudentCourse.Shared.Security;
 
 namespace StudentCourse.Services
 {
@@ -23,12 +24,13 @@ namespace StudentCourse.Services
         public AdminStudentDto CreateStudent(AdminUserInput input, string ipAddress)
         {
             ValidateCommon(input, requirePassword: true);
+            RequirePrefix(input.Username, 'S', "学生账号必须以 S 开头");
             Require(input.StudentNo, "学号不能为空");
             Require(input.Major, "专业不能为空");
             Require(input.Grade, "年级不能为空");
             ValidateGpa(input.AvgGpa);
 
-            AdminStudentDto student = _adminRepository.InsertStudent(input, AdminAuthService.Md5(input.Password));
+            AdminStudentDto student = _adminRepository.InsertStudent(input, PasswordHash.Hash(input.Password));
             _systemLogService.WriteCurrent("新增", "新增学生账号", student.StudentNo, ipAddress, new { student.UserId, student.StudentNo, student.RealName });
             return student;
         }
@@ -36,6 +38,7 @@ namespace StudentCourse.Services
         public AdminStudentDto UpdateStudent(int userId, AdminUserInput input, string ipAddress)
         {
             ValidateCommon(input, requirePassword: false);
+            RequirePrefix(input.Username, 'S', "学生账号必须以 S 开头");
             Require(input.StudentNo, "学号不能为空");
             Require(input.Major, "专业不能为空");
             Require(input.Grade, "年级不能为空");
@@ -55,11 +58,12 @@ namespace StudentCourse.Services
         public AdminTeacherDto CreateTeacher(AdminUserInput input, string ipAddress)
         {
             ValidateCommon(input, requirePassword: true);
+            RequirePrefix(input.Username, 'T', "教师账号必须以 T 开头");
             Require(input.TeacherNo, "教师工号不能为空");
             Require(input.Title, "职称不能为空");
             Require(input.Department, "所属院系不能为空");
 
-            AdminTeacherDto teacher = _adminRepository.InsertTeacher(input, AdminAuthService.Md5(input.Password));
+            AdminTeacherDto teacher = _adminRepository.InsertTeacher(input, PasswordHash.Hash(input.Password));
             _systemLogService.WriteCurrent("新增", "新增教师账号", teacher.TeacherNo, ipAddress, new { teacher.UserId, teacher.TeacherNo, teacher.RealName });
             return teacher;
         }
@@ -67,6 +71,7 @@ namespace StudentCourse.Services
         public AdminTeacherDto UpdateTeacher(int userId, AdminUserInput input, string ipAddress)
         {
             ValidateCommon(input, requirePassword: false);
+            RequirePrefix(input.Username, 'T', "教师账号必须以 T 开头");
             Require(input.TeacherNo, "教师工号不能为空");
             Require(input.Title, "职称不能为空");
             Require(input.Department, "所属院系不能为空");
@@ -98,7 +103,7 @@ namespace StudentCourse.Services
                 throw new InvalidOperationException("新密码不能为空");
             }
 
-            _adminRepository.ResetPassword(userId, AdminAuthService.Md5(request.Password));
+            _adminRepository.ResetPassword(userId, PasswordHash.Hash(request.Password));
             _systemLogService.WriteCurrent("修改", "重置用户密码", Convert.ToString(userId), ipAddress, new { userId });
         }
 
@@ -133,6 +138,14 @@ namespace StudentCourse.Services
             if (value < 0 || value > 5)
             {
                 throw new InvalidOperationException("平均绩点必须在 0.00 到 5.00 之间");
+            }
+        }
+
+        private static void RequirePrefix(string? value, char prefix, string message)
+        {
+            if (string.IsNullOrWhiteSpace(value) || !value.Trim().StartsWith(prefix.ToString(), StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException(message);
             }
         }
 

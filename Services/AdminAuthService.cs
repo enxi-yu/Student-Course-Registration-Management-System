@@ -1,7 +1,6 @@
-using System.Security.Cryptography;
-using System.Text;
 using StudentCourse.Models;
 using StudentCourse.Repositories;
+using StudentCourse.Shared.Security;
 
 namespace StudentCourse.Services
 {
@@ -18,7 +17,7 @@ namespace StudentCourse.Services
             _systemLogService = systemLogService;
         }
 
-        public AdminCurrentDto Login(AdminLoginRequest request, string ipAddress)
+        public AdminCurrentDto Login(LoginRequest request, string ipAddress)
         {
             if (request == null || string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Password))
             {
@@ -26,14 +25,11 @@ namespace StudentCourse.Services
             }
 
             string username = request.Username.Trim();
-            string passwordHash = Md5(request.Password);
-            AdminCredentialDto? credential = _adminRepository.GetAdminCredential(username);
-            if (IsDefaultAdminBootstrap(username, request.Password)
-                && (credential == null || !string.Equals(passwordHash, credential.PasswordHash, StringComparison.OrdinalIgnoreCase)))
+            if (!username.StartsWith("A", StringComparison.OrdinalIgnoreCase))
             {
-                _adminRepository.EnsureDefaultAdmin(passwordHash);
-                credential = _adminRepository.GetAdminCredential(username);
+                throw new InvalidOperationException("管理员账号必须以 A 开头");
             }
+            AdminCredentialDto? credential = _adminRepository.GetAdminCredential(username);
 
             if (credential == null)
             {
@@ -46,23 +42,16 @@ namespace StudentCourse.Services
                 throw new InvalidOperationException("该管理员账号已禁用");
             }
 
-            if (!string.Equals(passwordHash, credential.PasswordHash, StringComparison.OrdinalIgnoreCase))
+            if (!PasswordHash.Verify(credential.PasswordHash, request.Password, out bool upgrade))
             {
                 _systemLogService.Write(credential.UserId, "登录", "管理员登录失败：密码错误", credential.AdminNo, ipAddress, new { credential.Username }, "失败", "密码错误");
                 throw new InvalidOperationException("管理员账号或密码错误");
             }
 
-            UserSessionContext.Set(new UserSession
+            if (upgrade)
             {
-                UserId = credential.UserId,
-                Username = credential.Username,
-                RealName = credential.RealName,
-                UserType = AdminRoleId,
-                TeacherNo = string.Empty,
-                Title = string.Empty,
-                Department = string.Empty,
-                IsLoggedIn = true
-            });
+                _adminRepository.ResetPassword(credential.UserId, PasswordHash.Hash(request.Password));
+            }
 
             _adminRepository.UpdateLastLogin(credential.UserId);
             _systemLogService.Write(credential.UserId, "登录", "管理员登录成功", credential.AdminNo, ipAddress, new { credential.Username });
@@ -103,7 +92,7 @@ namespace StudentCourse.Services
                 throw new InvalidOperationException("请先登录管理员账号");
             }
 
-            UserSession session = UserSessionContext.Current;
+            UserSession session = UserSessionContext.Current!;
             if (session.UserType != AdminRoleId)
             {
                 throw new InvalidOperationException("当前账号不是管理员，无权访问管理员功能");
@@ -112,22 +101,5 @@ namespace StudentCourse.Services
             return session;
         }
 
-        public static string Md5(string value)
-        {
-            byte[] bytes = MD5.HashData(Encoding.UTF8.GetBytes(value));
-            StringBuilder builder = new StringBuilder(bytes.Length * 2);
-            foreach (byte item in bytes)
-            {
-                builder.Append(item.ToString("x2"));
-            }
-
-            return builder.ToString();
-        }
-
-        private static bool IsDefaultAdminBootstrap(string username, string password)
-        {
-            return string.Equals(username, "admin", StringComparison.OrdinalIgnoreCase)
-                   && password == "admin123";
-        }
     }
 }

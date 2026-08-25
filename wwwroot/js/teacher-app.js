@@ -80,15 +80,6 @@
       </section>
     `;
 
-    document.getElementById("dev-teacher-button").addEventListener("click", async () => {
-      await window.nativeApi.request("app.useMockTeacherSession", {});
-      await initializeTeacherPage();
-    });
-
-    document.getElementById("dev-student-button").addEventListener("click", async () => {
-      await window.nativeApi.request("app.useMockStudentSession", {});
-      await initializeTeacherPage();
-    });
   }
 
   function renderThirdPhase(container, page) {

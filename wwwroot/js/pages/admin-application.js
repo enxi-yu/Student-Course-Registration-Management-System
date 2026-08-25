@@ -20,46 +20,50 @@ function switchTab(tabName) {
 }
 
 // 加载开课申请列表
-function loadApplications() {
-    fetch('/api/admin/applications')
-        .then(response => response.json())
-        .then(data => {
-            const tbody = document.getElementById('applicationTableBody');
-            tbody.innerHTML = '';
-            if (data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="11" class="empty-state">暂无开课申请记录</td></tr>';
-                return;
-            }
+async function loadApplications() {
+    const tbody = document.getElementById('applicationTableBody');
+    try {
+        const keyword = document.getElementById('applicationKeyword').value.trim();
+        const status = document.getElementById('applicationStatusFilter').value;
+        const params = new URLSearchParams();
+        if (keyword) params.set('keyword', keyword);
+        if (status) params.set('status', status);
+        const qs = params.toString();
 
-            data.forEach(app => {
-                const statusInfo = getStatusInfo(app.status);
-                const typeClass = getTypeClass(app.courseType);
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${app.applyId}</td>
-                    <td>${app.teacherNo}</td>
-                    <td>${app.courseName}</td>
-                    <td><span class="type-badge ${typeClass}">${app.courseType}</span></td>
-                    <td>${app.credit}</td>
-                    <td>${app.totalHours}</td>
-                    <td>${app.department}</td>
-                    <td>${app.textbook || '-'}</td>
-                    <td>${app.applyTime || '-'}</td>
-                    <td><span class="status-badge ${statusInfo.class}">${statusInfo.text}</span></td>
-                    <td><button class="btn btn-sm btn-edit" onclick="viewDetail('${app.applyId}')">查看详情</button></td>
-                `;
-                tbody.appendChild(row);
-            });
-        })
-        .catch(error => {
-            console.error('加载开课申请失败:', error);
+        const data = await adminFetch('/api/admin/applications' + (qs ? '?' + qs : ''));
+        tbody.innerHTML = '';
+        if (data.length === 0) {
+            tbody.innerHTML = adminEmptyRow(11, '暂无开课申请记录');
+            return;
+        }
+
+        data.forEach(app => {
+            const statusInfo = getStatusInfo(app.status);
+            const typeClass = getTypeClass(app.courseType);
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${app.applyId}</td>
+                <td>${app.teacherNo}</td>
+                <td>${app.courseName}</td>
+                <td><span class="type-badge ${typeClass}">${app.courseType}</span></td>
+                <td>${app.credit}</td>
+                <td>${app.totalHours}</td>
+                <td>${app.department}</td>
+                <td>${app.textbook || '-'}</td>
+                <td>${app.applyTime || '-'}</td>
+                <td><span class="status-badge ${statusInfo.class}">${statusInfo.text}</span></td>
+                <td><button class="btn btn-sm btn-edit" onclick="viewDetail('${app.applyId}')">查看详情</button></td>
+            `;
+            tbody.appendChild(row);
         });
+    } catch (error) {
+        tbody.innerHTML = adminEmptyRow(11, (error && error.message) || 'Unauthorized: 未登录');
+    }
 }
 
 // 查看申请详情（调用详情API，填充弹窗）
 function viewDetail(applyId) {
-    fetch('/api/admin/applications/' + applyId)
-        .then(response => response.json())
+    adminFetch('/api/admin/applications/' + applyId)
         .then(data => {
             document.getElementById('detailApplyId').value = data.applyId;
             
@@ -84,8 +88,7 @@ function viewDetail(applyId) {
             document.getElementById('detailModal').style.display = 'flex';
         })
         .catch(error => {
-            console.error('获取申请详情失败:', error);
-            alert('获取申请详情失败: ' + error.message);
+            alert('获取申请详情失败: ' + ((error && error.message) || '未登录'));
         });
 }
 

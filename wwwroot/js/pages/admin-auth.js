@@ -4,7 +4,7 @@ async function loginAdmin() {
     message.textContent = '正在登录...';
 
     try {
-        const admin = await adminFetch('/api/admin/auth/login', {
+        const admin = await adminFetch('/api/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

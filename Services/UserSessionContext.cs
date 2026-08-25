@@ -1,55 +1,41 @@
+using System.Security.Claims;
 using StudentCourse.Models;
 
 namespace StudentCourse.Services
 {
+    /// <summary>Maps the authenticated request principal to the legacy service session model.</summary>
     public static class UserSessionContext
     {
-        public static UserSession Current { get; private set; }
+        private static IHttpContextAccessor? _httpContextAccessor;
 
-        public static bool HasSession
+        public static UserSession? Current => FromPrincipal(_httpContextAccessor?.HttpContext?.User);
+
+        public static bool HasSession => Current is not null;
+
+        public static void Configure(IHttpContextAccessor httpContextAccessor)
         {
-            get { return Current != null && Current.IsLoggedIn; }
+            _httpContextAccessor = httpContextAccessor;
         }
 
-        public static void Set(UserSession session)
+        private static UserSession? FromPrincipal(ClaimsPrincipal? principal)
         {
-            Current = session;
-        }
-
-        public static void Clear()
-        {
-            Current = null;
-        }
-
-        public static UserSession UseDevelopmentTeacherSession()
-        {
-            Current = new UserSession
+            if (principal?.Identity?.IsAuthenticated != true)
             {
-                UserId = 9001,
-                Username = "teacher_demo",
-                RealName = "张老师",
-                UserType = 1,
-                TeacherNo = "T001",
-                Title = "讲师",
-                Department = "计算机科学与技术学院",
+                return null;
+            }
+
+            int.TryParse(principal.FindFirstValue(ClaimTypes.NameIdentifier), out int userId);
+            return new UserSession
+            {
+                UserId = userId,
+                Username = principal.Identity.Name ?? string.Empty,
+                RealName = principal.FindFirstValue(ClaimTypes.GivenName) ?? string.Empty,
+                UserType = principal.IsInRole("Admin") ? 2 : principal.IsInRole("Teacher") ? 1 : 0,
+                TeacherNo = principal.FindFirstValue("teacher_no") ?? string.Empty,
+                Title = principal.FindFirstValue("title") ?? string.Empty,
+                Department = principal.FindFirstValue("department") ?? string.Empty,
                 IsLoggedIn = true
             };
-
-            return Current;
-        }
-
-        public static UserSession UseDevelopmentStudentSession()
-        {
-            Current = new UserSession
-            {
-                UserId = 9101,
-                Username = "student_demo",
-                RealName = "学生测试账号",
-                UserType = 0,
-                IsLoggedIn = true
-            };
-
-            return Current;
         }
     }
 }

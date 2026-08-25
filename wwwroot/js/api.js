@@ -4,8 +4,6 @@
   const routeMap = {
     "system.ping": { method: "GET", url: "/api/system/ping" },
     "system.testDbConnection": { method: "GET", url: "/api/system/database" },
-    "app.useMockTeacherSession": { method: "POST", url: "/api/dev/session/teacher" },
-    "app.useMockStudentSession": { method: "POST", url: "/api/dev/session/student" },
     "app.logout": { method: "POST", url: "/api/auth/logout" },
     "teacher.getCurrentTeacher": { method: "GET", url: "/api/teacher/current" },
     "teacher.getDashboard": { method: "GET", url: "/api/teacher/dashboard" },

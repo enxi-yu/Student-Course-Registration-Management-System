@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="Oracle.ManagedDataAccess.Core" Version="23.8.0" />
+    <ProjectReference Include="..\..\Shared\StudentCourse.Shared.csproj" />
   </ItemGroup>
 
 </Project>

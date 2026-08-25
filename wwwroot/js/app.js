@@ -257,6 +257,15 @@ document.querySelectorAll(".nav-item").forEach((button) => {
   });
 });
 
+document.querySelector(".logout-button").addEventListener("click", async (event) => {
+  event.stopImmediatePropagation();
+  try {
+    await window.nativeApi.request("app.logout", {});
+  } finally {
+    window.location.replace("http://localhost:5100/Login");
+  }
+}, true);
+
 document.querySelector(".logout-button").addEventListener("click", () => {
   alert("第一阶段暂未接入登录状态。");
 });

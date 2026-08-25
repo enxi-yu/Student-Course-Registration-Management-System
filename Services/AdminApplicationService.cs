@@ -14,10 +14,10 @@ namespace StudentCourse.Services
             _systemLogService = systemLogService;
         }
 
-        public IList<CourseApplicationDto> GetApplications()
+        public IList<CourseApplicationDto> GetApplications(string? keyword,string? status)
         {
             AdminAuthService.RequireAdminSession();
-            return _adminRepository.GetApplications();
+            return _adminRepository.GetApplications(keyword,status);
         }
 
         public CourseApplicationDto GetApplication(string applyId)

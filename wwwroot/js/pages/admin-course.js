@@ -9,38 +9,42 @@ function getTypeBadge(type) {
     return badges[type] || type;
 }
 
-function loadCourses() {
-    fetch('/api/admin/courses')
-        .then(res => res.json())
-        .then(data => {
-            const tbody = document.getElementById('courseTableBody');
-            tbody.innerHTML = '';
-            if (data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" class="empty-state">暂无课程数据，请添加新课程</td></tr>';
-                return;
-            }
-            data.forEach(c => {
-                tbody.innerHTML += `
-                    <tr>
-                        <td>${c.courseId}</td>
-                        <td>${c.courseName}</td>
-                        <td>${getTypeBadge(c.courseType)}</td>
-                        <td>${c.credit}</td>
-                        <td>${c.totalHours}</td>
-                        <td>${c.department || '-'}</td>
-                        <td>${c.courseDesc || '-'}</td>
-                        <td>
-                            <button class="btn btn-sm btn-edit" onclick="openEditModal(${c.courseId})">编辑</button>
-                            <button class="btn btn-sm btn-delete" onclick="deleteCourse(${c.courseId})">删除</button>
-                        </td>
-                    </tr>
-                `;
-            });
-        })
-        .catch(err => {
-            console.error("加载失败:", err);
-            document.getElementById('courseTableBody').innerHTML = '<tr><td colspan="8" class="empty-state">加载课程数据失败</td></tr>';
+async function loadCourses() {
+    const tbody = document.getElementById('courseTableBody');
+    try {
+        const keyword = document.getElementById('courseKeyword').value.trim();
+        const coursetype = document.getElementById('courseTypeFilter').value;
+        const params = new URLSearchParams();
+        if (keyword) params.set('keyword', keyword);
+        if (coursetype) params.set('coursetype', coursetype);
+        const qs = params.toString();
+
+        const data = await adminFetch('/api/admin/courses' + (qs ? '?' + qs : ''));
+        tbody.innerHTML = '';
+        if (data.length === 0) {
+            tbody.innerHTML = adminEmptyRow(8, '暂无课程数据');
+            return;
+        }
+        data.forEach(c => {
+            tbody.innerHTML += `
+                <tr>
+                    <td>${c.courseId}</td>
+                    <td>${c.courseName}</td>
+                    <td>${getTypeBadge(c.courseType)}</td>
+                    <td>${c.credit}</td>
+                    <td>${c.totalHours}</td>
+                    <td>${c.department || '-'}</td>
+                    <td>${c.courseDesc || '-'}</td>
+                    <td>
+                        <button class="btn btn-sm btn-edit" onclick="openEditModal(${c.courseId})">编辑</button>
+                        <button class="btn btn-sm btn-delete" onclick="deleteCourse(${c.courseId})">删除</button>
+                    </td>
+                </tr>
+            `;
         });
+    } catch (err) {
+        tbody.innerHTML = adminEmptyRow(8, (err && err.message) || 'Unauthorized: 未登录');
+    }
 }
 
 function publishCourse() {
@@ -98,8 +102,7 @@ function clearForm() {
 }
 
 function openEditModal(id) {
-    fetch('/api/admin/courses/' + id)
-        .then(res => res.json())
+    adminFetch('/api/admin/courses/' + id)
         .then(data => {
             document.getElementById('editCourseId').value = data.courseId;
             document.getElementById('editCourseIdDisplay').value = data.courseId;
@@ -111,7 +114,7 @@ function openEditModal(id) {
             document.getElementById('editCourseDesc').value = data.courseDesc || '';
             document.getElementById('editModal').style.display = 'flex';
         })
-        .catch(err => alert('加载课程信息失败：' + err));
+        .catch(err => alert('加载课程信息失败：' + ((err && err.message) || '未登录')));
 }
 
 function closeModal() {

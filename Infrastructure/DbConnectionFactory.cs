@@ -27,14 +27,12 @@ namespace StudentCourse.Infrastructure
 
         public static OracleConnection CreateConnection()
         {
-            return new OracleConnection(ConnectionString);
+            return StudentCourse.Shared.Data.OracleConnections.Create(ConnectionString);
         }
 
         public static OracleConnection OpenConnection()
         {
-            OracleConnection connection = CreateConnection();
-            connection.Open();
-            return connection;
+            return StudentCourse.Shared.Data.OracleConnections.Open(ConnectionString);
         }
 
         public static DbConnectionTestResult TestConnection()
@@ -60,7 +58,7 @@ namespace StudentCourse.Infrastructure
                 return new DbConnectionTestResult
                 {
                     Success = false,
-                    Error = ex.ToString()
+                    Error = "数据库连接失败"
                 };
             }
         }

@@ -6,6 +6,7 @@
         teachers: () => typeof loadTeachers === 'function' && loadTeachers(),
         batches: () => typeof loadBatches === 'function' && loadBatches(),
         classes: () => typeof loadAdminClasses === 'function' && loadAdminClasses(),
+        selection: () => typeof loadSelectionPage === 'function' && loadSelectionPage(),
         logs: () => typeof loadLogs === 'function' && loadLogs(),
         permissions: () => {
             if (typeof loadAdminCurrent === 'function') loadAdminCurrent();
@@ -92,6 +93,18 @@
             if (loaders[tabName]) {
                 loaders[tabName]();
             }
+        }
+
+        const logoutButton = document.getElementById('logout-button');
+        if (logoutButton) {
+            logoutButton.addEventListener('click', async () => {
+                try {
+                    await window.adminFetch('/api/auth/logout', { method: 'POST' });
+                } catch (e) {
+                    // 退出请求失败也继续跳转
+                }
+                window.location.replace('http://localhost:5100/Login');
+            });
         }
     });
 })();

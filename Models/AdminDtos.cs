@@ -1,6 +1,6 @@
 namespace StudentCourse.Models
 {
-    public sealed class AdminLoginRequest
+    public sealed class LoginRequest
     {
         public string Username { get; set; } = string.Empty;
 
@@ -226,5 +226,75 @@ namespace StudentCourse.Models
         public string Status { get; set; } = string.Empty;
 
         public string Comment { get; set; } = string.Empty;
+    }
+
+    // 管理员代选课可选教学班列表项
+    public sealed class AdminSelectionClassDto
+    {
+        public int ClassId { get; set; }
+
+        public int CourseId { get; set; }
+
+        public string CourseName { get; set; } = string.Empty;
+
+        public string CourseType { get; set; } = string.Empty;
+
+        public decimal Credit { get; set; }
+
+        public string Semester { get; set; } = string.Empty;
+
+        public string TeacherNo { get; set; } = string.Empty;
+
+        public string TeacherName { get; set; } = string.Empty;
+
+        public int Capacity { get; set; }
+
+        public int SelectedCount { get; set; }
+
+        public string ScheduleSummary { get; set; } = string.Empty;
+    }
+
+    // 学生已选课程记录，用于代退课展示
+    public sealed class AdminEnrollmentDto
+    {
+        public int SelectId { get; set; }
+
+        public int ClassId { get; set; }
+
+        public string CourseName { get; set; } = string.Empty;
+
+        public string CourseType { get; set; } = string.Empty;
+
+        public decimal Credit { get; set; }
+
+        public string Semester { get; set; } = string.Empty;
+
+        public string TeacherName { get; set; } = string.Empty;
+
+        public int? BatchId { get; set; }
+
+        public string BatchName { get; set; } = string.Empty;
+
+        public string ScheduleSummary { get; set; } = string.Empty;
+    }
+
+    // 代选/代退课结果
+    public sealed class AdminSelectionResultDto
+    {
+        public bool Success { get; set; }
+
+        public string Message { get; set; } = string.Empty;
+
+        public IList<string> ConflictCourses { get; set; } = new List<string>();
+
+        // 前端二次确认：true=容量已满，用户确认后可 force=true 继续；
+        // Success=false 且 RequireCapacityConfirm=true 时前端应弹"容量已满，是否超员扩选"
+        public bool RequireCapacityConfirm { get; set; }
+
+        // 仅当 RequireCapacityConfirm=true 时有意义：当前已选人数
+        public int CurrentSelected { get; set; }
+
+        // 仅当 RequireCapacityConfirm=true 时有意义：当前原容量上限
+        public int CurrentCapacity { get; set; }
     }
 }
