@@ -13,8 +13,16 @@
             if (typeof loadAdminPermissions === 'function') loadAdminPermissions();
         }
     };
-
+    //普通管理员禁止跳到受限 tab
     window.switchTab = function (tabName) {
+        if (window.ADMIN_LEVEL !== 0) {
+            var restricted = ['students', 'teachers', 'batches', 'logs'];
+            if (restricted.indexOf(tabName) >= 0) {
+                alert('仅超级管理员可访问此功能');
+                return;
+            }
+        }
+
         document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
         document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
 

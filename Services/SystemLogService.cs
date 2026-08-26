@@ -15,7 +15,10 @@ namespace StudentCourse.Services
 
         public IList<SystemLogDto> GetLogs(string? keyword, string? operationType, DateTime? startTime, DateTime? endTime)
         {
-            AdminAuthService.RequireAdminSession();
+            UserSession session=AdminAuthService.RequireAdminSession();
+            if(_adminRepository.GetAdminLevel(session.UserId)!=0){
+                throw new InvalidOperationException("仅超级管理员可执行此操作");
+            }
             return _adminRepository.GetSystemLogs(keyword, operationType, startTime, endTime);
         }
 

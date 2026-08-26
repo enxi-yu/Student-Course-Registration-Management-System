@@ -460,6 +460,14 @@ namespace StudentCourse.Repositories
             return reader.Read() ? MapAdminCurrent(reader) : null;
         }
 
+        public int GetAdminLevel(int userId){
+            const string sql = @"SELECT admin_level FROM administrator WHERE user_id=:userId";
+            using OracleConnection connection = DbConnectionFactory.OpenConnection();
+            using OracleCommand command = CreateCommand(connection, sql);
+            command.Parameters.Add("userId", OracleDbType.Int32).Value = userId;
+            return ToInt32(command.ExecuteScalar());
+        }
+
         public void UpdateLastLogin(int userId)
         {
             const string sql = @"UPDATE ""user"" SET last_login = SYSDATE WHERE user_id = :userId";

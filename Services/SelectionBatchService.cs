@@ -16,7 +16,10 @@ namespace StudentCourse.Services
 
         public IList<SelectionBatchDto> GetBatches()
         {
-            AdminAuthService.RequireAdminSession();
+            UserSession session=AdminAuthService.RequireAdminSession();
+            if(_adminRepository.GetAdminLevel(session.UserId)!=0){
+                throw new InvalidOperationException("仅超级管理员可执行此操作");
+            }
             return _adminRepository.GetBatches();
         }
 
