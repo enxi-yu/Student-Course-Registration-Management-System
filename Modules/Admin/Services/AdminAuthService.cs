@@ -19,10 +19,8 @@ namespace StudentCourse.Services
 
         public AdminCurrentDto Login(LoginRequest request, string ipAddress)
         {
-            if (request == null || string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Password))
-            {
-                throw new InvalidOperationException("请输入管理员账号和密码");
-            }
+            if (request == null || string.IsNullOrWhiteSpace(request.Username)) throw new InvalidOperationException("用户名不能为空");
+            if (string.IsNullOrWhiteSpace(request.Password)) throw new InvalidOperationException("密码不能为空");
 
             string username = request.Username.Trim();
             if (!username.StartsWith("A", StringComparison.OrdinalIgnoreCase))
@@ -33,7 +31,7 @@ namespace StudentCourse.Services
 
             if (credential == null)
             {
-                throw new InvalidOperationException("管理员账号或密码错误");
+                throw new InvalidOperationException("用户名不存在");
             }
 
             if (credential.Status != 1)
@@ -45,7 +43,7 @@ namespace StudentCourse.Services
             if (!PasswordHash.Verify(credential.PasswordHash, request.Password, out bool upgrade))
             {
                 _systemLogService.Write(credential.UserId, "登录", "管理员登录失败：密码错误", credential.AdminNo, ipAddress, new { credential.Username }, "失败", "密码错误");
-                throw new InvalidOperationException("管理员账号或密码错误");
+                throw new InvalidOperationException("密码错误");
             }
 
             if (upgrade)
@@ -77,6 +75,18 @@ namespace StudentCourse.Services
             }
 
             return current;
+        }
+
+        public AdminDashboardDto GetDashboard()
+        {
+            UserSession session = RequireAdminSession();
+            AdminDashboardDto? dashboard = _adminRepository.GetDashboard(session.UserId);
+            if (dashboard == null)
+            {
+                throw new InvalidOperationException("当前管理员账号不存在");
+            }
+
+            return dashboard;
         }
 
         public IList<AdminPermissionDto> GetPermissions()

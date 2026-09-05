@@ -15,23 +15,23 @@ public sealed class AuthController : ControllerBase
     [HttpPost("api/auth/login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
-        if (request is null || string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Password) || !request.Username.Trim().StartsWith("T", StringComparison.OrdinalIgnoreCase))
-        {
-            return BadRequest(new { message = "Please use a teacher account beginning with T." });
-        }
+        if (request is null || string.IsNullOrWhiteSpace(request.Username)) return BadRequest(new { message = "用户名不能为空" });
+        if (string.IsNullOrWhiteSpace(request.Password)) return BadRequest(new { message = "密码不能为空" });
+        if (!request.Username.Trim().StartsWith("T", StringComparison.OrdinalIgnoreCase)) return BadRequest(new { message = "教师账号必须以 T 开头" });
 
-        const string sql = @"SELECT u.user_id, u.username, u.password, u.real_name, t.teacher_no, t.title, t.department FROM ""user"" u JOIN teacher t ON t.user_id = u.user_id WHERE u.username = :username AND u.role_id = 1 AND u.status = 1";
+        const string sql = @"SELECT u.user_id, u.username, u.password, u.real_name, u.status, t.teacher_no, t.title, t.department FROM ""user"" u JOIN teacher t ON t.user_id = u.user_id WHERE UPPER(u.username) = UPPER(:username) AND u.role_id = 1";
         using OracleConnection connection = DbConnectionFactory.OpenConnection();
         using OracleCommand command = new OracleCommand(sql, connection) { BindByName = true };
         command.Parameters.Add("username", OracleDbType.Varchar2).Value = request.Username.Trim();
         using OracleDataReader reader = command.ExecuteReader();
-        if (!reader.Read()) return Unauthorized(new { message = "Invalid username or password." });
+        if (!reader.Read()) return Unauthorized(new { message = "用户名不存在" });
+        if (Convert.ToInt32(reader["status"]) != 1) return Unauthorized(new { message = "该账号已被禁用，请联系管理员" });
 
         int userId = Convert.ToInt32(reader["user_id"]);
         string storedPassword = Convert.ToString(reader["password"]) ?? string.Empty;
         if (!PasswordHash.Verify(storedPassword, request.Password, out bool needsUpgrade))
         {
-            return Unauthorized(new { message = "Invalid username or password." });
+            return Unauthorized(new { message = "密码错误" });
         }
 
         var claims = new[]

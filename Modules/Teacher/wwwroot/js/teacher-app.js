@@ -6,7 +6,8 @@
     students: { title: "选课名单", description: "查看当前教学班的选课学生信息，并支持导出名单。" },
     scores: { title: "成绩录入", description: "录入和维护学生课程成绩，系统自动生成成绩等级。" },
     applications: { title: "开课申请", description: "提交和查看教师开课申请" },
-    password: { title: "修改密码", description: "修改当前账号密码，保障账户安全。" }
+    evaluations: { title: "课程评价", description: "查看本人教学班的匿名评价汇总与文字反馈。" },
+    password: { title: "个人资料", description: "查看个人资料，维护联系方式和账号安全。" }
   };
 
   const state = {
@@ -49,8 +50,9 @@
   }
 
   function setActiveNav(page) {
+    const activePage = page === "students" || page === "scores" ? "courses" : page;
     document.querySelectorAll(".nav-item").forEach((button) => {
-      button.classList.toggle("active", button.dataset.page === page);
+      button.classList.toggle("active", button.dataset.page === activePage);
     });
   }
 
@@ -58,6 +60,8 @@
     const meta = pageMeta[page] || pageMeta.dashboard;
     document.getElementById("view-title").textContent = meta.title;
     document.getElementById("view-description").textContent = meta.description;
+    const heading = document.getElementById("content-heading");
+    if (heading) heading.hidden = page === "dashboard";
   }
 
   function renderAccessMessage(message) {
@@ -71,30 +75,7 @@
     document.getElementById("page-root").innerHTML = `
       <section class="panel">
         <h3 class="panel-title">${title}</h3>
-        <div class="dev-panel">
-          <button class="primary-button" type="button" id="dev-teacher-button">开发测试：使用教师 Mock Session</button>
-          <button class="ghost-button" type="button" id="dev-student-button">开发测试：使用非教师 Mock Session</button>
-        </div>
-      </section>
-    `;
-
-    document.getElementById("dev-teacher-button").addEventListener("click", async () => {
-      await window.nativeApi.request("app.useMockTeacherSession", {});
-      await initializeTeacherPage();
-    });
-
-    document.getElementById("dev-student-button").addEventListener("click", async () => {
-      await window.nativeApi.request("app.useMockStudentSession", {});
-      await initializeTeacherPage();
-    });
-  }
-
-  function renderThirdPhase(container, page) {
-    const meta = pageMeta[page] || { title: "功能", description: "功能正在完善中" };
-    container.innerHTML = `
-      <section class="panel">
-        <h3 class="panel-title">${meta.title}</h3>
-        <div class="empty-state">${meta.description}</div>
+        <p class="empty-state">请返回统一登录页面，使用教师账号登录后进入教师端。</p>
       </section>
     `;
   }
@@ -142,12 +123,17 @@
         return;
       }
 
+      if (page === "evaluations") {
+        await window.teacherPages.evaluations.render(container);
+        return;
+      }
+
       if (page === "password") {
         await window.teacherPages.password.render(container);
         return;
       }
 
-      renderThirdPhase(container, page);
+      throw new Error("页面不存在");
     } catch (error) {
       setMessage(error.message, "error");
     }

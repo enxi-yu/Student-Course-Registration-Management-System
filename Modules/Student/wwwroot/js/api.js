@@ -10,6 +10,7 @@
     "student.changePassword": { method: "POST", url: "/api/student/password" },
     "student.getDashboard": { method: "GET", url: "/api/student/dashboard" },
     "student.getAvailableCourses": { method: "GET", url: "/api/student/courses/available" },
+    "student.getSelectionBatches": { method: "GET", url: "/api/student/selection-batches" },
     "student.getCourseDetail": { method: "GET", url: "/api/student/courses/{classId}" },
     "student.selectCourse": { method: "POST", url: "/api/student/courses/select" },
     "student.dropCourse": { method: "POST", url: "/api/student/courses/drop" },

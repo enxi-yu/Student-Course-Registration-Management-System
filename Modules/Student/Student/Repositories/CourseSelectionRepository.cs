@@ -8,7 +8,35 @@ namespace StudentCourse.Student.Repositories
 {
     public sealed class CourseSelectionRepository
     {
-        public List<CourseSelectionDto> GetAvailableCourses(string studentNo, string semester)
+        public List<StudentSelectionBatchDto> GetSelectionBatches(string studentNo)
+        {
+            const string sql = @"
+                SELECT b.batch_id, b.batch_name,
+                       TO_CHAR(b.start_time,'YYYY-MM-DD HH24:MI') start_time,
+                       TO_CHAR(b.end_time,'YYYY-MM-DD HH24:MI') end_time,
+                       CASE WHEN SYSDATE < b.start_time THEN 0 WHEN SYSDATE > b.end_time THEN 2 ELSE 1 END actual_status,
+                       COUNT(DISTINCT bc.class_id) course_count
+                  FROM selection_batch b
+                  JOIN batch_class bc ON bc.batch_id=b.batch_id AND bc.enabled=1
+                  JOIN student st ON st.student_no=:studentNo
+                 WHERE b.end_time >= SYSDATE
+                   AND (NOT EXISTS (SELECT 1 FROM batch_class_scope x WHERE x.batch_id=bc.batch_id AND x.class_id=bc.class_id AND x.major IS NOT NULL)
+                        OR EXISTS (SELECT 1 FROM batch_class_scope x WHERE x.batch_id=bc.batch_id AND x.class_id=bc.class_id AND x.major=st.major))
+                   AND (NOT EXISTS (SELECT 1 FROM batch_class_scope x WHERE x.batch_id=bc.batch_id AND x.class_id=bc.class_id AND x.grade IS NOT NULL)
+                        OR EXISTS (SELECT 1 FROM batch_class_scope x WHERE x.batch_id=bc.batch_id AND x.class_id=bc.class_id AND x.grade=st.grade))
+                 GROUP BY b.batch_id,b.batch_name,b.start_time,b.end_time
+                 ORDER BY b.start_time DESC";
+            var rows=new List<StudentSelectionBatchDto>();
+            using OracleConnection connection=DbConnectionFactory.OpenConnection(); using OracleCommand command=CreateCommand(connection,sql);
+            command.Parameters.Add("studentNo",OracleDbType.Varchar2).Value=studentNo; using OracleDataReader reader=command.ExecuteReader();
+            while(reader.Read()) { int status=StudentProfileRepository.SafeGetInt(reader["actual_status"]); rows.Add(new StudentSelectionBatchDto {
+                BatchId=StudentProfileRepository.SafeGetInt(reader["batch_id"]),BatchName=StudentProfileRepository.SafeGetString(reader["batch_name"]),
+                StartTime=StudentProfileRepository.SafeGetString(reader["start_time"]),EndTime=StudentProfileRepository.SafeGetString(reader["end_time"]),Status=status,
+                StatusText=status==0?"未开始":status==1?"进行中":"已结束",CourseCount=StudentProfileRepository.SafeGetInt(reader["course_count"]) }); }
+            return rows;
+        }
+
+        public List<CourseSelectionDto> GetAvailableCourses(string studentNo, int batchId)
         {
             var courses = new List<CourseSelectionDto>();
 
@@ -18,6 +46,7 @@ namespace StudentCourse.Student.Repositories
                        tc.class_name,
                        c.course_type,
                        u.real_name AS teacher_name,
+                       s.semester,
                        c.credit,
                        tc.capacity,
                        tc.selected_count,
@@ -31,15 +60,26 @@ namespace StudentCourse.Student.Repositories
                   JOIN teacher t ON t.teacher_no = tc.teacher_no
                   JOIN ""user"" u ON u.user_id = t.user_id
                   LEFT JOIN course_select cs2 ON cs2.class_id = tc.class_id AND cs2.student_no = :studentNo
-                 WHERE (:semester IS NULL OR s.semester = :semester)
+                  JOIN batch_class bc ON bc.class_id=tc.class_id AND bc.batch_id=:batchId AND bc.enabled=1
+                  JOIN student st ON st.student_no=:studentNo
+                 WHERE (NOT EXISTS (SELECT 1 FROM batch_class_scope x WHERE x.batch_id=bc.batch_id AND x.class_id=bc.class_id AND x.major IS NOT NULL)
+                        OR EXISTS (SELECT 1 FROM batch_class_scope x WHERE x.batch_id=bc.batch_id AND x.class_id=bc.class_id AND x.major=st.major))
+                   AND (NOT EXISTS (SELECT 1 FROM batch_class_scope x WHERE x.batch_id=bc.batch_id AND x.class_id=bc.class_id AND x.grade IS NOT NULL)
+                        OR EXISTS (SELECT 1 FROM batch_class_scope x WHERE x.batch_id=bc.batch_id AND x.class_id=bc.class_id AND x.grade=st.grade))
                  ORDER BY c.course_name, tc.class_name";
 
             using (OracleConnection connection = DbConnectionFactory.OpenConnection())
-            using (OracleCommand command = CreateCommand(connection, sql))
             {
+                const string batchSql = "SELECT COUNT(*) FROM selection_batch WHERE batch_id=:batchId AND start_time<=SYSDATE AND end_time>=SYSDATE";
+                using (OracleCommand batchCommand = CreateCommand(connection, batchSql))
+                {
+                    batchCommand.Parameters.Add("batchId",OracleDbType.Int32).Value=batchId;
+                    if (Convert.ToInt32(batchCommand.ExecuteScalar()) == 0) return courses;
+                }
+
+                using OracleCommand command = CreateCommand(connection, sql);
                 command.Parameters.Add("studentNo", OracleDbType.Varchar2).Value = studentNo;
-                command.Parameters.Add("semester", OracleDbType.Varchar2).Value =
-                    string.IsNullOrWhiteSpace(semester) ? (object)DBNull.Value : semester;
+                command.Parameters.Add("batchId", OracleDbType.Int32).Value = batchId;
 
                 using (OracleDataReader reader = command.ExecuteReader())
                 {
@@ -52,6 +92,7 @@ namespace StudentCourse.Student.Repositories
                             ClassName = StudentProfileRepository.SafeGetString(reader["class_name"]),
                             CourseType = StudentProfileRepository.SafeGetString(reader["course_type"]),
                             TeacherName = StudentProfileRepository.SafeGetString(reader["teacher_name"]),
+                            Semester = StudentProfileRepository.SafeGetString(reader["semester"]),
                             Credit = StudentProfileRepository.SafeGetDecimal(reader["credit"]),
                             Capacity = StudentProfileRepository.SafeGetInt(reader["capacity"]),
                             SelectedCount = StudentProfileRepository.SafeGetInt(reader["selected_count"]),
@@ -115,7 +156,7 @@ namespace StudentCourse.Student.Repositories
             }
         }
 
-        public SelectionResultDto SelectCourse(string studentNo, int classId)
+        public SelectionResultDto SelectCourse(string studentNo, int classId, int batchId)
         {
             var result = new SelectionResultDto { Success = false };
 
@@ -124,10 +165,11 @@ namespace StudentCourse.Student.Repositories
             {
                 try
                 {
-                    int? batchId = GetActiveBatchId(connection, tx);
-                    if (!batchId.HasValue)
+                    const string releaseSql=@"SELECT COUNT(*) FROM selection_batch b JOIN batch_class bc ON bc.batch_id=b.batch_id AND bc.class_id=:classId AND bc.enabled=1 JOIN student st ON st.student_no=:studentNo WHERE b.batch_id=:batchId AND b.start_time<=SYSDATE AND b.end_time>=SYSDATE AND (NOT EXISTS (SELECT 1 FROM batch_class_scope x WHERE x.batch_id=bc.batch_id AND x.class_id=bc.class_id AND x.major IS NOT NULL) OR EXISTS (SELECT 1 FROM batch_class_scope x WHERE x.batch_id=bc.batch_id AND x.class_id=bc.class_id AND x.major=st.major)) AND (NOT EXISTS (SELECT 1 FROM batch_class_scope x WHERE x.batch_id=bc.batch_id AND x.class_id=bc.class_id AND x.grade IS NOT NULL) OR EXISTS (SELECT 1 FROM batch_class_scope x WHERE x.batch_id=bc.batch_id AND x.class_id=bc.class_id AND x.grade=st.grade))";
+                    using OracleCommand release=CreateCommand(connection,releaseSql,tx); release.Parameters.Add("classId",OracleDbType.Int32).Value=classId; release.Parameters.Add("studentNo",OracleDbType.Varchar2).Value=studentNo; release.Parameters.Add("batchId",OracleDbType.Int32).Value=batchId;
+                    if (Convert.ToInt32(release.ExecuteScalar())==0)
                     {
-                        result.Message = "当前没有开放的选课批次。";
+                        result.Message = "该课程未在此批次向你的专业和年级开放。";
                         return result;
                     }
                     // 检查重复选课
@@ -190,7 +232,7 @@ namespace StudentCourse.Student.Repositories
                     using (OracleCommand cmd = CreateCommand(connection, insertSql, tx))
                     {
                         cmd.Parameters.Add("classId", OracleDbType.Int32).Value = classId;
-                        cmd.Parameters.Add("batchId", OracleDbType.Int32).Value = batchId.Value;
+                        cmd.Parameters.Add("batchId", OracleDbType.Int32).Value = batchId;
                         cmd.Parameters.Add("studentNo", OracleDbType.Varchar2).Value = studentNo;
                         cmd.ExecuteNonQuery();
                     }
@@ -252,6 +294,9 @@ namespace StudentCourse.Student.Repositories
                 SELECT tc.class_id,
                        c.course_name,
                        tc.class_name,
+                       s.semester,
+                       c.credit,
+                       c.total_hours,
                        u.real_name AS teacher_name,
                        ct.classroom,
                        ct.weekday,
@@ -285,6 +330,9 @@ namespace StudentCourse.Student.Repositories
                             ClassId = StudentProfileRepository.SafeGetInt(reader["class_id"]),
                             CourseName = StudentProfileRepository.SafeGetString(reader["course_name"]),
                             ClassName = StudentProfileRepository.SafeGetString(reader["class_name"]),
+                            Semester = StudentProfileRepository.SafeGetString(reader["semester"]),
+                            Credit = StudentProfileRepository.SafeGetDecimal(reader["credit"]),
+                            TotalHours = StudentProfileRepository.SafeGetInt(reader["total_hours"]),
                             TeacherName = StudentProfileRepository.SafeGetString(reader["teacher_name"]),
                             Classroom = StudentProfileRepository.SafeGetString(reader["classroom"]),
                             Weekday = StudentProfileRepository.SafeGetInt(reader["weekday"]),
@@ -356,13 +404,17 @@ namespace StudentCourse.Student.Repositories
             const string sql = @"
                 SELECT DISTINCT c2.course_name
                   FROM course_time ct1
+                  JOIN teaching_class tc1 ON tc1.class_id = ct1.class_id
+                  JOIN section s1 ON s1.section_id = tc1.section_id
                   JOIN course_time ct2 ON ct2.class_id <> ct1.class_id
                     AND ct2.weekday = ct1.weekday
                     AND ct2.start_period <= ct1.end_period
                     AND ct2.end_period >= ct1.start_period
+                    AND TO_NUMBER(REGEXP_SUBSTR(ct2.week_range, '[0-9]+', 1, 1)) <= NVL(TO_NUMBER(REGEXP_SUBSTR(ct1.week_range, '[0-9]+', 1, 2)), TO_NUMBER(REGEXP_SUBSTR(ct1.week_range, '[0-9]+', 1, 1)))
+                    AND NVL(TO_NUMBER(REGEXP_SUBSTR(ct2.week_range, '[0-9]+', 1, 2)), TO_NUMBER(REGEXP_SUBSTR(ct2.week_range, '[0-9]+', 1, 1))) >= TO_NUMBER(REGEXP_SUBSTR(ct1.week_range, '[0-9]+', 1, 1))
                   JOIN course_select cs ON cs.class_id = ct2.class_id AND cs.student_no = :studentNo
                   JOIN teaching_class tc2 ON tc2.class_id = ct2.class_id
-                  JOIN section s2 ON s2.section_id = tc2.section_id
+                  JOIN section s2 ON s2.section_id = tc2.section_id AND s2.semester = s1.semester
                   JOIN course c2 ON c2.course_id = s2.course_id
                  WHERE ct1.class_id = :classId
                  ORDER BY c2.course_name";

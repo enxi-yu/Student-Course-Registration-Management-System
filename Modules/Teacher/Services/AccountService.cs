@@ -63,9 +63,9 @@ namespace StudentCourse.Services
                 throw new InvalidOperationException("新密码不能为空。");
             }
 
-            if (request.NewPassword.Trim().Length < 6)
+            if (request.NewPassword.Trim().Length < 6 || request.NewPassword.Trim().Length > 20)
             {
-                throw new InvalidOperationException("新密码长度不能少于 6 位。");
+                throw new InvalidOperationException("新密码长度必须为 6 到 20 位。");
             }
 
             if (request.NewPassword.Trim() != (request.ConfirmPassword ?? string.Empty).Trim())

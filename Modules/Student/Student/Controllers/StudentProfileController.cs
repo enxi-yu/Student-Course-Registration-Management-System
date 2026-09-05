@@ -25,9 +25,9 @@ namespace StudentCourse.Student.Controllers
         }
 
         [HttpGet("api/student/dashboard")]
-        public IActionResult GetDashboard()
+        public IActionResult GetDashboard([FromQuery] string? semester)
         {
-            return SafeOk(() => _service.GetDashboard());
+            return SafeOk(() => _service.GetDashboard(semester ?? string.Empty));
         }
 
         [HttpPut("api/student/profile")]

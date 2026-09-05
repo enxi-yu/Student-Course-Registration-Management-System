@@ -13,10 +13,26 @@ namespace StudentCourse.Services
             _adminRepository = adminRepository;
         }
 
-        public IList<SystemLogDto> GetLogs(string? keyword, string? operationType, DateTime? startTime, DateTime? endTime)
+        public PagedResultDto<SystemLogDto> GetLogs(string? keyword, string? operationType, DateTime? startTime, DateTime? endTime, int page, int pageSize)
+        {
+            UserSession session=AdminAuthService.RequireAdminSession();
+            if(_adminRepository.GetAdminLevel(session.UserId)!=0){
+                throw new InvalidOperationException("仅超级管理员可执行此操作");
+            }
+            return _adminRepository.GetSystemLogs(keyword, operationType, startTime, endTime, Math.Max(1, page), Math.Clamp(pageSize, 1, 500));
+        }
+
+        public IList<SystemLogDto> GetLogsForExport(string? keyword, string? operationType, DateTime? startTime, DateTime? endTime)
         {
             AdminAuthService.RequireAdminSession();
-            return _adminRepository.GetSystemLogs(keyword, operationType, startTime, endTime);
+            List<SystemLogDto> rows = new List<SystemLogDto>();
+            int page = 1;
+            while (true)
+            {
+                PagedResultDto<SystemLogDto> batch = GetLogs(keyword, operationType, startTime, endTime, page++, 500);
+                foreach (SystemLogDto item in batch.Items) rows.Add(item);
+                if (!batch.HasMore) return rows;
+            }
         }
 
         public void WriteCurrent(string operationType, string operationDesc, string targetId, string ipAddress, object? requestParams, string resultStatus = "成功", string errorMessage = "")

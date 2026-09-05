@@ -14,10 +14,10 @@ namespace StudentCourse.Services
             _systemLogService = systemLogService;
         }
 
-        public IList<CourseDto> GetCourses()
+        public IList<CourseDto> GetCourses(string? keyword, string? coursetype)
         {
             AdminAuthService.RequireAdminSession();
-            return _adminRepository.GetCourses();
+            return _adminRepository.GetCourses(keyword,coursetype);
         }
 
         public CourseDto GetCourse(int courseId)

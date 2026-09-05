@@ -38,5 +38,14 @@ BEGIN
 
   EXECUTE IMMEDIATE 'SELECT NVL(MAX(batch_id), 0) + 1 FROM selection_batch' INTO next_value;
   ensure_sequence('SELECTION_BATCH_ID_SEQ', next_value);
+
+  EXECUTE IMMEDIATE 'SELECT NVL(MAX(section_id), 0) + 1 FROM section' INTO next_value;
+  ensure_sequence('SECTION_ID_SEQ', next_value);
+
+  EXECUTE IMMEDIATE 'SELECT NVL(MAX(class_id), 0) + 1 FROM teaching_class' INTO next_value;
+  ensure_sequence('TEACHING_CLASS_ID_SEQ', next_value);
+
+  EXECUTE IMMEDIATE 'SELECT NVL(MAX(time_id), 0) + 1 FROM course_time' INTO next_value;
+  ensure_sequence('COURSE_TIME_ID_SEQ', next_value);
 END;
 /

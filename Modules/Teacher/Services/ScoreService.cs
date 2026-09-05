@@ -52,11 +52,6 @@ namespace StudentCourse.Services
                     }
 
                     ScoreDto? existing = _scoreRepository.GetScore(connection, transaction, request.ClassId, request.StudentNo);
-                    if (existing != null && existing.TotalScore.HasValue && string.IsNullOrWhiteSpace(request.UpdateRemark))
-                    {
-                        throw new InvalidOperationException("修改已有成绩时必须填写修改备注");
-                    }
-
                     ScoreDto saved = _scoreRepository.SaveScore(
                         connection,
                         transaction,
@@ -66,8 +61,7 @@ namespace StudentCourse.Services
                         calculation.GradeLevel,
                         calculation.Gpa,
                         calculation.CreditObtained,
-                        request.UpdateRemark,
-                        existing != null && existing.TotalScore.HasValue);
+                        request.UpdateRemark);
 
                     transaction.Commit();
                     return saved;
@@ -113,11 +107,6 @@ namespace StudentCourse.Services
                         }
 
                         ScoreDto? existing = _scoreRepository.GetScore(connection, transaction, row.ClassId, row.StudentNo);
-                        if (existing != null && existing.TotalScore.HasValue && string.IsNullOrWhiteSpace(row.UpdateRemark))
-                        {
-                            throw new InvalidOperationException("修改学生 " + row.StudentNo + " 的已有成绩时必须填写修改备注");
-                        }
-
                         ScoreCalculation calculation = Calculate(row.TotalScore, credit);
                         _scoreRepository.SaveScore(
                             connection,
@@ -128,8 +117,7 @@ namespace StudentCourse.Services
                             calculation.GradeLevel,
                             calculation.Gpa,
                             calculation.CreditObtained,
-                            row.UpdateRemark,
-                            existing != null && existing.TotalScore.HasValue);
+                            row.UpdateRemark);
 
                         savedCount++;
                     }

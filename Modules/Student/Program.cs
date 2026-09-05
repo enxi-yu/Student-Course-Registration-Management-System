@@ -3,17 +3,26 @@ using StudentCourse.Student.Repositories;
 using StudentCourse.Student.Services;
 
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.Extensions.FileProviders;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
+string sharedLocalSettingsPath = Path.GetFullPath(
+    Path.Combine(builder.Environment.ContentRootPath, "..", "..", "appsettings.Local.json"));
+string sharedUiRootPath = Path.GetFullPath(
+    Path.Combine(builder.Environment.ContentRootPath, "..", "..", "Shared", "wwwroot"));
+builder.Configuration.AddJsonFile(sharedLocalSettingsPath, optional: true, reloadOnChange: true);
+builder.Logging.ClearProviders();
+builder.Logging.AddDebug();
 builder.Logging.AddConsole();
 
-builder.Services.AddRazorPages();
 builder.Services.AddControllers();
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddDataProtection().UseEphemeralDataProtectionProvider();
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme).AddCookie(options =>
 {
+    options.DataProtectionProvider = new EphemeralDataProtectionProvider();
     options.Cookie.Name = "StudentCourse.Student.Auth";
     options.Events.OnRedirectToLogin = context => { context.Response.StatusCode = StatusCodes.Status401Unauthorized; return Task.CompletedTask; };
     options.Events.OnRedirectToAccessDenied = context => { context.Response.StatusCode = StatusCodes.Status403Forbidden; return Task.CompletedTask; };
@@ -45,7 +54,10 @@ app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
     Exception? exception = context.Features.Get<IExceptionHandlerFeature>()?.Error;
     app.Logger.LogError(exception, "Unhandled request error. TraceId: {TraceId}", context.TraceIdentifier);
     context.Response.StatusCode = StatusCodes.Status500InternalServerError;
-    await context.Response.WriteAsJsonAsync(new { message = "Service is temporarily unavailable.", traceId = context.TraceIdentifier });
+    string message = exception is Oracle.ManagedDataAccess.Client.OracleException
+        ? "数据库连接失败，请稍后重试。"
+        : "服务暂时不可用，请稍后重试。";
+    await context.Response.WriteAsJsonAsync(new { message, traceId = context.TraceIdentifier });
 }));
 
 if (!app.Environment.IsDevelopment())
@@ -54,6 +66,11 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(sharedUiRootPath),
+    RequestPath = "/shared-ui"
+});
 app.UseDefaultFiles();
 app.UseStaticFiles();
 app.UseRouting();
@@ -62,6 +79,4 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-app.MapRazorPages();
-
 app.Run();

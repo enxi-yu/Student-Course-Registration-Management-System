@@ -79,8 +79,7 @@ namespace StudentCourse.Repositories
             string gradeLevel,
             decimal gpa,
             decimal creditObtained,
-            string updateRemark,
-            bool requireRemarkForUpdate)
+            string updateRemark)
         {
             string scoreId = FindScoreId(connection, transaction, classId, studentNo);
 

@@ -8,14 +8,7 @@
     return Number.isFinite(number) ? number.toFixed(digits) : (emptyText || "-");
   }
 
-  function escapeHtml(value) {
-    return String(value === null || value === undefined ? "" : value)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#39;");
-  }
+  const escapeHtml = window.sharedUi.escapeHtml;
 
 function renderGpaCards(gpa) {
     return `
@@ -61,7 +54,7 @@ function renderGpaCards(gpa) {
 
   function renderSemesterTable(group, gpa, index) {
     const summary = findSemesterSummary(gpa, group.semester);
-    const rows = group.items.map((item, rowIndex) => {
+    const renderRow = (item, rowIndex) => {
       const isGraded = item.totalScore != null;
 
       let passBadge = "";
@@ -82,7 +75,13 @@ function renderGpaCards(gpa) {
         <td>${passBadge}</td>
       </tr>
     `;
-    }).join("");
+    };
+    const table = window.sharedUi.dataTable({
+      columns: ["序号", "课程编码", "课程名称", "学分", "绩点", "成绩", "是否通过"],
+      rows: group.items,
+      row: renderRow,
+      tableClass: "grade-table"
+    });
 
     return `
       <section class="panel semester-grade-panel">
@@ -94,22 +93,7 @@ function renderGpaCards(gpa) {
             <span>课程数：${summary.courses || group.items.length}</span>
           </div>
         </div>
-        <div class="table-panel">
-          <table class="data-table grade-table">
-            <thead>
-              <tr>
-                <th>序号</th>
-                <th>课程编码</th>
-                <th>课程名称</th>
-                <th>学分</th>
-                <th>绩点</th>
-                <th>成绩</th>
-                <th>是否通过</th>
-              </tr>
-            </thead>
-            <tbody>${rows}</tbody>
-          </table>
-        </div>
+        ${table}
       </section>
     `;
   }

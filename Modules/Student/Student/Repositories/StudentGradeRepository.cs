@@ -69,11 +69,11 @@ namespace StudentCourse.Student.Repositories
 
                        NVL(SUM(CASE WHEN c.course_type = '必修' THEN ss.credit_obtained ELSE 0 END), 0) AS mandatory_credits,
                        NVL(SUM(CASE WHEN c.course_type IN ('选修', '公选') THEN ss.credit_obtained ELSE 0 END), 0) AS elective_credits,
-                       NVL(
+                       ROUND(NVL(
                            SUM(CASE WHEN ss.gpa IS NOT NULL THEN ss.gpa * c.credit ELSE 0 END)
                            / NULLIF(SUM(CASE WHEN ss.gpa IS NOT NULL THEN c.credit ELSE 0 END), 0),
                            0
-                       ) AS avg_gpa,
+                       ), 2) AS avg_gpa,
                        COUNT(CASE WHEN ss.gpa IS NOT NULL THEN 1 END) AS total_courses
                   FROM student_score ss
                   JOIN teaching_class tc ON tc.class_id = ss.class_id
@@ -120,11 +120,11 @@ namespace StudentCourse.Student.Repositories
             const string semesterSql = @"
                 SELECT s.semester,
                        NVL(SUM(ss.credit_obtained), 0) AS credits,
-                       NVL(
+                       ROUND(NVL(
                            SUM(CASE WHEN ss.gpa IS NOT NULL THEN ss.gpa * c.credit ELSE 0 END)
                            / NULLIF(SUM(CASE WHEN ss.gpa IS NOT NULL THEN c.credit ELSE 0 END), 0),
                            0
-                       ) AS avg_gpa,
+                       ), 2) AS avg_gpa,
                        COUNT(CASE WHEN ss.gpa IS NOT NULL THEN 1 END) AS courses
                   FROM student_score ss
                   JOIN teaching_class tc ON tc.class_id = ss.class_id

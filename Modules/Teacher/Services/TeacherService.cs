@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using StudentCourse.Models;
 using StudentCourse.Repositories;
 
@@ -50,9 +51,43 @@ namespace StudentCourse.Services
             return info;
         }
 
+        public TeacherInfo UpdateProfile(TeacherProfileUpdateRequest request)
+        {
+            if (request == null)
+            {
+                throw new InvalidOperationException("个人资料请求不能为空。");
+            }
+
+            TeacherInfo teacher = GetCurrentTeacher();
+            string phone = (request.Phone ?? string.Empty).Trim();
+            string email = (request.Email ?? string.Empty).Trim();
+
+            if (!string.IsNullOrEmpty(phone) && !Regex.IsMatch(phone, @"^\d{11}$"))
+            {
+                throw new InvalidOperationException("手机号必须为 11 位数字。");
+            }
+
+            if (!string.IsNullOrEmpty(email) && !Regex.IsMatch(email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
+            {
+                throw new InvalidOperationException("邮箱格式不正确。");
+            }
+
+            _teacherRepository.UpdateContactInfo(teacher.UserId, phone, email);
+            teacher.Phone = phone;
+            teacher.Email = email;
+            return teacher;
+        }
+
+        public IList<TeacherEvaluationDto> GetEvaluations(string semester)
+        {
+            TeacherInfo teacher = GetCurrentTeacher();
+            return _teacherRepository.GetEvaluations(teacher.TeacherNo, semester ?? string.Empty);
+        }
+
         public TeacherDashboardDto GetDashboard(string semester)
         {
             TeacherInfo teacher = GetCurrentTeacher();
+            semester = ResolveCurrentSemester(semester);
 
             try
             {
@@ -77,6 +112,19 @@ namespace StudentCourse.Services
                     PendingScoreCount = 42
                 };
             }
+        }
+
+        private static string ResolveCurrentSemester(string semester)
+        {
+            if (!string.IsNullOrWhiteSpace(semester))
+            {
+                return semester.Trim();
+            }
+
+            DateTime today = DateTime.Today;
+            int startYear = today.Month >= 8 ? today.Year : today.Year - 1;
+            int term = today.Month >= 8 || today.Month == 1 ? 1 : 2;
+            return $"{startYear}-{startYear + 1}-{term}";
         }
 
         public IList<TeacherClassDto> GetMyCourses(string semester)

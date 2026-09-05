@@ -1,11 +1,5 @@
 (function () {
-  function escapeHtml(value) {
-    return String(value ?? "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;");
-  }
+  const escapeHtml = window.sharedUi.escapeHtml;
 
   function row(student) {
     return `
@@ -21,26 +15,18 @@
 
   async function loadStudents(container, classId) {
     const body = document.getElementById("students-table-body");
-    body.innerHTML = `
-      <tr>
-        <td colspan="5"><div class="empty-state">正在加载学生名单...</div></td>
-      </tr>
-    `;
-
-    const students = await window.nativeApi.request("teacher.getClassStudents", { classId });
-    if (!students || students.length === 0) {
-      body.innerHTML = `
-        <tr>
-          <td colspan="5"><div class="empty-state">暂无学生选课</div></td>
-        </tr>
-      `;
+    window.sharedUi.setTableState(body, 5, "正在加载学生名单...");
+    let students;
+    try {
+      students = await window.nativeApi.request("teacher.getClassStudents", { classId });
+    } catch (error) {
+      window.sharedUi.setTableError(body, 5, `加载学生名单失败：${error.message}`, () => loadStudents(container, classId));
       return;
     }
-
-    body.innerHTML = students.map(row).join("");
+    window.sharedUi.renderTableRows(body, students, row, 5, "暂无学生选课");
   }
 
-  async function downloadStudentsCsv(classId) {
+  async function downloadStudentsExcel(classId) {
     const url = `/api/teacher/classes/${encodeURIComponent(classId)}/students/export`;
     const response = await fetch(url, {
       method: "GET",
@@ -60,7 +46,7 @@
     const objectUrl = window.URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = objectUrl;
-    link.download = `class_students_${classId}.csv`;
+    link.download = `class_students_${classId}.xlsx`;
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -89,11 +75,14 @@
             <h3 class="panel-title">${escapeHtml(courseName || "选课名单")}</h3>
             <p class="metric-note">教学班：${escapeHtml(className)} · 教学班编号：${classId}</p>
           </div>
-          <button class="primary-button" type="button" id="export-students-button">导出名单</button>
+          <div class="toolbar-actions">
+            <button class="secondary-button table-action" type="button" id="back-to-courses-button">返回我的课程</button>
+            <button class="primary-button table-action" type="button" id="export-students-button">导出名单</button>
+          </div>
         </div>
       </section>
 
-      <section class="table-panel">
+      <section class="table-panel"><div class="table-scroll">
         <table class="data-table">
           <thead>
             <tr>
@@ -105,13 +94,14 @@
             </tr>
           </thead>
           <tbody id="students-table-body"></tbody>
-        </table>
+        </table></div>
       </section>
     `;
 
+    document.getElementById("back-to-courses-button").addEventListener("click", () => window.openTeacherPage("courses"));
     document.getElementById("export-students-button").addEventListener("click", async () => {
       try {
-        await downloadStudentsCsv(classId);
+        await downloadStudentsExcel(classId);
       } catch (error) {
         alert(error.message);
       }

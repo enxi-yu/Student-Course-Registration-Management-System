@@ -1,11 +1,5 @@
 (function () {
-  function escapeHtml(value) {
-    return String(value ?? "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;");
-  }
+  const escapeHtml = window.sharedUi.escapeHtml;
 
   function calculate(score) {
     if (score >= 90) return { gradeLevel: "A", gpa: 4.0 };
@@ -30,10 +24,10 @@
         <td class="gpa-cell">${score.gpa === null || score.gpa === undefined ? "-" : score.gpa}</td>
         <td class="credit-cell">${hasScore ? (score.creditObtained ?? "-") : "-"}</td>
         <td>
-          <input class="remark-input" type="text" value="${escapeHtml(score.updateRemark || "")}" placeholder="${hasScore ? "修改原因" : "可选"}">
+          <input class="remark-input" type="text" value="${escapeHtml(score.updateRemark || "")}" placeholder="可选">
         </td>
         <td>
-          <button class="primary-button js-save-score" type="button">保存</button>
+          <button class="primary-button table-action js-save-score" type="button">保存</button>
         </td>
       </tr>
     `;
@@ -63,10 +57,6 @@
       throw new Error("总评成绩必须在 0 到 100 之间");
     }
 
-    if (tableRow.dataset.hasScore === "1" && !remarkInput.value.trim()) {
-      throw new Error("修改已有成绩时必须填写修改备注");
-    }
-
     return {
       classId,
       studentNo: tableRow.dataset.studentNo,
@@ -76,19 +66,18 @@
   }
 
   async function refresh(container, classId) {
-    const scores = await window.nativeApi.request("score.getScoreSheet", { classId });
     const body = document.getElementById("scores-table-body");
-
-    if (!scores || scores.length === 0) {
-      body.innerHTML = `
-        <tr>
-          <td colspan="8"><div class="empty-state">暂无学生选课</div></td>
-        </tr>
-      `;
+    window.sharedUi.setTableState(body, 8, "正在加载成绩单...");
+    let scores;
+    try {
+      scores = await window.nativeApi.request("score.getScoreSheet", { classId });
+    } catch (error) {
+      window.sharedUi.setTableError(body, 8, `加载成绩单失败：${error.message}`, () => refresh(container, classId));
       return;
     }
 
-    body.innerHTML = scores.map(row).join("");
+    window.sharedUi.renderTableRows(body, scores, row, 8, "暂无学生选课");
+    if (!scores || scores.length === 0) return;
 
     body.querySelectorAll(".score-input").forEach((input) => {
       input.addEventListener("input", () => updatePreview(input.closest("tr")));
@@ -130,11 +119,14 @@
             <h3 class="panel-title">${escapeHtml(courseName || "成绩录入")}</h3>
             <p class="metric-note">教学班：${escapeHtml(className)} · 教学班编号：${classId}</p>
           </div>
-          <button class="primary-button" type="button" id="batch-save-scores">批量保存</button>
+          <div class="toolbar-actions">
+            <button class="secondary-button" type="button" id="back-to-courses-button">返回我的课程</button>
+            <button class="primary-button" type="button" id="batch-save-scores">批量保存</button>
+          </div>
         </div>
       </section>
 
-      <section class="table-panel">
+      <section class="table-panel"><div class="table-scroll">
         <table class="data-table">
           <thead>
             <tr>
@@ -144,7 +136,7 @@
               <th>成绩等级</th>
               <th>GPA</th>
               <th>获得学分</th>
-              <th>修改备注</th>
+              <th>修改备注（可选）</th>
               <th>操作</th>
             </tr>
           </thead>
@@ -153,10 +145,11 @@
               <td colspan="8"><div class="empty-state">正在加载成绩单...</div></td>
             </tr>
           </tbody>
-        </table>
+        </table></div>
       </section>
     `;
 
+    document.getElementById("back-to-courses-button").addEventListener("click", () => window.openTeacherPage("courses"));
     document.getElementById("batch-save-scores").addEventListener("click", async () => {
       try {
         const rows = Array.from(document.querySelectorAll("#scores-table-body tr"))

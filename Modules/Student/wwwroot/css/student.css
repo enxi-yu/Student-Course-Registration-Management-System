@@ -823,6 +823,25 @@ textarea {
   color: #f59e0b;
 }
 
+.selection-batch-list { display:flex; flex-direction:column; gap:14px; margin-top:20px; max-width:760px; }
+.selection-batch-card { border:1px solid var(--border); background:#f8fafc; border-radius:12px; padding:20px; display:flex; justify-content:space-between; align-items:center; text-align:left; color:var(--text); }
+.selection-batch-card span:first-child { display:flex; flex-direction:column; gap:8px; }
+.selection-batch-card small { color:var(--muted); }
+.selection-batch-card.active { background:#fff; cursor:pointer; box-shadow:0 4px 14px rgba(45,84,190,.08); transition:.18s ease; }
+.selection-batch-card.active:hover { border-color:var(--primary); transform:translateY(-1px); }
+.selection-batch-card:disabled { cursor:not-allowed; opacity:.68; }
+.batch-context { display:flex; align-items:center; gap:16px; margin-bottom:18px; }
+.batch-context div { display:flex; flex-direction:column; gap:5px; }
+.batch-context span { color:var(--muted); font-size:14px; }
+
+.eval-star-half {
+  display: inline-block;
+  color: transparent;
+  background: linear-gradient(90deg, #f59e0b 0 50%, #d4d4d8 50% 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
 .eval-star-input {
   cursor: pointer;
   transition: color 0.15s;
@@ -840,6 +859,22 @@ textarea {
   display: inline-flex;
   align-items: center;
 }
+
+.evaluation-dimension-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 4px;
+  padding: 14px;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.evaluation-dimension-item { display: flex; align-items: center; justify-content: space-between; gap: 18px; min-width: 0; }
+.evaluation-dimension-copy { display: grid; gap: 4px; min-width: 0; }
+.evaluation-dimension-copy strong { color: #334155; font-size: 14px; }
+.evaluation-dimension-copy span { color: #64748b; font-size: 12px; line-height: 1.5; }
+.evaluation-dimension-item .eval-star-group { flex: 0 0 auto; }
 
 .eval-comment-display {
   font-size: 13px;
@@ -1028,3 +1063,67 @@ textarea {
   font-size: 15px;
   padding: 10px 28px;
 }
+
+/* Student timetable follows the teacher timetable presentation. */
+.schedule-grid-panel {
+  margin-bottom: 18px;
+  overflow-x: auto;
+}
+
+table.schedule-grid {
+  display: table;
+  min-width: 980px;
+  margin-bottom: 0;
+  background: transparent;
+  border-radius: 0;
+  overflow: visible;
+}
+
+table.schedule-grid th,
+table.schedule-grid td {
+  width: 12.5%;
+}
+
+table.schedule-grid tbody th {
+  color: #38516f;
+  background: #f7fbff;
+  font-weight: 800;
+}
+
+table.schedule-grid .schedule-card {
+  display: grid;
+  width: 100%;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid #cfe2fa;
+  border-radius: 8px;
+  color: #17365f;
+  background: #eef6ff;
+  line-height: 1.35;
+  text-align: left;
+  cursor: pointer;
+}
+
+table.schedule-grid .schedule-card + .schedule-card {
+  margin-top: 8px;
+}
+
+table.schedule-grid .schedule-card span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+table.schedule-grid .selection-preview-card { cursor:default; }
+table.schedule-grid .selection-preview-card.conflict { border-color:#e45d52; background:#fff3f2; color:#a8322b; }
+
+.profile-page-actions, .dialog-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.profile-dialog { width: min(760px, calc(100vw - 32px)); max-height: calc(100vh - 48px); padding: 0; border: 0; border-radius: 14px; box-shadow: 0 24px 70px rgba(15, 35, 75, .24); }
+.profile-dialog::backdrop { background: rgba(15, 29, 59, .46); }
+.dialog-card { padding: 24px; }
+.dialog-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.dialog-heading h3 { margin: 0; }
+.dialog-close { border: 0; background: transparent; color: var(--muted); font-size: 28px; cursor: pointer; }
+.dialog-actions { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
+.profile-dialog input:disabled { color: #64748b; background: #f3f6fa; cursor: not-allowed; }
+.password-visibility { display: flex; align-items: center; gap: 8px; color: var(--muted); }
+.password-visibility input { width: auto; }

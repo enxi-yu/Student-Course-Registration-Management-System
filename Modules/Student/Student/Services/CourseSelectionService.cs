@@ -18,10 +18,24 @@ namespace StudentCourse.Student.Services
             _repository = repository;
         }
 
-        public List<CourseSelectionDto> GetAvailableCourses(string semester)
+        public List<StudentSelectionBatchDto> GetSelectionBatches()
+        {
+            StudentInfo student=GetCurrentStudent(); return _repository.GetSelectionBatches(student.StudentNo);
+        }
+
+        public List<CourseSelectionDto> GetAvailableCourses(int batchId)
         {
             StudentInfo student = GetCurrentStudent();
-            return _repository.GetAvailableCourses(student.StudentNo, semester);
+            return _repository.GetAvailableCourses(student.StudentNo, batchId);
+        }
+
+        private static string ResolveSemester(string semester)
+        {
+            if (!string.IsNullOrWhiteSpace(semester)) return semester.Trim();
+            DateTime now = DateTime.Now;
+            int startYear = now.Month >= 8 ? now.Year : now.Year - 1;
+            int term = now.Month >= 8 || now.Month == 1 ? 1 : 2;
+            return $"{startYear}-{startYear + 1}-{term}";
         }
 
         public CourseDetailDto? GetCourseDetail(int classId)
@@ -29,10 +43,10 @@ namespace StudentCourse.Student.Services
             return _repository.GetCourseDetail(classId);
         }
 
-        public SelectionResultDto SelectCourse(int classId)
+        public SelectionResultDto SelectCourse(int classId, int batchId)
         {
             StudentInfo student = GetCurrentStudent();
-            return _repository.SelectCourse(student.StudentNo, classId);
+            return _repository.SelectCourse(student.StudentNo, classId, batchId);
         }
 
         public SelectionResultDto DropCourse(int classId)

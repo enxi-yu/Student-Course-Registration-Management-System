@@ -1,7 +1,5 @@
 (function () {
-  function escapeHtml(v) {
-    return String(v ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-  }
+  const escapeHtml = window.sharedUi.escapeHtml;
 
   function weekdayLabel(d) {
     return ["", "周一", "周二", "周三", "周四", "周五", "周六", "周日"][d] || "";
@@ -30,13 +28,10 @@
       return;
     }
 
-    var scheduleHtml = (detail.schedule || []).length === 0
-      ? "<p>暂无上课时间安排</p>"
-      : `<table class="data-table"><thead><tr><th>星期</th><th>节次</th><th>教室</th><th>周次</th></tr></thead><tbody>`
-        + detail.schedule.map(function (s) {
-          return `<tr><td>${weekdayLabel(s.weekday)}</td><td>${s.startPeriod}-${s.endPeriod}节</td><td>${escapeHtml(s.classroom)}</td><td>第${escapeHtml(s.weekRange)}周</td></tr>`;
-        }).join("")
-        + "</tbody></table>";
+    var scheduleHtml = window.sharedUi.dataTable({
+      columns: ["星期", "节次", "教室", "周次"], rows: detail.schedule || [], emptyText: "暂无上课时间安排",
+      row: function (s) { return `<tr><td>${weekdayLabel(s.weekday)}</td><td>${s.startPeriod}-${s.endPeriod}节</td><td>${escapeHtml(s.classroom)}</td><td>第${escapeHtml(s.weekRange)}周</td></tr>`; }
+    });
 
     var badgeClass = detail.remaining > 0 ? "available" : "full";
     var badgeText = detail.remaining > 0 ? "剩余 " + detail.remaining + " 人" : "已满";
@@ -86,8 +81,8 @@
 
     container.querySelector(".select-btn").addEventListener("click", async function () {
       var btn = container.querySelector(".select-btn");
-      btn.disabled = true;
-      btn.textContent = "选课中...";
+      if (btn.disabled) return;
+      window.sharedUi.setBusy(btn, true, "选课中...");
       try {
         var r = await window.nativeApi.request("student.selectCourse", { classId: currentClassId });
         if (r.success) {
@@ -95,21 +90,17 @@
           render(container, currentClassId);
         } else {
           document.getElementById("detail-msg").innerHTML = `<div class="message error">${escapeHtml(r.message)}</div>`;
-          btn.disabled = false;
-          btn.textContent = "选课";
         }
       } catch (e) {
         document.getElementById("detail-msg").innerHTML = `<div class="message error">${escapeHtml(e.message)}</div>`;
-        btn.disabled = false;
-        btn.textContent = "选课";
-      }
+      } finally { if (btn.isConnected) window.sharedUi.setBusy(btn, false); }
     });
 
     container.querySelector(".drop-btn").addEventListener("click", async function () {
-      if (!confirm("确认退选该课程？")) return;
+      if (!await window.sharedUi.confirm("确认退选该课程？")) return;
       var btn = container.querySelector(".drop-btn");
-      btn.disabled = true;
-      btn.textContent = "退课中...";
+      if (btn.disabled) return;
+      window.sharedUi.setBusy(btn, true, "退课中...");
       try {
         var r = await window.nativeApi.request("student.dropCourse", { classId: currentClassId });
         if (r.success) {
@@ -117,14 +108,10 @@
           render(container, currentClassId);
         } else {
           document.getElementById("detail-msg").innerHTML = `<div class="message error">${escapeHtml(r.message)}</div>`;
-          btn.disabled = false;
-          btn.textContent = "退课";
         }
       } catch (e) {
         document.getElementById("detail-msg").innerHTML = `<div class="message error">${escapeHtml(e.message)}</div>`;
-        btn.disabled = false;
-        btn.textContent = "退课";
-      }
+      } finally { if (btn.isConnected) window.sharedUi.setBusy(btn, false); }
     });
   }
 

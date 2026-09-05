@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>管理员端 - 学生选课管理系统</title>
-  <link rel="stylesheet" href="css/teacher.css">
-  <link rel="stylesheet" href="css/admin-extra.css">
+  <link rel="stylesheet" href="/shared-ui/css/interface-unified.css?v=23">
+  <link rel="stylesheet" href="css/admin-extra.css?v=log-filter-grid1">
   <style>
     table, th, td { border: 1px solid #e0e0e0 !important; border-collapse: collapse; }
     th, td { padding: 12px 16px; }
@@ -14,26 +14,26 @@
     
     .form-card {
       background: #fff;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-      padding: 28px;
-      margin: 20px 0;
-      border: 1px solid #e8e8e8;
+      border-radius: 8px;
+      box-shadow: 0 12px 32px rgba(15, 74, 162, 0.08);
+      padding: 18px;
+      margin: 18px 0;
+      border: 1px solid #dce5f2;
     }
     
     .form-card-header {
       display: flex;
       align-items: center;
       gap: 10px;
-      margin-bottom: 24px;
-      padding-bottom: 16px;
-      border-bottom: 2px solid #007bff;
+      margin-bottom: 16px;
+      padding-bottom: 0;
+      border-bottom: 0;
     }
     
     .form-card-header h3 {
       margin: 0;
-      font-size: 1.25rem;
-      color: #2d3748;
+      font-size: 18px;
+      color: #17396f;
     }
     
     .form-grid {
@@ -61,7 +61,8 @@
     
     .form-grid .field input,
     .form-grid .field select,
-    .form-grid .field textarea {
+    .form-grid .field textarea,
+    .inline-field select {
       padding: 10px 14px;
       border: 1.5px solid #d1d5db;
       border-radius: 6px;
@@ -174,7 +175,7 @@
       background: #fff;
       padding: 32px;
       border-radius: 12px;
-      width: 600px;
+      width: 900px;
       max-width: 90%;
       box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
       animation: slideUp 0.25s ease;
@@ -281,27 +282,69 @@
       background: #007bff !important;
       color: #fff !important;
     }
+
+    .schedule-time-row {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(100px, 1fr)) minmax(150px, 1.3fr) auto;
+      gap: 12px;
+      align-items: end;
+      padding: 14px;
+      margin-top: 12px;
+      border: 1px solid #dbe4f3;
+      border-radius: 10px;
+      background: #f8faff;
+    }
+
+    .schedule-time-row .field { margin: 0; }
+
+    @media (max-width: 1200px) {
+      .schedule-time-row { grid-template-columns: repeat(3, minmax(140px, 1fr)); }
+    }
   </style>
 </head>
 <body>
   <div class="teacher-shell">
     <aside class="sidebar">
       <div class="brand">
-        <div class="brand-mark">ADM</div>
+        <div class="brand-mark">SC</div>
         <div>
           <div class="brand-title">管理员端</div>
-          <div class="brand-subtitle">System Admin</div>
+          <div class="brand-subtitle">Course Manager</div>
         </div>
       </div>
-      <nav class="nav-menu">
-        <button class="nav-item active" type="button" data-tab="courses" onclick="switchTab('courses')">课程管理</button>
-        <button class="nav-item" type="button" data-tab="applications" onclick="switchTab('applications')">开课申请管理</button>
-        <button class="nav-item" type="button" data-tab="students" onclick="switchTab('students')">学生管理</button>
-        <button class="nav-item" type="button" data-tab="teachers" onclick="switchTab('teachers')">教师管理</button>
-        <button class="nav-item" type="button" data-tab="batches" onclick="switchTab('batches')">选课批次管理</button>
-        <button class="nav-item" type="button" data-tab="classes" onclick="switchTab('classes')">容量调整</button>
+      <nav class="nav-menu admin-nav-menu" aria-label="管理员端菜单">
+        <button class="nav-item active" type="button" data-tab="dashboard" onclick="switchTab('dashboard')">首页</button>
+        <div class="nav-collapsible">
+          <button class="nav-item nav-group-toggle" type="button" aria-expanded="false" aria-controls="admin-nav-teaching" onclick="toggleAdminNavGroup('admin-nav-teaching', this)">
+            <span>教学管理</span><span class="nav-chevron" aria-hidden="true">⌄</span>
+          </button>
+          <div class="nav-group-items" id="admin-nav-teaching" hidden>
+            <button class="nav-item nav-sub-item" type="button" data-tab="courses" onclick="switchTab('courses')">课程管理</button>
+            <button class="nav-item nav-sub-item" type="button" data-tab="scheduling" onclick="switchTab('scheduling')">排课管理</button>
+            <button class="nav-item nav-sub-item" type="button" data-tab="applications" onclick="switchTab('applications')">开课审批</button>
+            <button class="nav-item nav-sub-item" type="button" data-tab="evaluations" onclick="switchTab('evaluations')">评价管理</button>
+            <button class="nav-item nav-sub-item" type="button" data-tab="classes" onclick="switchTab('classes')">容量调整</button>
+          </div>
+        </div>
+        <div class="nav-collapsible" data-hide-when-empty>
+          <button class="nav-item nav-group-toggle" type="button" aria-expanded="false" aria-controls="admin-nav-users" onclick="toggleAdminNavGroup('admin-nav-users', this)">
+            <span>用户管理</span><span class="nav-chevron" aria-hidden="true">⌄</span>
+          </button>
+          <div class="nav-group-items" id="admin-nav-users" hidden>
+            <button class="nav-item nav-sub-item" type="button" data-tab="students" onclick="switchTab('students')">学生管理</button>
+            <button class="nav-item nav-sub-item" type="button" data-tab="teachers" onclick="switchTab('teachers')">教师管理</button>
+          </div>
+        </div>
+        <div class="nav-collapsible">
+          <button class="nav-item nav-group-toggle" type="button" aria-expanded="false" aria-controls="admin-nav-selection" onclick="toggleAdminNavGroup('admin-nav-selection', this)">
+            <span>选课管理</span><span class="nav-chevron" aria-hidden="true">⌄</span>
+          </button>
+          <div class="nav-group-items" id="admin-nav-selection" hidden>
+            <button class="nav-item nav-sub-item" type="button" data-tab="batches" onclick="switchTab('batches')">批次管理</button>
+            <button class="nav-item nav-sub-item" type="button" data-tab="selection" onclick="switchTab('selection')">代选课程</button>
+          </div>
+        </div>
         <button class="nav-item" type="button" data-tab="logs" onclick="switchTab('logs')">系统日志</button>
-        <button class="nav-item" type="button" data-tab="permissions" onclick="switchTab('permissions')">权限管理</button>
       </nav>
     </aside>
 
@@ -311,21 +354,25 @@
           <h1>学生选课管理系统</h1>
         </div>
         <div class="topbar-actions">
-          <span class="role-pill" id="adminCurrentRole">当前角色：系统管理员</span>
+          <span class="role-pill" id="adminCurrentRole">未登录</span>
           <button class="logout-button" type="button" id="logout-button">退出登录</button>
         </div>
       </header>
 
       <main class="content">
-        <div id="courses-tab" class="tab-content active">
-          <h2>课程管理后台</h2>
+        <div id="dashboard-tab" class="tab-content active">
+          <div id="admin-dashboard-root"></div>
+        </div>
+
+        <div id="courses-tab" class="tab-content">
+          <div id="coursesPageHeading"></div>
 
           <div class="form-card">
             <div class="form-card-header">
-              <h3>发布新课程</h3>
+              <h3>新增课程</h3>
             </div>
             
-            <div class="form-grid">
+            <div class="application-form admin-course-form">
               <div class="field">
                 <label>课程名称 <span class="required">*</span></label>
                 <input type="text" id="courseName" placeholder="例如：数据库系统">
@@ -344,39 +391,31 @@
                 <input type="number" id="credit" step="0.5" min="0" placeholder="例如：3.0">
               </div>
               <div class="field">
-                <label>总学时 <span class="required">*</span></label>
-                <input type="number" id="totalHours" min="0" placeholder="例如：48">
-              </div>
-              <div class="field">
-                <label>开设院系</label>
+                <label>面向学院</label>
                 <input type="text" id="department" placeholder="例如：计算机科学与技术学院">
               </div>
-              <div class="field">
-                <label>课程编号（自动生成）</label>
-                <input type="text" readonly value="系统自动生成" style="background: #f8f9fa; color: #9ca3af;">
-              </div>
-              <div class="field full-width">
-                <label>课程简介</label>
-                <textarea id="courseDesc" rows="3" placeholder="请输入课程简介（可选）"></textarea>
+              <div class="field field-wide">
+                <label>课程描述</label>
+                <textarea id="courseDesc" rows="3" placeholder="填写课程目标、主要内容和考核方式"></textarea>
               </div>
             </div>
             
             <div class="form-actions">
               <button class="btn btn-secondary" onclick="clearForm()">重置</button>
-              <button class="btn btn-primary" onclick="publishCourse()">发布课程</button>
+              <button class="btn btn-primary" id="publishCourseButton" onclick="publishCourse()">新增课程</button>
             </div>
           </div>
+
+          <div id="coursesFilterBar"></div>
 
           <table class="data-table">
             <thead>
               <tr>
-                <th>课程编号</th>
                 <th>课程名称</th>
                 <th>课程类型</th>
                 <th>学分</th>
-                <th>总学时</th>
-                <th>开设院系</th>
-                <th>课程简介</th>
+                <th>面向学院</th>
+                <th>课程描述</th>
                 <th>操作</th>
               </tr>
             </thead>
@@ -385,10 +424,38 @@
           </table>
         </div>
 
-        <div id="applications-tab" class="tab-content">
-          <h2>开课申请管理</h2>
+        <div id="scheduling-tab" class="tab-content">
+          <div id="schedulingPageHeading"></div>
+          <div class="form-card">
+            <div class="form-grid scheduling-form-grid">
+              <div class="field"><label>课程 <span class="required">*</span></label><div class="search-choice"><input id="scheduleCourseSearch" type="search" autocomplete="off" placeholder="搜索并选择课程"><input id="scheduleCourse" type="hidden"><div id="scheduleCourseResults" class="search-choice-results" hidden></div></div></div>
+              <div class="field"><label>任课教师 <span class="required">*</span></label><div class="search-choice"><input id="scheduleTeacherSearch" type="search" autocomplete="off" placeholder="搜索并选择教师"><input id="scheduleTeacher" type="hidden"><div id="scheduleTeacherResults" class="search-choice-results" hidden></div></div></div>
+              <div class="schedule-grid-spacer" aria-hidden="true"></div>
+              <div class="field"><label>教学班名称 <span class="required">*</span></label><input id="scheduleClassName" type="text" placeholder="例如：数据库原理01班"></div>
+              <div class="field"><label>课程容量 <span class="required">*</span></label><input id="scheduleCapacity" type="number" min="1" value="40"></div>
+              <div class="field schedule-semester-field"><label>学年学期 <span class="required">*</span></label><div id="scheduleSemesterPicker"></div><input id="scheduleSemester" type="hidden"></div>
+            </div>
+            <div class="form-card-header scheduling-time-header"><h3>上课时间</h3><button class="btn btn-secondary" type="button" onclick="addScheduleTimeRow()">添加时间</button></div>
+            <div id="scheduleTimes"></div>
+            <div class="form-actions">
+              <button class="btn btn-secondary" type="button" onclick="resetSchedulingForm()">取消 / 重置</button>
+              <button class="btn btn-primary" type="button" id="saveScheduleButton" onclick="saveSchedule()">保存排课</button>
+            </div>
+          </div>
+          <div id="schedulingFilterBar"></div>
+          <div class="table-scroll"><table class="data-table">
+            <thead><tr><th>教学班</th><th>课程</th><th>学年学期</th><th>任课教师</th><th>上课安排</th><th>容量</th><th>总学时</th><th>操作</th></tr></thead>
+            <tbody id="schedulingTableBody"></tbody>
+          </table></div>
 
-          <table class="data-table">
+        </div>
+
+        <div id="applications-tab" class="tab-content">
+          <div id="applicationsPageHeading"></div>
+
+          <div id="applicationsFilterBar"></div>
+
+          <div class="table-scroll"><table class="data-table">
             <thead>
               <tr>
                 <th>申请编号</th>
@@ -406,11 +473,12 @@
             </thead>
             <tbody id="applicationTableBody">
             </tbody>
-          </table>
+          </table></div>
+          <div id="applicationPagination"></div>
         </div>
 
         <div id="students-tab" class="tab-content">
-          <h2>学生信息管理</h2>
+          <div id="studentsPageHeading"></div>
           <div class="form-card">
             <div class="form-card-header">
               <h3 id="studentFormTitle">新增学生账号</h3>
@@ -467,18 +535,10 @@
             </div>
             <div class="form-actions">
               <button class="btn btn-secondary" onclick="clearStudentForm()">重置</button>
-              <button class="btn btn-primary" onclick="saveStudent()">保存学生</button>
+              <button class="btn btn-primary" id="saveStudentButton" onclick="saveStudent()">保存学生</button>
             </div>
           </div>
-          <div class="form-card">
-            <div class="toolbar-row">
-              <div class="field inline-field">
-                <label>搜索学生</label>
-                <input type="text" id="studentKeyword" placeholder="学号 / 姓名 / 专业">
-              </div>
-              <button class="btn btn-primary" onclick="loadStudents()">查询</button>
-            </div>
-          </div>
+          <div id="studentsFilterBar"></div>
           <div class="table-scroll">
             <table class="data-table">
               <thead>
@@ -500,7 +560,7 @@
         </div>
 
         <div id="teachers-tab" class="tab-content">
-          <h2>教师信息管理</h2>
+          <div id="teachersPageHeading"></div>
           <div class="form-card">
             <div class="form-card-header">
               <h3 id="teacherFormTitle">新增教师账号</h3>
@@ -549,18 +609,10 @@
             </div>
             <div class="form-actions">
               <button class="btn btn-secondary" onclick="clearTeacherForm()">重置</button>
-              <button class="btn btn-primary" onclick="saveTeacher()">保存教师</button>
+              <button class="btn btn-primary" id="saveTeacherButton" onclick="saveTeacher()">保存教师</button>
             </div>
           </div>
-          <div class="form-card">
-            <div class="toolbar-row">
-              <div class="field inline-field">
-                <label>搜索教师</label>
-                <input type="text" id="teacherKeyword" placeholder="工号 / 姓名 / 院系">
-              </div>
-              <button class="btn btn-primary" onclick="loadTeachers()">查询</button>
-            </div>
-          </div>
+          <div id="teachersFilterBar"></div>
           <div class="table-scroll">
             <table class="data-table">
               <thead>
@@ -580,7 +632,7 @@
         </div>
 
         <div id="batches-tab" class="tab-content">
-          <h2>选课批次管理</h2>
+          <div id="batchesPageHeading"></div>
           <div class="form-card">
             <div class="form-card-header">
               <h3 id="batchFormTitle">新增选课批次</h3>
@@ -593,28 +645,31 @@
               </div>
               <div class="field">
                 <label>开始时间 <span class="required">*</span></label>
-                <input type="datetime-local" id="batchStartTime">
+                <input class="datetime-clean-empty" type="datetime-local" id="batchStartTime" required>
               </div>
               <div class="field">
                 <label>结束时间 <span class="required">*</span></label>
-                <input type="datetime-local" id="batchEndTime">
+                <input class="datetime-clean-empty" type="datetime-local" id="batchEndTime" required>
+              </div>
+              <div class="field field-wide">
+                <label>开放课程 <span class="required">*</span></label>
+                <div class="batch-multi" id="batchCourseMulti"><button type="button" class="batch-multi-trigger">请选择开放课程</button><div class="batch-multi-menu"><input type="search" class="batch-multi-search" placeholder="搜索课程、教学班或教师"><div class="batch-multi-options" id="batchCourseOptions"></div></div></div>
               </div>
               <div class="field">
-                <label>批次状态</label>
-                <select id="batchStatus">
-                  <option value="">按时间自动计算</option>
-                  <option value="0">未开始</option>
-                  <option value="1">进行中</option>
-                  <option value="2">已结束</option>
-                </select>
+                <label>面向专业</label>
+                <div class="batch-multi" id="batchMajorMulti"><button type="button" class="batch-multi-trigger">全部专业</button><div class="batch-multi-menu"><div class="batch-multi-options" id="batchMajorOptions"></div></div></div>
+              </div>
+              <div class="field">
+                <label>面向年级</label>
+                <div class="batch-multi" id="batchGradeMulti"><button type="button" class="batch-multi-trigger">全部年级</button><div class="batch-multi-menu"><div class="batch-multi-options" id="batchGradeOptions"></div></div></div>
               </div>
             </div>
             <div class="form-actions">
               <button class="btn btn-secondary" onclick="clearBatchForm()">重置</button>
-              <button class="btn btn-primary" onclick="saveBatch()">保存批次</button>
+              <button class="btn btn-primary" id="saveBatchButton" onclick="saveBatch()">保存批次</button>
             </div>
           </div>
-          <table class="data-table">
+          <div class="table-scroll"><table class="data-table">
             <thead>
               <tr>
                 <th>批次编号</th>
@@ -626,20 +681,13 @@
               </tr>
             </thead>
             <tbody id="batchTableBody"></tbody>
-          </table>
+          </table></div>
+          <div id="batchPagination"></div>
         </div>
 
         <div id="classes-tab" class="tab-content">
-          <h2>选课容量调整</h2>
-          <div class="form-card">
-            <div class="toolbar-row">
-              <div class="field inline-field">
-                <label>搜索教学班</label>
-                <input type="text" id="classKeyword" placeholder="课程 / 教学班 / 教师 / 学期">
-              </div>
-              <button class="btn btn-primary" onclick="loadAdminClasses()">查询</button>
-            </div>
-          </div>
+          <div id="classesPageHeading"></div>
+          <div id="classesFilterBar"></div>
           <div class="table-scroll">
             <table class="data-table">
               <thead>
@@ -659,32 +707,52 @@
           </div>
         </div>
 
-        <div id="logs-tab" class="tab-content">
-          <h2>系统日志</h2>
-          <div class="form-card">
-            <div class="form-grid">
-              <div class="field">
-                <label>关键词</label>
-                <input type="text" id="logKeyword" placeholder="账号 / 对象 / 描述">
-              </div>
-              <div class="field">
-                <label>操作类型</label>
-                <input type="text" id="logOperationType" placeholder="登录 / 新增 / 修改">
-              </div>
-              <div class="field">
-                <label>开始时间</label>
-                <input type="datetime-local" id="logStartTime">
-              </div>
-              <div class="field">
-                <label>结束时间</label>
-                <input type="datetime-local" id="logEndTime">
-              </div>
+        <div id="selection-tab" class="tab-content">
+          <div class="content-heading"><div><h2>代选课程</h2><p>为指定学生办理选课或退课。</p></div></div>
+
+          <div class="form-card" id="selectionSearchCard">
+            <div class="form-card-header">
+              <h3>搜索学生</h3>
             </div>
-            <div class="form-actions">
-              <button class="btn btn-secondary" onclick="clearLogFilters()">重置</button>
-              <button class="btn btn-primary" onclick="loadLogs()">查询日志</button>
+            <div class="toolbar-row">
+              <div class="field inline-field">
+                <label>学号 / 姓名</label>
+                <input type="text" id="selectionKeyword" placeholder="2026001 或 张" onkeydown="if(event.key==='Enter') searchStudentsForSelection()">
+              </div>
+              <button class="btn btn-primary" onclick="searchStudentsForSelection()">查询</button>
+            </div>
+            <div class="table-scroll">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>学号</th>
+                    <th>姓名</th>
+                    <th>专业</th>
+                    <th>年级</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="selectionStudentTableBody"></tbody>
+              </table>
             </div>
           </div>
+
+          <div id="selectionWorkArea" style="display:none;">
+            <div class="selection-student-context"><button class="btn btn-secondary" onclick="exitSelectionMode()">更换学生</button><div><strong id="selStudentName"></strong><span>管理员代选课程</span></div></div>
+            <div id="adminSelectionCenter"></div>
+          </div>
+        </div>
+
+        <div id="evaluations-tab" class="tab-content evaluation-page">
+          <div id="evaluationsPageHeading"></div>
+          <div id="evaluationsFilterBar"></div>
+          <div class="table-card evaluation-table-card"><div class="table-scroll"><table class="data-table"><thead><tr><th>学号</th><th>课程</th><th>教学班</th><th>教师</th><th>学期</th><th>教学设计</th><th>课堂讲授</th><th>教学互动</th><th>教学效果</th><th>综合评分</th><th>文字反馈</th><th>评价时间</th></tr></thead><tbody id="evaluationTableBody"></tbody></table></div><div id="evaluationPagination"></div></div>
+        </div>
+
+        <div id="logs-tab" class="tab-content">
+          <div id="logsPageHeading"></div>
+          <div id="logsFilterBar"></div>
+          <div id="logResults" hidden>
           <div class="table-scroll">
             <table class="data-table">
               <thead>
@@ -701,93 +769,12 @@
               <tbody id="logTableBody"></tbody>
             </table>
           </div>
+          <div id="logPagination" hidden></div>
+          </div>
         </div>
 
-        <div id="permissions-tab" class="tab-content">
-          <h2>管理员登录与权限管理</h2>
-          <div class="form-card">
-            <div class="form-card-header">
-              <h3>管理员登录</h3>
-            </div>
-            <div class="form-grid">
-              <div class="field">
-                <label>管理员账号</label>
-                <input type="text" id="adminLoginUsername" placeholder="Aadmin">
-              </div>
-              <div class="field">
-                <label>管理员密码</label>
-                <input type="password" id="adminLoginPassword" placeholder="Password">
-              </div>
-            </div>
-            <div class="form-actions">
-              <span id="adminLoginMessage" class="inline-message"></span>
-              <button class="btn btn-primary" onclick="loginAdmin()">登录</button>
-            </div>
-          </div>
-          <div class="form-card">
-            <div class="form-card-header">
-              <h3>当前管理员</h3>
-            </div>
-            <div id="adminCurrentInfo" class="info-grid"></div>
-          </div>
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>权限编码</th>
-                <th>权限名称</th>
-                <th>所属模块</th>
-              </tr>
-            </thead>
-            <tbody id="permissionTableBody"></tbody>
-          </table>
-        </div>
       </main>
     </section>
-  </div>
-
-  <div class="modal" id="editModal">
-    <div class="modal-content">
-      <h3>编辑课程</h3>
-      <input type="hidden" id="editCourseId">
-      <div class="form-grid">
-        <div class="field">
-          <label>课程名称 <span class="required">*</span></label>
-          <input type="text" id="editCourseName">
-        </div>
-        <div class="field">
-          <label>课程类型 <span class="required">*</span></label>
-          <select id="editCourseType">
-            <option value="必修">必修</option>
-            <option value="选修">选修</option>
-            <option value="公选">公选</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>学分 <span class="required">*</span></label>
-          <input type="number" id="editCredit" step="0.5" min="0">
-        </div>
-        <div class="field">
-          <label>总学时 <span class="required">*</span></label>
-          <input type="number" id="editTotalHours" min="0">
-        </div>
-        <div class="field">
-          <label>开设院系</label>
-          <input type="text" id="editDepartment">
-        </div>
-        <div class="field">
-          <label>课程编号</label>
-          <input type="text" id="editCourseIdDisplay" readonly style="background: #f8f9fa; color: #9ca3af;">
-        </div>
-        <div class="field full-width">
-          <label>课程简介</label>
-          <textarea id="editCourseDesc" rows="3"></textarea>
-        </div>
-      </div>
-      <div class="actions">
-        <button class="btn btn-secondary" onclick="closeModal()">取消</button>
-        <button class="btn btn-primary" onclick="updateCourse()">保存修改</button>
-      </div>
-    </div>
   </div>
 
   <div class="modal" id="detailModal">
@@ -802,39 +789,21 @@
     </div>
   </div>
 
-  <div class="modal" id="approveModal">
-    <div class="modal-content">
-      <h3>审批开课申请</h3>
-      <input type="hidden" id="approveApplyId">
-      <div class="form-grid">
-        <div class="field">
-          <label>审批结果 <span class="required">*</span></label>
-          <select id="approveStatus">
-            <option value="">请选择审批结果</option>
-            <option value="通过">通过</option>
-            <option value="驳回">驳回</option>
-          </select>
-        </div>
-        <div class="field full-width">
-          <label>审批意见</label>
-          <textarea id="approveComment" rows="3" placeholder="请输入审批意见（可选）"></textarea>
-        </div>
-      </div>
-      <div class="actions">
-        <button class="btn btn-secondary" onclick="closeApproveModal()">取消</button>
-        <button class="btn btn-primary" onclick="submitApproval()">提交审批</button>
-      </div>
-    </div>
-  </div>
-
-  <script src="js/pages/admin-course.js"></script>
-  <script src="js/pages/admin-application.js"></script>
-  <script src="js/pages/admin-shell.js"></script>
-  <script src="js/pages/admin-auth.js"></script>
-  <script src="js/pages/admin-student.js"></script>
-  <script src="js/pages/admin-teacher.js"></script>
-  <script src="js/pages/admin-batch.js"></script>
-  <script src="js/pages/admin-class.js"></script>
-  <script src="js/pages/admin-log.js"></script>
+  <script src="/shared-ui/js/academic-semester.js?v=4"></script>
+  <script src="/shared-ui/js/ui-components.js?v=12"></script>
+  <script src="js/admin-dialog.js?v=shared-dialog1"></script>
+  <script src="js/pages/admin-course.js?v=shared-form-dialog1"></script>
+  <script src="js/pages/admin-scheduling.js?v=shared-utils1"></script>
+  <script src="js/pages/admin-application.js?v=shared-utils1"></script>
+  <script src="js/pages/admin-dashboard.js?v=shared-dashboard2"></script>
+  <script src="js/pages/admin-shell.js?v=log-filter-grid1"></script>
+  <script src="js/pages/admin-auth.js?v=no-permissions1"></script>
+  <script src="js/pages/admin-student.js?v=shared-state1"></script>
+  <script src="js/pages/admin-teacher.js?v=shared-state1"></script>
+  <script src="js/pages/admin-batch.js?v=end-refresh1"></script>
+  <script src="js/pages/admin-class.js?v=shared-form-dialog1"></script>
+  <script src="js/pages/admin-selection-unrestricted.js?v=shared-state1"></script>
+  <script src="js/pages/admin-log.js?v=shared-table2"></script>
+  <script src="js/pages/admin-evaluation.js?v=shared-utils1"></script>
 </body>
 </html>

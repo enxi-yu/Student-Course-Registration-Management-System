@@ -70,6 +70,7 @@ namespace StudentCourse.Student.Controllers
             }
             catch (Exception ex)
             {
+                Console.Error.WriteLine($"提交或读取课程评价失败 [{HttpContext.TraceIdentifier}]: {ex}");
                 return StatusCode(500, new { message = "服务暂不可用，请稍后重试。", traceId = HttpContext.TraceIdentifier });
             }
         }

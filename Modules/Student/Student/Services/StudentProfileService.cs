@@ -51,10 +51,23 @@ namespace StudentCourse.Student.Services
             return info;
         }
 
-        public StudentDashboardDto GetDashboard()
+        public StudentDashboardDto GetDashboard(string semester)
         {
             StudentInfo student = GetCurrentStudent();
-            return _repository.GetDashboard(student.StudentNo);
+            return _repository.GetDashboard(student.StudentNo, ResolveCurrentSemester(semester));
+        }
+
+        private static string ResolveCurrentSemester(string semester)
+        {
+            if (!string.IsNullOrWhiteSpace(semester))
+            {
+                return semester.Trim();
+            }
+
+            DateTime today = DateTime.Today;
+            int startYear = today.Month >= 8 ? today.Year : today.Year - 1;
+            int term = today.Month >= 8 || today.Month == 1 ? 1 : 2;
+            return $"{startYear}-{startYear + 1}-{term}";
         }
 
         public StudentInfo UpdateProfile(UpdateStudentProfileRequest request)
@@ -98,6 +111,11 @@ namespace StudentCourse.Student.Services
             if (newPassword.Length < 6 || newPassword.Length > 20)
             {
                 throw new InvalidOperationException("新密码长度必须为 6 到 20 位。");
+            }
+
+            if (oldPassword == newPassword)
+            {
+                throw new InvalidOperationException("新密码不能和原密码相同。");
             }
 
             if (newPassword != confirmPassword)

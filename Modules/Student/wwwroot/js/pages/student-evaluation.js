@@ -1,12 +1,5 @@
 (function () {
-  function escapeHtml(value) {
-    return String(value === null || value === undefined ? "" : value)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#39;");
-  }
+  const escapeHtml = window.sharedUi.escapeHtml;
 
   function formatDate(dateStr) {
     if (!dateStr) return "-";
@@ -18,12 +11,15 @@
            String(d.getMinutes()).padStart(2, "0");
   }
 
-  // Render star rating display (read-only, 5 stars)
+  // Render star rating display (read-only, supports half stars)
   function renderStars(rating) {
     var stars = "";
+    var normalizedRating = Math.max(0, Math.min(5, Math.round(Number(rating || 0) * 2) / 2));
     for (var i = 1; i <= 5; i++) {
-      if (i <= rating) {
+      if (i <= normalizedRating) {
         stars += '<span class="eval-star filled">&#9733;</span>';
+      } else if (i - 0.5 === normalizedRating) {
+        stars += '<span class="eval-star eval-star-half" aria-label="半颗星">&#9733;</span>';
       } else {
         stars += '<span class="eval-star">&#9734;</span>';
       }
@@ -91,21 +87,21 @@
 
           '<div class="eval-form-row">' +
           '<label class="eval-label">评分指标</label>' +
-          '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 4px; background: #f8fafc; padding: 12px; border-radius: 8px;">' +
-          '<div style="display:flex; justify-content:space-between; align-items:center;">' +
-          '<span style="font-size: 13px; color: #475569; font-weight: bold;">教学质量</span>' +
+          '<div class="evaluation-dimension-grid">' +
+          '<div class="evaluation-dimension-item">' +
+          '<div class="evaluation-dimension-copy"><strong>教学设计</strong><span>教学目标、内容组织和进度安排是否合理</span></div>' +
           '<div class="eval-star-group" id="star-group-d1-' + item.classId + '" data-rating="0">' + renderStarInput(0, item.classId, 'd1') + '</div>' +
           '</div>' +
-          '<div style="display:flex; justify-content:space-between; align-items:center;">' +
-          '<span style="font-size: 13px; color: #475569; font-weight: bold;">作业量</span>' +
+          '<div class="evaluation-dimension-item">' +
+          '<div class="evaluation-dimension-copy"><strong>课堂讲授</strong><span>讲解是否清晰，重点和难点是否突出</span></div>' +
           '<div class="eval-star-group" id="star-group-d2-' + item.classId + '" data-rating="0">' + renderStarInput(0, item.classId, 'd2') + '</div>' +
           '</div>' +
-          '<div style="display:flex; justify-content:space-between; align-items:center;">' +
-          '<span style="font-size: 13px; color: #475569; font-weight: bold;">课堂氛围</span>' +
+          '<div class="evaluation-dimension-item">' +
+          '<div class="evaluation-dimension-copy"><strong>教学互动</strong><span>是否引导思考、组织讨论并及时答疑</span></div>' +
           '<div class="eval-star-group" id="star-group-d3-' + item.classId + '" data-rating="0">' + renderStarInput(0, item.classId, 'd3') + '</div>' +
           '</div>' +
-          '<div style="display:flex; justify-content:space-between; align-items:center;">' +
-          '<span style="font-size: 13px; color: #475569; font-weight: bold;">教师态度</span>' +
+          '<div class="evaluation-dimension-item">' +
+          '<div class="evaluation-dimension-copy"><strong>教学效果</strong><span>学生是否理解知识、掌握方法并达到学习目标</span></div>' +
           '<div class="eval-star-group" id="star-group-d4-' + item.classId + '" data-rating="0">' + renderStarInput(0, item.classId, 'd4') + '</div>' +
           '</div>' +
           '</div>' +
@@ -116,7 +112,7 @@
           '<textarea class="eval-textarea" id="eval-comment-' + item.classId + '" placeholder="请输入你的课程评价..." maxlength="500" rows="3"></textarea>' +
           '</div>' +
           '<div class="eval-form-row">' +
-          '<button class="eval-submit-btn" type="button" data-class="' + item.classId + '">提交评价</button>' +
+          '<button class="primary-button eval-submit-btn" type="button" data-class="' + item.classId + '">提交评价</button>' +
           '</div>' +
           '</div>' +
           '</div>'
@@ -231,8 +227,8 @@
                   return;
               }
 
-              btn.disabled = true;
-              btn.textContent = "提交中...";
+              if (btn.disabled) return;
+              window.sharedUi.setBusy(btn, true, "提交中...");
 
               try {
                   await window.nativeApi.request("student.submitEvaluation", {
@@ -246,10 +242,8 @@
                   window.setStudentMessage("评价提交成功！", "success");
                   render(container);
               } catch (error) {
-                  btn.disabled = false;
-                  btn.textContent = "提交评价";
                   window.setStudentMessage("提交失败：" + error.message, "error");
-              }
+              } finally { if (btn.isConnected) window.sharedUi.setBusy(btn, false); }
           });
       });
   }

@@ -4,7 +4,7 @@
 
 ```
 StudentCourse.sln
-└── Student-Course.csproj                    （ASP.NET Core 8.0 Web）
+└── StudentCourse.Student.csproj             （ASP.NET Core 8.0 Web）
 
 项目根目录/
 ├── Program.cs                               # 入口：注册DI、配置中间件
@@ -43,7 +43,7 @@ StudentCourse.sln
 │   │   └── StudentEvaluationService.cs
 │   │
 │   ├── Controllers/                          # API 接口层
-│   │   ├── SystemController.cs               # 系统：ping / 数据库测试 / Mock Session
+│   │   ├── SystemController.cs               # 系统：ping / 数据库连接检查
 │   │   ├── StudentProfileController.cs       # 模块一
 │   │   ├── CourseSelectionController.cs      # 模块二
 │   │   └── StudentGradeController.cs         # 模块三
@@ -61,7 +61,7 @@ StudentCourse.sln
 │               ├── student-dashboard.js      # 首页仪表盘
 │               ├── student-profile.js        # 修改个人信息
 │               ├── student-courses.js        # 选课中心
-│               ├── student-schedule.js       # 我的课表
+│               ├── student-schedule-unified.js # 我的课表
 │               ├── student-grades.js         # 成绩查询
 │               └── student-evaluation.js     # 课程评价
 │

@@ -5,7 +5,7 @@
     schedule: { title: "我的课表", description: "查看本学期课程安排" },
     grades: { title: "成绩查询", description: "查看已修课程成绩和 GPA" },
     evaluation: { title: "课程评价", description: "对已修课程进行评价" },
-    profile: { title: "修改个人信息", description: "维护联系方式和账号安全" },
+    profile: { title: "个人资料", description: "查看个人资料，维护联系方式和账号安全" },
     detail: { title: "课程详情", description: "查看课程详细信息" }
   };
 
@@ -58,7 +58,8 @@
     const meta = pageMeta[page] || pageMeta.dashboard;
     document.getElementById("view-title").textContent = meta.title;
     document.getElementById("view-description").textContent = meta.description;
-    document.getElementById("view-subtitle").textContent = meta.description;
+    const heading = document.getElementById("content-heading");
+    if (heading) heading.hidden = page === "dashboard";
   }
 
   function renderAccessMessage(message) {
@@ -73,69 +74,7 @@
       <section class="panel" style="text-align:center; padding:48px 24px;">
         <div style="font-size:64px; margin-bottom:16px;">🔒</div>
         <h3 class="panel-title" style="font-size:20px;">${title}</h3>
-        <p style="color:var(--muted); margin-bottom:24px;">
-          当前尚未登录，请通过以下方式之一进入学生端：
-        </p>
-        <div style="display:flex; flex-direction:column; align-items:center; gap:12px;">
-          <div style="background:#f8fafc; border:1px solid var(--line); border-radius:10px; padding:16px 24px; max-width:420px; width:100%;">
-            <div style="font-weight:700; margin-bottom:6px;">方式一：开发测试（本地调试用）</div>
-            <p style="font-size:13px; color:var(--muted); margin-bottom:10px;">
-              点击下方按钮，自动使用预设的学生账号（学号 S2024001）
-            </p>
-            <button class="primary-button" type="button" id="dev-student-button"
-                    style="font-size:15px; padding:10px 28px;">
-              👤 使用学生 Mock Session
-            </button>
-          </div>
-          <div style="background:#f8fafc; border:1px solid var(--line); border-radius:10px; padding:16px 24px; max-width:420px; width:100%;">
-            <div style="font-weight:700; margin-bottom:6px;">方式二：公共登录入口</div>
-            <p style="font-size:13px; color:var(--muted); margin-bottom:10px;">
-              通过统一登录页面以真实账号登录后进入学生端
-            </p>
-            <button class="secondary-button" type="button" id="dev-teacher-button"
-                    style="font-size:14px;">
-              🔄 切换为教师 Mock Session（测试权限）
-            </button>
-          </div>
-        </div>
-      </section>
-    `;
-
-    document.getElementById("dev-student-button").addEventListener("click", async () => {
-      const btn = document.getElementById("dev-student-button");
-      btn.disabled = true;
-      btn.textContent = "正在连接服务器...";
-      try {
-        await window.nativeApi.request("app.useMockStudentSession", {});
-        await initializeStudentPage();
-      } catch (error) {
-        btn.disabled = false;
-        btn.textContent = "👤 使用学生 Mock Session";
-        setMessage("登录失败：" + error.message + "（请确认已通过 dotnet run 启动后端服务）", "error");
-      }
-    });
-
-    document.getElementById("dev-teacher-button").addEventListener("click", async () => {
-      const btn = document.getElementById("dev-teacher-button");
-      btn.disabled = true;
-      btn.textContent = "正在切换...";
-      try {
-        await window.nativeApi.request("app.useMockTeacherSession", {});
-        await initializeStudentPage();
-      } catch (error) {
-        btn.disabled = false;
-        btn.textContent = "🔄 切换为教师 Mock Session（测试权限）";
-        setMessage("操作失败：" + error.message, "error");
-      }
-    });
-  }
-
-  function renderComingSoon(container, page) {
-    const meta = pageMeta[page] || { title: "功能", description: "后续阶段实现" };
-    container.innerHTML = `
-      <section class="panel">
-        <h3 class="panel-title">${meta.title}</h3>
-        <div class="empty-state">该功能将在后续阶段实现。</div>
+        <p style="color:var(--muted); margin-bottom:0;">请返回统一登录页面，使用学生账号登录后进入学生端。</p>
       </section>
     `;
   }
@@ -188,7 +127,7 @@
         return;
       }
 
-      renderComingSoon(container, page);
+      throw new Error("页面不存在");
     } catch (error) {
       setMessage(error.message, "error");
     }

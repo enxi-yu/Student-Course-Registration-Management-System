@@ -7,16 +7,43 @@ namespace StudentCourse.Services
     {
         private readonly AdminRepository _adminRepository;
         private readonly SystemLogService _systemLogService;
+        private readonly BatchOfferingRepository _batchOfferingRepository;
 
-        public SelectionBatchService(AdminRepository adminRepository, SystemLogService systemLogService)
+        public SelectionBatchService(AdminRepository adminRepository, SystemLogService systemLogService, BatchOfferingRepository batchOfferingRepository)
         {
             _adminRepository = adminRepository;
             _systemLogService = systemLogService;
+            _batchOfferingRepository = batchOfferingRepository;
+        }
+
+        public IList<BatchOfferingDto> GetOfferings(int batchId)
+        {
+            RequireSuperAdmin();
+            if (_adminRepository.GetBatchById(batchId) == null) throw new InvalidOperationException("选课批次不存在");
+            return _batchOfferingRepository.Get(batchId);
+        }
+
+        public void SaveOfferings(int batchId, SaveBatchOfferingsRequest request, string ipAddress)
+        {
+            RequireSuperAdmin();
+            if (_adminRepository.GetBatchById(batchId) == null) throw new InvalidOperationException("选课批次不存在");
+            _batchOfferingRepository.Save(batchId, request?.Offerings ?? new List<BatchOfferingInput>());
+            _systemLogService.WriteCurrent("修改", "配置批次释放课程", batchId.ToString(), ipAddress,
+                new { BatchId = batchId, Count = request?.Offerings?.Count ?? 0 });
+        }
+
+        private void RequireSuperAdmin()
+        {
+            UserSession session = AdminAuthService.RequireAdminSession();
+            if (_adminRepository.GetAdminLevel(session.UserId) != 0) throw new InvalidOperationException("仅超级管理员可执行此操作");
         }
 
         public IList<SelectionBatchDto> GetBatches()
         {
-            AdminAuthService.RequireAdminSession();
+            UserSession session=AdminAuthService.RequireAdminSession();
+            if(_adminRepository.GetAdminLevel(session.UserId)!=0){
+                throw new InvalidOperationException("仅超级管理员可执行此操作");
+            }
             return _adminRepository.GetBatches();
         }
 
@@ -35,6 +62,14 @@ namespace StudentCourse.Services
             int status = NormalizeStatus(input);
             SelectionBatchDto batch = _adminRepository.UpdateBatch(batchId, input, status);
             _systemLogService.WriteCurrent("修改", "修改选课批次", Convert.ToString(batch.BatchId), ipAddress, new { batch.BatchId, batch.BatchName, batch.StartTime, batch.EndTime, batch.Status });
+            return batch;
+        }
+
+        public SelectionBatchDto End(int batchId, string ipAddress)
+        {
+            RequireSuperAdmin();
+            SelectionBatchDto batch = _adminRepository.EndBatch(batchId);
+            _systemLogService.WriteCurrent("修改", "手动结束选课批次", batchId.ToString(), ipAddress, new { BatchId = batchId });
             return batch;
         }
 
@@ -60,19 +95,10 @@ namespace StudentCourse.Services
                 throw new InvalidOperationException("开始时间必须早于结束时间");
             }
 
-            if (input.Status.HasValue && (input.Status.Value < 0 || input.Status.Value > 2))
-            {
-                throw new InvalidOperationException("批次状态只能为 0、1、2");
-            }
         }
 
         private static int NormalizeStatus(SelectionBatchInput input)
         {
-            if (input.Status.HasValue)
-            {
-                return input.Status.Value;
-            }
-
             DateTime now = DateTime.Now;
             if (now < input.StartTime)
             {

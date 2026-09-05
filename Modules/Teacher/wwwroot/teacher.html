@@ -4,7 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>教师端 - 学生选课管理系统</title>
-  <link rel="stylesheet" href="css/teacher.css?v=desktop4">
+  <link rel="stylesheet" href="css/teacher.css?v=evaluation-score-right1">
+  <link rel="stylesheet" href="/shared-ui/css/interface-unified.css?v=23">
 </head>
 <body>
   <div class="teacher-shell">
@@ -21,10 +22,9 @@
         <button class="nav-item active" type="button" data-page="dashboard">首页</button>
         <button class="nav-item" type="button" data-page="courses">我的课程</button>
         <button class="nav-item" type="button" data-page="schedule">我的课表</button>
-        <button class="nav-item" type="button" data-page="students">选课名单</button>
-        <button class="nav-item" type="button" data-page="scores">成绩录入</button>
         <button class="nav-item" type="button" data-page="applications">开课申请</button>
-        <button class="nav-item" type="button" data-page="password">修改密码</button>
+        <button class="nav-item" type="button" data-page="evaluations">课程评价</button>
+        <button class="nav-item" type="button" data-page="password">个人资料</button>
       </nav>
     </aside>
 
@@ -40,7 +40,7 @@
       </header>
 
       <main class="content">
-        <div class="content-heading">
+        <div class="content-heading" id="content-heading">
           <div>
             <h2 id="view-title">首页</h2>
             <p id="view-description">查看教师端概览数据</p>
@@ -54,13 +54,16 @@
   </div>
 
   <script src="js/api.js?v=desktop4"></script>
-  <script src="js/pages/teacher-dashboard.js?v=desktop4"></script>
-  <script src="js/pages/teacher-courses.js?v=desktop4"></script>
-  <script src="js/pages/teacher-schedule.js?v=desktop4"></script>
-  <script src="js/pages/class-students.js?v=desktop4"></script>
-  <script src="js/pages/score-entry.js?v=desktop4"></script>
-  <script src="js/pages/course-application.js?v=desktop4"></script>
-  <script src="js/pages/change-password.js?v=desktop4"></script>
-  <script src="js/teacher-app.js?v=desktop4"></script>
+  <script src="/shared-ui/js/academic-semester.js?v=4"></script>
+  <script src="/shared-ui/js/ui-components.js?v=12"></script>
+  <script src="js/pages/teacher-dashboard.js?v=shared-dashboard1"></script>
+  <script src="js/pages/teacher-courses.js?v=shared-utils1"></script>
+  <script src="js/pages/teacher-schedule.js?v=shared-filter1"></script>
+  <script src="js/pages/class-students.js?v=shared-utils1"></script>
+  <script src="js/pages/score-entry.js?v=shared-utils1"></script>
+  <script src="js/pages/course-application.js?v=shared-utils1"></script>
+  <script src="js/pages/teacher-evaluations.js?v=shared-utils1"></script>
+  <script src="js/pages/change-password.js?v=shared-profile1"></script>
+  <script src="js/teacher-app.js?v=profile1"></script>
 </body>
 </html>

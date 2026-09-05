@@ -34,6 +34,12 @@ namespace StudentCourse.Controllers
             return SafeOk(() => _teacherService.GetCurrentTeacher());
         }
 
+        [HttpPut("api/teacher/profile")]
+        public IActionResult UpdateProfile([FromBody] TeacherProfileUpdateRequest request)
+        {
+            return SafeOk(() => _teacherService.UpdateProfile(request));
+        }
+
         [HttpGet("api/teacher/dashboard")]
         public IActionResult GetDashboard([FromQuery] string? semester)
         {
@@ -52,6 +58,12 @@ namespace StudentCourse.Controllers
             return SafeOk(() => _teacherService.GetMySchedule(semester ?? string.Empty));
         }
 
+        [HttpGet("api/teacher/evaluations")]
+        public IActionResult GetEvaluations([FromQuery] string? semester)
+        {
+            return SafeOk(() => _teacherService.GetEvaluations(semester ?? string.Empty));
+        }
+
         [HttpGet("api/teacher/classes/{classId:int}/students")]
         public IActionResult GetClassStudents(int classId)
         {
@@ -59,13 +71,16 @@ namespace StudentCourse.Controllers
         }
 
         [HttpGet("api/teacher/classes/{classId:int}/students/export")]
-        public IActionResult ExportClassStudentsCsv(int classId)
+        public IActionResult ExportClassStudentsExcel(int classId)
         {
             try
             {
                 IList<StudentListDto> students = _teacherStudentService.GetClassStudents(classId);
-                byte[] bytes = _exportService.BuildClassStudentsCsv(students);
-                return File(bytes, "text/csv; charset=utf-8", $"class_students_{classId}.csv");
+                byte[] bytes = _exportService.BuildClassStudentsExcel(students);
+                return File(
+                    bytes,
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    $"class_students_{classId}.xlsx");
             }
             catch (InvalidOperationException ex)
             {

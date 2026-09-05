@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using Oracle.ManagedDataAccess.Client;
 using Oracle.ManagedDataAccess.Types;
 using StudentCourse.Infrastructure;
@@ -65,9 +66,12 @@ namespace StudentCourse.Student.Repositories
             }
         }
 
-        public StudentDashboardDto GetDashboard(string studentNo)
+        public StudentDashboardDto GetDashboard(string studentNo, string semester)
         {
             var dashboard = new StudentDashboardDto();
+
+            string normalizedSemester = (semester ?? string.Empty).Trim();
+            string semesterAlias = GetSemesterAlias(normalizedSemester);
 
             dashboard.Profile = GetStudentInfoByStudentNo(studentNo) ?? new StudentInfo();
 
@@ -79,12 +83,14 @@ namespace StudentCourse.Student.Repositories
                   JOIN section s ON s.section_id = tc.section_id
                   JOIN course c ON c.course_id = s.course_id
                  WHERE cs.student_no = :studentNo
-                   AND s.semester = (SELECT MAX(semester) FROM section)";
+                   AND (s.semester = :semester OR s.semester = :semesterAlias)";
 
             using (OracleConnection connection = DbConnectionFactory.OpenConnection())
             using (OracleCommand command = CreateCommand(connection, semesterSql))
             {
                 command.Parameters.Add("studentNo", OracleDbType.Varchar2).Value = studentNo;
+                command.Parameters.Add("semester", OracleDbType.Varchar2).Value = normalizedSemester;
+                command.Parameters.Add("semesterAlias", OracleDbType.Varchar2).Value = semesterAlias;
                 using (OracleDataReader reader = command.ExecuteReader())
                 {
                     if (reader.Read())
@@ -99,6 +105,18 @@ namespace StudentCourse.Student.Repositories
             dashboard.GpaSummary = GetGpaSummary(studentNo);
 
             return dashboard;
+        }
+
+        private static string GetSemesterAlias(string semester)
+        {
+            Match match = Regex.Match(semester, @"^(\d{4})-(\d{4})-([12])$");
+            if (!match.Success)
+            {
+                return semester;
+            }
+
+            int startYear = Convert.ToInt32(match.Groups[1].Value);
+            return match.Groups[3].Value == "1" ? $"{startYear}-fall" : $"{startYear + 1}-spring";
         }
 
         public void UpdateContactInfo(int userId, string phone, string email)
@@ -166,11 +184,11 @@ namespace StudentCourse.Student.Repositories
 
             const string gpaSql = @"
                 SELECT NVL(SUM(ss.credit_obtained), 0) AS total_credits,
-                       NVL(
+                       ROUND(NVL(
                            SUM(CASE WHEN ss.gpa IS NOT NULL THEN ss.gpa * c.credit ELSE 0 END)
                            / NULLIF(SUM(CASE WHEN ss.gpa IS NOT NULL THEN c.credit ELSE 0 END), 0),
                            0
-                       ) AS avg_gpa,
+                       ), 2) AS avg_gpa,
                        COUNT(CASE WHEN ss.gpa IS NOT NULL THEN 1 END) AS total_courses
                   FROM student_score ss
                   JOIN teaching_class tc ON tc.class_id = ss.class_id
@@ -205,11 +223,11 @@ namespace StudentCourse.Student.Repositories
             const string semesterSql = @"
                 SELECT s.semester,
                        NVL(SUM(ss.credit_obtained), 0) AS credits,
-                       NVL(
+                       ROUND(NVL(
                            SUM(CASE WHEN ss.gpa IS NOT NULL THEN ss.gpa * c.credit ELSE 0 END)
                            / NULLIF(SUM(CASE WHEN ss.gpa IS NOT NULL THEN c.credit ELSE 0 END), 0),
                            0
-                       ) AS avg_gpa,
+                       ), 2) AS avg_gpa,
                        COUNT(CASE WHEN ss.gpa IS NOT NULL THEN 1 END) AS courses
                   FROM student_score ss
                   JOIN teaching_class tc ON tc.class_id = ss.class_id

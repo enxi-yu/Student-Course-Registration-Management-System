@@ -1,137 +1,58 @@
 (function () {
-  function escapeHtml(value) {
-    return String(value || "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#39;");
+  let dashboardElements;
+  function numberValue(value) {
+    return Number.isFinite(Number(value)) ? Number(value) : 0;
   }
 
-  function metricCard(label, value, note) {
-    return `
-      <article class="metric-card">
-        <div class="metric-label">${escapeHtml(label)}</div>
-        <div class="metric-value">${escapeHtml(value)}</div>
-        <div class="metric-note">${escapeHtml(note)}</div>
-      </article>
-    `;
+  function formatNumber(value, digits) {
+    const number = Number(value);
+    return Number.isFinite(number) ? number.toFixed(digits) : "-";
   }
 
-  function profileItem(label, value) {
-    return `
-      <div class="profile-item">
-        <div class="profile-label">${escapeHtml(label)}</div>
-        <div class="profile-value">${escapeHtml(value || "-")}</div>
-      </div>
-    `;
-  }
-
-  function renderTodaySchedule(courses) {
-    if (!courses || courses.length === 0) {
-      return `<div class="empty-state">今日无课程安排</div>`;
-    }
-
-    const rows = courses.map((item) => `
-      <tr>
-        <td>${escapeHtml(item.courseName)}</td>
-        <td>${escapeHtml(item.teacherName || "-")}</td>
-        <td>${escapeHtml(item.classroom || "-")}</td>
-        <td>第${escapeHtml(item.startPeriod)}-${escapeHtml(item.endPeriod)}节</td>
-      </tr>
-    `).join("");
-
-    return `
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>课程名称</th>
-            <th>授课教师</th>
-            <th>教室</th>
-            <th>节次</th>
-          </tr>
-        </thead>
-        <tbody>${rows}</tbody>
-      </table>
-    `;
-  }
-
-  async function render(container) {
-    container.innerHTML = `
-      <section class="panel">
-        <h3 class="panel-title">个人信息</h3>
-        <div class="empty-state">正在加载学生首页数据...</div>
-      </section>
-    `;
-
-    const data = await window.nativeApi.request("student.getDashboard", {});
+  async function loadDashboard(semester, displaySemester) {
+    const data = await window.nativeApi.request("student.getDashboard", { semester });
     const profile = data.profile || {};
     const gpa = data.gpaSummary || {};
 
-    container.innerHTML = `
-      <section class="panel">
-        <h3 class="panel-title">个人信息</h3>
-        <div class="profile-grid">
-          ${profileItem("姓名", profile.realName)}
-          ${profileItem("学号", profile.studentNo)}
-          ${profileItem("专业", profile.major)}
-          ${profileItem("年级", profile.grade)}
-          ${profileItem("电话", profile.phone)}
-          ${profileItem("邮箱", profile.email)}
-        </div>
-      </section>
-
-      <section class="dashboard-grid">
-        ${metricCard("本学期课程", data.currentSemesterCourseCount, "已选课程数")}
-        ${metricCard("本学期学分", data.currentSemesterCredit.toFixed(1), "总学分")}
-        ${metricCard("平均绩点", gpa.avgGpa ? gpa.avgGpa.toFixed(2) : "-", "GPA")}
-        ${metricCard("已修学分", gpa.totalCreditsFinished ? gpa.totalCreditsFinished.toFixed(1) : "0.0", "累计完成")}
-      </section>
-
-      <section class="panel">
-        <h3 class="panel-title">今日课程</h3>
-        ${renderTodaySchedule(data.todayCourses)}
-      </section>
-
-      <section class="panel">
-        <h3 class="panel-title">系统通信</h3>
-        <div class="quick-actions">
-          <button class="primary-button" type="button" id="ping-button">测试通信</button>
-          <button class="secondary-button" type="button" id="db-button">测试 Oracle 连接</button>
-        </div>
-        <div class="status-line" id="system-status">等待测试。</div>
-      </section>
-    `;
-
-    const status = document.getElementById("system-status");
-    document.getElementById("ping-button").addEventListener("click", async () => {
-      setStatus(status, "正在测试 C# 通信...", "");
-      try {
-        const result = await window.nativeApi.request("system.ping", {});
-        setStatus(status, `C# 通信成功：${result.message}`, "success");
-      } catch (error) {
-        setStatus(status, `C# 通信失败：${error.message}`, "error");
-      }
+    window.sharedUi.updateDashboard(dashboardElements, {
+      metrics: [
+        { label: "课程数量", value: numberValue(data.currentSemesterCourseCount), note: `${displaySemester} 已选课程数`, tone: "blue" },
+        { label: "学分统计", value: formatNumber(data.currentSemesterCredit, 1), note: `${displaySemester} 课程总学分`, tone: "cyan" },
+        { label: "平均绩点", value: formatNumber(gpa.avgGpa, 2), note: "累计 GPA", tone: "green" },
+        { label: "已修学分", value: formatNumber(gpa.totalCreditsFinished, 1), note: "累计完成学分", tone: "amber" }
+      ],
+      profile: [
+        { label: "学生姓名", value: profile.realName }, { label: "学生学号", value: profile.studentNo },
+        { label: "所属专业", value: profile.major }, { label: "所在年级", value: profile.grade }
+      ]
     });
 
-    document.getElementById("db-button").addEventListener("click", async () => {
-      setStatus(status, "正在连接 Oracle...", "");
-      try {
-        const result = await window.nativeApi.request("system.testDbConnection", {});
-        setStatus(status, `${result.message}，主机：${result.serverHost}，用户：${result.currentUser}`, "success");
-      } catch (error) {
-        setStatus(status, `Oracle 连接失败：${error.message}`, "error");
-      }
-    });
   }
 
-  function setStatus(element, message, state) {
-    element.textContent = message;
-    element.className = `status-line ${state || ""}`.trim();
+  async function render(container) {
+    const currentSemester = window.academicSemester.getCurrent().canonical;
+    const filterHtml = '<section class="panel dashboard-filter-panel"><div class="toolbar"><div class="field"><label>学年学期</label><div id="student-semester-picker"></div></div><div class="toolbar-actions"><button class="primary-button" type="button" id="student-dashboard-refresh">刷新统计</button></div></div></section>';
+    dashboardElements = window.sharedUi.renderDashboardShell(container, {
+      prefix: "dashboard", heroTitle: "学生学习中心", filterHtml,
+      heroActions: [{ label: "进入选课中心", target: "courses", style: "primary-button" }, { label: "查看我的课表", target: "schedule", style: "secondary-button" }],
+      quickActions: [{ label: "选课中心", target: "courses" }, { label: "我的课表", target: "schedule" }, { label: "成绩查询", target: "grades" }, { label: "课程评价", target: "evaluation" }],
+      onNavigate: target => window.openStudentPage(target)
+    });
+
+    let picker;
+    const refresh = async () => {
+      window.sharedUi.updateDashboard(dashboardElements, { metrics: [{ label: "首页数据", value: "…", note: "正在加载", tone: "blue" }], profile: [] });
+      try { await loadDashboard(picker.value(), picker.label()); }
+      catch (error) { window.sharedUi.mountState(dashboardElements.metrics, "error", `首页数据加载失败：${error.message}`, refresh); }
+    };
+    picker = window.academicSemester.mountPicker("student-semester-picker", {
+      minimumStartYear: 2024,
+      selected: currentSemester
+    });
+    document.getElementById("student-dashboard-refresh").addEventListener("click", refresh);
+    await refresh();
   }
 
   window.studentPages = window.studentPages || {};
-  window.studentPages.dashboard = {
-    render
-  };
+  window.studentPages.dashboard = { render };
 })();

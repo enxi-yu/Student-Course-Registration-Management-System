@@ -117,6 +117,17 @@
         </section>
     </main>
 
+    <div class="login-dialog-backdrop" id="loginDialog" hidden>
+        <section class="login-dialog" role="alertdialog" aria-modal="true" aria-labelledby="loginDialogTitle" aria-describedby="loginDialogMessage">
+            <div class="login-dialog-icon" aria-hidden="true">!</div>
+            <div class="login-dialog-content">
+                <h2 id="loginDialogTitle">登录提示</h2>
+                <p id="loginDialogMessage"></p>
+            </div>
+            <button type="button" class="login-dialog-button" id="loginDialogButton">我知道了</button>
+        </section>
+    </div>
+
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/login.js" asp-append-version="true"></script>
 </body>

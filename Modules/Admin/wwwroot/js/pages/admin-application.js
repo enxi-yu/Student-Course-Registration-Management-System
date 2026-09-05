@@ -19,47 +19,49 @@ function switchTab(tabName) {
     }
 }
 
-// 加载开课申请列表
-function loadApplications() {
-    fetch('/api/admin/applications')
-        .then(response => response.json())
-        .then(data => {
-            const tbody = document.getElementById('applicationTableBody');
-            tbody.innerHTML = '';
-            if (data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="11" class="empty-state">暂无开课申请记录</td></tr>';
-                return;
-            }
+let applicationPage = 1;
 
-            data.forEach(app => {
-                const statusInfo = getStatusInfo(app.status);
-                const typeClass = getTypeClass(app.courseType);
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${app.applyId}</td>
-                    <td>${app.teacherNo}</td>
-                    <td>${app.courseName}</td>
-                    <td><span class="type-badge ${typeClass}">${app.courseType}</span></td>
-                    <td>${app.credit}</td>
-                    <td>${app.totalHours}</td>
-                    <td>${app.department}</td>
-                    <td>${app.textbook || '-'}</td>
-                    <td>${app.applyTime || '-'}</td>
-                    <td><span class="status-badge ${statusInfo.class}">${statusInfo.text}</span></td>
-                    <td><button class="btn btn-sm btn-edit" onclick="viewDetail('${app.applyId}')">查看详情</button></td>
-                `;
-                tbody.appendChild(row);
-            });
-        })
-        .catch(error => {
-            console.error('加载开课申请失败:', error);
-        });
+// 加载开课申请列表
+async function loadApplications(resetPage = true) {
+    const tbody = document.getElementById('applicationTableBody');
+    if (resetPage) applicationPage = 1;
+    window.sharedUi.setTableState(tbody, 11, '正在加载开课申请...');
+    try {
+        const keyword = document.getElementById('applicationKeyword').value.trim();
+        const status = document.getElementById('applicationStatusFilter').value;
+        const params = new URLSearchParams();
+        if (keyword) params.set('keyword', keyword);
+        if (status) params.set('status', status);
+        const qs = params.toString();
+
+        const data = await adminFetch('/api/admin/applications' + (qs ? '?' + qs : ''));
+        applicationPage = window.sharedUi.renderPagedTable({ body: tbody, rows: data, page: applicationPage, pageSize: 15, colspan: 11, emptyText: '暂无开课申请记录', pagination: 'applicationPagination', onPageChange: page => { applicationPage = page; loadApplications(false); }, row: app => {
+            const statusInfo = getStatusInfo(app.status);
+            const typeClass = getTypeClass(app.courseType);
+            return `
+              <tr>
+                <td>${app.applyId}</td>
+                <td>${app.teacherNo}</td>
+                <td>${app.courseName}</td>
+                <td><span class="type-badge ${typeClass}">${app.courseType}</span></td>
+                <td>${app.credit}</td>
+                <td>${app.totalHours > 0 ? app.totalHours : '待排课'}</td>
+                <td>${app.department}</td>
+                <td>${app.textbook || '-'}</td>
+                <td>${app.applyTime || '-'}</td>
+                <td>${window.sharedUi.statusBadge(statusInfo.text, statusInfo.class)}</td>
+                <td><button class="btn btn-sm btn-edit table-action" onclick="viewDetail('${app.applyId}')">查看详情</button></td>
+              </tr>
+            `;
+        }});
+    } catch (error) {
+        window.sharedUi.setTableError(tbody, 11, window.sharedUi.errorText(error, '加载失败'), () => loadApplications(false));
+    }
 }
 
 // 查看申请详情（调用详情API，填充弹窗）
 function viewDetail(applyId) {
-    fetch('/api/admin/applications/' + applyId)
-        .then(response => response.json())
+    adminFetch('/api/admin/applications/' + applyId)
         .then(data => {
             document.getElementById('detailApplyId').value = data.applyId;
             
@@ -69,7 +71,7 @@ function viewDetail(applyId) {
                 <p><strong>课程名称：</strong>${data.courseName}</p>
                 <p><strong>课程类型：</strong>${data.courseType}</p>
                 <p><strong>学分：</strong>${data.credit}</p>
-                <p><strong>总学时：</strong>${data.totalHours}</p>
+                <p><strong>总学时：</strong>${data.totalHours > 0 ? data.totalHours : '待排课后自动计算'}</p>
                 <p><strong>开设院系：</strong>${data.department || '-'}</p>
                 <p><strong>教材：</strong>${data.textbook || '-'}</p>
                 <p><strong>申请时间：</strong>${data.applyTime || '-'}</p>
@@ -84,8 +86,7 @@ function viewDetail(applyId) {
             document.getElementById('detailModal').style.display = 'flex';
         })
         .catch(error => {
-            console.error('获取申请详情失败:', error);
-            alert('获取申请详情失败: ' + error.message);
+            alert('获取申请详情失败：' + window.sharedUi.errorText(error, '未登录'));
         });
 }
 
@@ -97,50 +98,8 @@ function closeDetailModal() {
 // 打开审批弹窗（从详情弹窗跳转）
 function openApproveModal() {
     const applyId = document.getElementById('detailApplyId').value;
-    document.getElementById('approveApplyId').value = applyId;
-    document.getElementById('approveStatus').value = '';
-    document.getElementById('approveComment').value = '';
     document.getElementById('detailModal').style.display = 'none';
-    document.getElementById('approveModal').style.display = 'flex';
-}
-
-// 关闭审批弹窗
-function closeApproveModal() {
-    document.getElementById('approveModal').style.display = 'none';
-}
-
-// 提交审批（调用审批API）
-function submitApproval() {
-    const applyId = document.getElementById('approveApplyId').value;
-    const status = document.getElementById('approveStatus').value;
-    const comment = document.getElementById('approveComment').value;
-    if (!status) {
-        alert('请选择审批结果');
-        return;
-    }
-    fetch('/api/admin/applications/' + applyId + '/approve', {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            Status: status,
-            Comment: comment
-        })
-    })
-    .then(response => {
-        if (response.ok) {
-            alert('审批成功');
-            closeApproveModal();
-            loadApplications();
-        } else {
-            response.text().then(text => alert('审批失败: ' + text));
-        }
-    })
-    .catch(error => {
-        console.error('审批失败:', error);
-        alert('审批失败: ' + error.message);
-    });
+    window.sharedUi.formDialog({title:'审批开课申请',description:'请选择审批结果，审批意见可选。',submitText:'提交审批',busyText:'提交中...',fields:[{name:'status',label:'审批结果',kind:'select',required:true,options:['通过','驳回']},{name:'comment',label:'审批意见',kind:'textarea',wide:true,value:''}],onSubmit:values=>adminFetch('/api/admin/applications/'+encodeURIComponent(applyId)+'/approve',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(values)}),onSuccess:async values=>{alert(values.status==='驳回'?'申请已驳回':'申请已通过');await loadApplications();}});
 }
 
 // 获取状态信息（类名和显示文本）

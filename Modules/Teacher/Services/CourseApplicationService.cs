@@ -55,6 +55,7 @@ namespace StudentCourse.Services
 
             input.CourseName = input.CourseName?.Trim();
             input.CourseType = input.CourseType?.Trim();
+            input.TotalHours = 0;
             input.Textbook = input.Textbook?.Trim();
             input.Department = FirstNotBlank(input.Department, input.TargetMajor);
             input.CourseSummary = FirstNotBlank(input.CourseSummary, input.Description);
@@ -93,11 +94,6 @@ namespace StudentCourse.Services
             if (input.Credit <= 0m)
             {
                 throw new InvalidOperationException("学分必须大于 0");
-            }
-
-            if (input.TotalHours <= 0)
-            {
-                throw new InvalidOperationException("总学时必须大于 0");
             }
 
             if (string.IsNullOrWhiteSpace(input.CourseType))

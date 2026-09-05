@@ -8,7 +8,7 @@ namespace StudentCourse.Student.Models
         public string TeacherName { get; set; } = string.Empty;
         public string Semester { get; set; } = string.Empty;
         public decimal Credit { get; set; }
-        public int? Rating { get; set; }
+        public decimal? Rating { get; set; }
         public string Comment { get; set; } = string.Empty;
         public string EvaluationDate { get; set; } = string.Empty;
         public bool HasEvaluated { get; set; }

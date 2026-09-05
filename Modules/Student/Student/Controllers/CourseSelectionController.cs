@@ -18,10 +18,13 @@ namespace StudentCourse.Student.Controllers
             _service = service;
         }
 
+        [HttpGet("api/student/selection-batches")]
+        public IActionResult GetSelectionBatches() => SafeOk(() => _service.GetSelectionBatches());
+
         [HttpGet("api/student/courses/available")]
-        public IActionResult GetAvailableCourses([FromQuery] string? semester)
+        public IActionResult GetAvailableCourses([FromQuery] int batchId)
         {
-            return SafeOk(() => _service.GetAvailableCourses(semester ?? ""));
+            return SafeOk(() => _service.GetAvailableCourses(batchId));
         }
 
         [HttpGet("api/student/courses/{classId:int}")]
@@ -33,7 +36,7 @@ namespace StudentCourse.Student.Controllers
         [HttpPost("api/student/courses/select")]
         public IActionResult SelectCourse([FromBody] SelectCourseRequest request)
         {
-            return SafeOk(() => _service.SelectCourse(request.ClassId));
+            return SafeOk(() => _service.SelectCourse(request.ClassId, request.BatchId));
         }
 
         [HttpPost("api/student/courses/drop")]
@@ -68,6 +71,7 @@ namespace StudentCourse.Student.Controllers
     public sealed class SelectCourseRequest
     {
         public int ClassId { get; set; }
+        public int BatchId { get; set; }
     }
 
     public sealed class DropCourseRequest

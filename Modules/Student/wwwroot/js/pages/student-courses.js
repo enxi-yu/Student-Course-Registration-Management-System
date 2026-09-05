@@ -3,70 +3,20 @@
   var pendingIds = {};        // 本地暂存 classId -> true (还没提交)
   var allCourses = [];
   var scheduleData = {};
+  var baseSchedule = [];
+  var batches = [];
+  var currentBatch = null;
 
-  var WEEKDAY = ["", "周一", "周二", "周三", "周四", "周五"];
-  var PERIODS = ["1-2", "3-4", "5-6", "7-8", "9-10"];
+  var WEEKDAY = ["", "周一", "周二", "周三", "周四", "周五", "周六", "周日"];
+  var PERIODS = [[1,2], [3,4], [5,6], [7,8], [9,10], [11,12]];
 
   function escape(v) { return String(v || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 
-  // ---- 顶部迷你课表 ----
+  // ---- 与“我的课表”一致的实时课表预览 ----
   function buildMiniSchedule() {
-    // 汇总所有暂存课程的 schedule
-    var grid = {};
-    for (var p = 0; p < 5; p++) { grid[p] = {}; for (var d = 0; d < 5; d++) grid[p][d] = []; }
-
-    Object.keys(pendingIds).forEach(function (cid) {
-      var cidNum = parseInt(cid);
-      var items = scheduleData[cidNum];
-      if (!items) return;
-      items.forEach(function (s) {
-        var day = s.weekday - 1;
-        if (day < 0 || day > 4) return;
-        for (var p = 0; p < 5; p++) {
-          var ps = p * 2 + 1, pe = ps + 1;
-          if (s.startPeriod <= pe && s.endPeriod >= ps) {
-            grid[p][day].push(s);
-          }
-        }
-      });
-    });
-
-    var html = '<div class="mini-schedule">';
-    html += '<div class="mini-schedule-header">节次</div>';
-    WEEKDAY.forEach(function (l, i) { if (i > 0) html += '<div class="mini-schedule-header">' + l + '</div>'; });
-
-    for (var p = 0; p < 5; p++) {
-      html += '<div class="mini-schedule-period">' + PERIODS[p] + '</div>';
-      for (var d = 0; d < 5; d++) {
-        var cells = grid[p][d] || [];
-        if (cells.length > 0) {
-          var names = cells.map(function (s) { return escape(s.courseName || s.className); }).join("<br>");
-          var dup = new Set();
-          cells.forEach(function (s) { dup.add(s.classId); });
-          var conflict = dup.size > 1 ? " conflict" : "";
-          html += '<div class="mini-schedule-cell has-course' + conflict + '">' + names + '</div>';
-        } else {
-          html += '<div class="mini-schedule-cell"></div>';
-        }
-      }
-    }
-    html += '</div>';
-    return html;
-  }
-
-  // ---- 已选课程列表 ----
-  function buildSelectedBar() {
-    var selected = allCourses.filter(function (c) { return pendingIds[c.classId]; });
-    if (selected.length === 0) {
-      return '<p style="color:var(--muted); margin:0;">暂未选择课程，请在下方勾选后保存。</p>';
-    }
-    var html = '<div class="selected-course-tags">';
-    selected.forEach(function (c) {
-      html += '<span class="selected-tag">' + escape(c.courseName) + ' (' + escape(c.className) + ')'
-        + ' <span class="tag-remove" data-cid="' + c.classId + '">✕</span></span>';
-    });
-    html += '</div>';
-    return html;
+    var conflictIds = {};
+    findConflicts().forEach(function (p) { conflictIds[p[0]] = true; conflictIds[p[1]] = true; });
+    return window.sharedUi.timetable(selectedPreviewSchedule(), { conflictIds: conflictIds, cardClass: 'selection-preview-card' });
   }
 
   // ---- 课程选择卡片 ----
@@ -110,18 +60,21 @@
   // ---- 检查时间冲突 ----
   function findConflicts() {
     var conflicts = [];
-    var cids = Object.keys(pendingIds).map(Number);
+    var grouped = {};
+    selectedPreviewSchedule().forEach(function (s) { (grouped[s.classId] = grouped[s.classId] || []).push(s); });
+    var cids = Object.keys(grouped).map(Number);
     for (var i = 0; i < cids.length; i++) {
-      var a = scheduleData[cids[i]];
+      var a = grouped[cids[i]];
       if (!a) continue;
       for (var j = i + 1; j < cids.length; j++) {
-        var b = scheduleData[cids[j]];
+        var b = grouped[cids[j]];
         if (!b) continue;
         for (var ai = 0; ai < a.length; ai++) {
           for (var bi = 0; bi < b.length; bi++) {
             if (a[ai].weekday === b[bi].weekday
               && a[ai].startPeriod <= b[bi].endPeriod
-              && a[ai].endPeriod >= b[bi].startPeriod) {
+              && a[ai].endPeriod >= b[bi].startPeriod
+              && weeksOverlap(a[ai].weekRange, b[bi].weekRange)) {
               conflicts.push([cids[i], cids[j]]);
             }
           }
@@ -129,6 +82,26 @@
       }
     }
     return conflicts;
+  }
+
+  function selectedPreviewSchedule() {
+    var batchIds = {};
+    allCourses.forEach(function (c) { batchIds[c.classId] = true; });
+    var result = baseSchedule.filter(function (s) { return !batchIds[s.classId] || pendingIds[s.classId]; });
+    var known = {};
+    result.forEach(function (s) { known[s.classId] = true; });
+    Object.keys(pendingIds).forEach(function (id) {
+      if (!known[id]) result = result.concat(scheduleData[Number(id)] || []);
+    });
+    return result;
+  }
+
+  function weeksOverlap(a, b) {
+    var an = String(a || '').match(/\d+/g) || ['1','99'];
+    var bn = String(b || '').match(/\d+/g) || ['1','99'];
+    var amin = Math.min.apply(null, an.map(Number)), amax = Math.max.apply(null, an.map(Number));
+    var bmin = Math.min.apply(null, bn.map(Number)), bmax = Math.max.apply(null, bn.map(Number));
+    return amin <= bmax && bmin <= amax;
   }
 
   // ---- 刷新界面 ----
@@ -140,18 +113,31 @@
       conflicts.forEach(function (p) { conflictIds[p[0]] = true; conflictIds[p[1]] = true; });
 
       containerRef.innerHTML = ''
+        + '<div class="batch-context"><button class="secondary-button back-batches">返回批次</button><div><strong>' + escape(currentBatch.batchName) + '</strong><span>' + escape(currentBatch.startTime) + ' 至 ' + escape(currentBatch.endTime) + '</span></div></div>'
         + '<section class="panel"><h3 class="panel-title">我的课表预览</h3>'
           + buildMiniSchedule()
-          + '<div style="margin-top:12px;">' + buildSelectedBar() + '</div>'
-          + (conflicts.length > 0 ? '<div class="message error" style="margin-top:8px;">⚠ 存在时间冲突的课程，请调整后再保存。</div>' : '')
+          + (conflicts.length > 0 ? '<div class="message error">存在上课周次和节次重叠，请调整课程后再保存。</div>' : '')
         + '</section>'
         + '<section class="panel"><div style="display:flex; justify-content:space-between; align-items:center;">'
           + '<h3 class="panel-title" style="margin:0;">可选课程</h3>'
-          + '<button class="primary-button save-btn">💾 保存选课</button>'
+          + '<div style="display:flex; gap:8px;"><button class="secondary-button refresh-btn">刷新课程</button><button class="primary-button save-btn">保存选课</button></div>'
         + '</div></section>'
         + '<div class="course-list">'
-          + allCourses.map(buildCourseCard).join("")
+          + (allCourses.length ? allCourses.map(buildCourseCard).join("") : '<section class="panel"><div class="empty-state">当前没有开放的选课批次，或本学期暂无可选课程。</div></section>')
         + '</div>';
+
+      containerRef.querySelector('.back-batches').addEventListener('click', function () {
+        currentBatch = null;
+        showBatchList();
+      });
+
+      var refreshBtn = containerRef.querySelector(".refresh-btn");
+      if (refreshBtn) refreshBtn.addEventListener("click", async function () {
+        if (refreshBtn.disabled) return;
+        window.sharedUi.setBusy(refreshBtn, true, "刷新中...");
+        try { await loadCourses(); refresh(); }
+        finally { if (refreshBtn.isConnected) window.sharedUi.setBusy(refreshBtn, false); }
+      });
 
       // checkbox 事件
       containerRef.querySelectorAll(".course-checkbox").forEach(function (cb) {
@@ -162,15 +148,6 @@
           } else {
             delete pendingIds[cid];
           }
-          refresh();
-        });
-      });
-
-      // 标签移除
-      containerRef.querySelectorAll(".tag-remove").forEach(function (btn) {
-        btn.addEventListener("click", function () {
-          var cid = parseInt(btn.dataset.cid);
-          delete pendingIds[cid];
           refresh();
         });
       });
@@ -186,9 +163,10 @@
       // 保存按钮
       var saveBtn = containerRef.querySelector(".save-btn");
       if (saveBtn) {
+        saveBtn.disabled = conflicts.length > 0;
         saveBtn.addEventListener("click", async function () {
-          saveBtn.disabled = true;
-          saveBtn.textContent = "正在保存...";
+          if (saveBtn.disabled) return;
+          window.sharedUi.setBusy(saveBtn, true, "正在保存...");
 
           var toSelect = [];
           var toDrop = [];
@@ -202,8 +180,7 @@
           // 无变化，直接提示
           if (toSelect.length === 0 && toDrop.length === 0) {
             alert("未做任何修改，无需保存。");
-            saveBtn.disabled = false;
-            saveBtn.textContent = "💾 保存选课";
+            window.sharedUi.setBusy(saveBtn, false);
             return;
           }
 
@@ -218,7 +195,7 @@
           // 再选课
           for (var i = 0; i < toSelect.length; i++) {
             try {
-              var r = await window.nativeApi.request("student.selectCourse", { classId: toSelect[i] });
+              var r = await window.nativeApi.request("student.selectCourse", { classId: toSelect[i], batchId: currentBatch.batchId });
               if (!r.success) errors.push(r.message);
             } catch (e) { errors.push(e.message); }
           }
@@ -239,7 +216,7 @@
   // ---- 加载课程列表 ----
   async function loadCourses() {
     try {
-      allCourses = await window.nativeApi.request("student.getAvailableCourses", {});
+      allCourses = await window.nativeApi.request("student.getAvailableCourses", { batchId: currentBatch.batchId });
       selectedIds = {};
       pendingIds = {};
       allCourses.forEach(function (c) {
@@ -248,18 +225,37 @@
           pendingIds[c.classId] = true;
         }
       });
+      var semester = allCourses.length ? allCourses[0].semester : window.academicSemester.getCurrent().canonical;
+      baseSchedule = await window.nativeApi.request("student.getSchedule", { semester: semester });
     } catch (e) {
       allCourses = [];
       selectedIds = {};
       pendingIds = {};
+      baseSchedule = [];
     }
+  }
+
+  function showBatchList() {
+    containerRef.innerHTML = '<section class="panel"><h3 class="panel-title">选课批次</h3><p class="page-description">请选择可参与的选课批次，进入后查看该批次开放的课程。</p><div class="selection-batch-list">'
+      + (batches.filter(function (b) { return Number(b.status) !== 2; }).length ? batches.filter(function (b) { return Number(b.status) !== 2; }).map(function (b) {
+          var active = Number(b.status) === 1;
+          return '<button type="button" class="selection-batch-card' + (active ? ' active' : '') + '" data-batch="' + b.batchId + '"' + (active ? '' : ' disabled') + '><span><strong>' + escape(b.batchName) + '</strong><small>' + escape(b.startTime) + ' 至 ' + escape(b.endTime) + '</small></span><span class="status-badge">' + escape(b.statusText) + '</span></button>';
+        }).join('') : '<div class="empty-state">当前没有面向你的选课批次。</div>') + '</div></section>';
+    containerRef.querySelectorAll('.selection-batch-card.active').forEach(function (button) {
+      button.addEventListener('click', async function () {
+        currentBatch = batches.find(function (b) { return Number(b.batchId) === Number(button.dataset.batch); });
+        await loadCourses();
+        refresh();
+      });
+    });
   }
 
   async function render(container) {
     containerRef = container;
-    container.innerHTML = '<section class="panel"><div class="empty-state">正在加载课程列表...</div></section>';
-    await loadCourses();
-    refresh();
+    container.innerHTML = '<section class="panel"><div class="empty-state">正在加载选课批次...</div></section>';
+    try { batches = await window.nativeApi.request("student.getSelectionBatches", {}); } catch (e) { batches = []; }
+    currentBatch = null;
+    showBatchList();
   }
 
   window.studentPages = window.studentPages || {};

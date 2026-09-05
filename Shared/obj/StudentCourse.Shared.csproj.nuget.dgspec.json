@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "D:\\learning\\Student-Course-Registration-Management-System\\Shared\\StudentCourse.Shared.csproj": {}
+    "D:\\learning\\StudentCourse\\main\\Shared\\StudentCourse.Shared.csproj": {}
   },
   "projects": {
-    "D:\\learning\\Student-Course-Registration-Management-System\\Shared\\StudentCourse.Shared.csproj": {
+    "D:\\learning\\StudentCourse\\main\\Shared\\StudentCourse.Shared.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\learning\\Student-Course-Registration-Management-System\\Shared\\StudentCourse.Shared.csproj",
+        "projectUniqueName": "D:\\learning\\StudentCourse\\main\\Shared\\StudentCourse.Shared.csproj",
         "projectName": "StudentCourse.Shared",
-        "projectPath": "D:\\learning\\Student-Course-Registration-Management-System\\Shared\\StudentCourse.Shared.csproj",
+        "projectPath": "D:\\learning\\StudentCourse\\main\\Shared\\StudentCourse.Shared.csproj",
         "packagesPath": "C:\\Users\\enxi_\\.nuget\\packages\\",
-        "outputPath": "D:\\learning\\Student-Course-Registration-Management-System\\Shared\\obj\\",
+        "outputPath": "D:\\learning\\StudentCourse\\main\\Shared\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

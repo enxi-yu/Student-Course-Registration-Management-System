@@ -1,19 +1,143 @@
 (function () {
+    const pendingMutations = new Map();
+    const pageChrome = [
+        {
+            key: 'courses',
+            title: '课程管理',
+            description: '新增、查询和维护课程基础信息。',
+            fields: '<div class="field"><label for="courseKeyword">课程查询</label><input type="text" id="courseKeyword" placeholder="课程名称 / 学院"></div>' +
+                '<div class="field"><label for="courseTypeFilter">类型</label><select id="courseTypeFilter"><option value="">全部</option><option value="必修">必修</option><option value="选修">选修</option><option value="公选">公选</option></select></div>',
+            actions: '<button class="btn btn-primary" type="button" onclick="loadCourses()">查询</button>'
+        },
+        {
+            key: 'scheduling',
+            title: '排课管理',
+            description: '创建和维护教学班、任课教师及上课时间安排。',
+            fields: '<div class="field"><label>学期筛选</label><div id="scheduleSemesterFilter"></div></div>',
+            actions: '<button class="btn btn-primary" type="button" onclick="loadSchedules()">查询排课</button>'
+        },
+        {
+            key: 'applications',
+            title: '开课申请',
+            description: '查询并审批教师提交的开课申请。',
+            fields: '<div class="field"><label for="applicationKeyword">申请查询</label><input type="text" id="applicationKeyword" placeholder="申请编号 / 课程名称 / 教师工号 / 院系"></div>' +
+                '<div class="field"><label for="applicationStatusFilter">状态</label><select id="applicationStatusFilter"><option value="">全部</option><option value="待审核">待审核</option><option value="通过">已通过</option><option value="驳回">已驳回</option><option value="已开课">已开课</option></select></div>',
+            actions: '<button class="btn btn-primary" type="button" onclick="loadApplications()">查询</button>'
+        },
+        {
+            key: 'students',
+            title: '学生管理',
+            description: '新增、查询和维护学生资料及账号状态。',
+            fields: '<div class="field"><label for="studentKeyword">搜索学生</label><input type="text" id="studentKeyword" placeholder="学号 / 姓名 / 专业"></div>',
+            actions: '<button class="btn btn-primary" type="button" onclick="loadStudents()">查询</button>'
+        },
+        {
+            key: 'teachers',
+            title: '教师管理',
+            description: '新增、查询和维护教师资料及账号状态。',
+            fields: '<div class="field"><label for="teacherKeyword">搜索教师</label><input type="text" id="teacherKeyword" placeholder="工号 / 姓名 / 院系"></div>',
+            actions: '<button class="btn btn-primary" type="button" onclick="loadTeachers()">查询</button>'
+        },
+        {
+            key: 'batches',
+            title: '选课批次',
+            description: '设置选课开放时间、课程范围及面向学生。'
+        },
+        {
+            key: 'classes',
+            title: '容量调整',
+            description: '查询教学班并调整可选容量。',
+            fields: '<div class="field"><label for="classKeyword">搜索教学班</label><input type="text" id="classKeyword" placeholder="课程 / 教学班 / 教师 / 学期"></div>',
+            actions: '<button class="btn btn-primary" type="button" onclick="loadAdminClasses()">查询</button>'
+        },
+        {
+            key: 'evaluations',
+            title: '评价管理',
+            description: '查询课程评价结果与文字反馈，并支持导出。',
+            fields: '<div class="field"><label for="evaluationKeyword">关键词</label><input id="evaluationKeyword" placeholder="课程 / 教学班 / 教师"></div>' +
+                '<div class="field"><label>学年学期</label><div id="evaluationSemesterPicker"></div></div>',
+            actions: '<button class="btn btn-secondary" type="button" onclick="exportEvaluations()">导出 Excel</button>' +
+                '<button class="btn btn-primary" type="button" onclick="loadEvaluations()">查询评价</button>'
+        },
+        {
+            key: 'logs',
+            title: '系统日志',
+            description: '按条件查询和导出系统操作记录。',
+            filterClass: 'log-filter-bar',
+            fields: '<div class="field"><label for="logKeyword">关键词</label><input type="text" id="logKeyword" placeholder="账号 / 对象 / 描述"></div>' +
+                '<div class="field"><label for="logOperationType">操作类型</label><input type="text" id="logOperationType" placeholder="登录 / 新增 / 修改"></div>' +
+                '<div class="field"><label for="logStartTime">开始时间</label><input class="datetime-clean-empty" type="datetime-local" id="logStartTime" value="" required></div>' +
+                '<div class="field"><label for="logEndTime">结束时间</label><input class="datetime-clean-empty" type="datetime-local" id="logEndTime" value="" required></div>',
+            actions: '<button class="btn btn-secondary" type="button" onclick="clearLogFilters()">重置</button>' +
+                '<button class="btn btn-secondary" type="button" onclick="exportLogs()">导出日志</button>' +
+                '<button class="btn btn-primary" type="button" onclick="loadLogs()">查询日志</button>'
+        }
+    ];
+
+    function renderAdminPageChrome() {
+        if (!window.sharedUi) return;
+
+        pageChrome.forEach(config => {
+            const heading = document.getElementById(config.key + 'PageHeading');
+            if (heading) {
+                heading.innerHTML = window.sharedUi.pageHeading(config.title, config.description);
+            }
+
+            const filter = document.getElementById(config.key + 'FilterBar');
+            if (filter && config.fields) {
+                filter.innerHTML = window.sharedUi.filterBar(config.fields, config.actions, config.filterClass);
+            }
+        });
+    }
+
+    // 脚本位于页面底部，此时挂载点已存在。先生成筛选控件，供其他页面的
+    // DOMContentLoaded 初始化逻辑安全读取，避免因脚本注册顺序出现空节点。
+    renderAdminPageChrome();
+
     const loaders = {
+        dashboard: () => typeof loadAdminDashboard === 'function' && loadAdminDashboard(),
         courses: () => typeof loadCourses === 'function' && loadCourses(),
+        scheduling: () => typeof loadSchedules === 'function' && loadSchedules(),
         applications: () => typeof loadApplications === 'function' && loadApplications(),
+        evaluations: () => typeof loadEvaluations === 'function' && loadEvaluations(),
         students: () => typeof loadStudents === 'function' && loadStudents(),
         teachers: () => typeof loadTeachers === 'function' && loadTeachers(),
         batches: () => typeof loadBatches === 'function' && loadBatches(),
         classes: () => typeof loadAdminClasses === 'function' && loadAdminClasses(),
-        logs: () => typeof loadLogs === 'function' && loadLogs(),
-        permissions: () => {
-            if (typeof loadAdminCurrent === 'function') loadAdminCurrent();
-            if (typeof loadAdminPermissions === 'function') loadAdminPermissions();
-        }
+        selection: () => typeof loadSelectionPage === 'function' && loadSelectionPage(),
+        logs: () => typeof initializeLogPage === 'function' && initializeLogPage()
     };
 
+    function setGroupExpanded(group, expanded) {
+        const items = group.querySelector('.nav-group-items');
+        const toggle = group.querySelector('.nav-group-toggle');
+        if (!items || !toggle) return;
+        items.hidden = !expanded;
+        toggle.setAttribute('aria-expanded', String(expanded));
+    }
+
+    window.toggleAdminNavGroup = function (groupId, button) {
+        const items = document.getElementById(groupId);
+        if (!items) return;
+        const group = items.closest('.nav-collapsible');
+        const shouldExpand = items.hidden;
+
+        document.querySelectorAll('.nav-collapsible').forEach(item => {
+            if (item !== group) setGroupExpanded(item, false);
+        });
+        setGroupExpanded(group, shouldExpand);
+    };
+
+    //普通管理员禁止跳到受限 tab
     window.switchTab = function (tabName) {
+        if (window.ADMIN_LEVEL !== 0) {
+            var restricted = ['students', 'teachers', 'batches', 'logs'];
+            if (restricted.indexOf(tabName) >= 0) {
+                alert('仅超级管理员可访问此功能');
+                return;
+            }
+        }
+
         document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
         document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
 
@@ -25,6 +149,12 @@
         const nav = document.querySelector(`.nav-item[data-tab="${tabName}"]`);
         if (nav) {
             nav.classList.add('active');
+            const group = nav.closest('.nav-collapsible');
+            if (group) {
+                document.querySelectorAll('.nav-collapsible').forEach(item => setGroupExpanded(item, item === group));
+            } else {
+                document.querySelectorAll('.nav-collapsible').forEach(item => setGroupExpanded(item, false));
+            }
         }
 
         if (loaders[tabName]) {
@@ -32,53 +162,51 @@
         }
     };
 
-    window.adminEscape = function (value) {
-        if (value === null || value === undefined) {
-            return '';
+    window.adminEscape = window.sharedUi.escapeHtml;
+
+    window.adminFetch = function (url, options) {
+        const requestOptions = options || {};
+        const method = String(requestOptions.method || 'GET').toUpperCase();
+        const mutationKey = method === 'GET' ? '' : `${method}:${url}:${requestOptions.body || ''}`;
+        if (mutationKey && pendingMutations.has(mutationKey)) return pendingMutations.get(mutationKey);
+
+        const request = (async function () {
+            const response = await fetch(url, requestOptions);
+            const contentType = response.headers.get('content-type') || '';
+            const data = contentType.includes('application/json') ? await response.json() : await response.text();
+
+            if (!response.ok) {
+            const message = window.sharedUi.errorText(data, String(data || response.statusText));
+                throw new Error(message);
+            }
+
+            return data;
+        })();
+
+        if (mutationKey) {
+            pendingMutations.set(mutationKey, request);
+            request.finally(() => pendingMutations.delete(mutationKey)).catch(() => {});
         }
-
-        return String(value)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;');
-    };
-
-    window.adminFetch = async function (url, options) {
-        const response = await fetch(url, options || {});
-        const contentType = response.headers.get('content-type') || '';
-        const data = contentType.includes('application/json') ? await response.json() : await response.text();
-
-        if (!response.ok) {
-            const message = data && data.message ? data.message : String(data || response.statusText);
-            throw new Error(message);
-        }
-
-        return data;
+        return request;
     };
 
     window.adminStatusBadge = function (status) {
         return Number(status) === 1
-            ? '<span class="status-badge active">激活</span>'
-            : '<span class="status-badge disabled">禁用</span>';
+            ? window.sharedUi.statusBadge('激活', 'active')
+            : window.sharedUi.statusBadge('禁用', 'disabled');
     };
 
     window.adminBatchBadge = function (status, text) {
         const numberStatus = Number(status);
         if (numberStatus === 0) {
-            return `<span class="status-badge not-started">${adminEscape(text || '未开始')}</span>`;
+            return window.sharedUi.statusBadge(text || '未开始', 'not-started');
         }
 
         if (numberStatus === 1) {
-            return `<span class="status-badge ongoing">${adminEscape(text || '进行中')}</span>`;
+            return window.sharedUi.statusBadge(text || '进行中', 'ongoing');
         }
 
-        return `<span class="status-badge ended">${adminEscape(text || '已结束')}</span>`;
-    };
-
-    window.adminEmptyRow = function (colspan, text) {
-        return `<tr><td colspan="${colspan}" class="empty-state">${adminEscape(text)}</td></tr>`;
+        return window.sharedUi.statusBadge(text || '已结束', 'ended');
     };
 
     document.addEventListener('DOMContentLoaded', function () {

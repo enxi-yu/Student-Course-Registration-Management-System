@@ -17,7 +17,10 @@ namespace StudentCourse.Services
 
         public IList<AdminStudentDto> GetStudents(string? keyword)
         {
-            AdminAuthService.RequireAdminSession();
+            UserSession session=AdminAuthService.RequireAdminSession();
+            if(_adminRepository.GetAdminLevel(session.UserId)!=0){
+                throw new InvalidOperationException("仅超级管理员可执行此操作");
+            }
             return _adminRepository.GetStudents(keyword);
         }
 
@@ -51,7 +54,10 @@ namespace StudentCourse.Services
 
         public IList<AdminTeacherDto> GetTeachers(string? keyword)
         {
-            AdminAuthService.RequireAdminSession();
+            UserSession session=AdminAuthService.RequireAdminSession();
+            if(_adminRepository.GetAdminLevel(session.UserId)!=0){
+                throw new InvalidOperationException("仅超级管理员可执行此操作");
+            }
             return _adminRepository.GetTeachers(keyword);
         }
 
@@ -83,21 +89,30 @@ namespace StudentCourse.Services
 
         public void DisableUser(int userId, string ipAddress)
         {
-            AdminAuthService.RequireAdminSession();
+            UserSession session=AdminAuthService.RequireAdminSession();
+            if(_adminRepository.GetAdminLevel(session.UserId)!=0){
+                throw new InvalidOperationException("仅超级管理员可执行此操作");
+            }
             _adminRepository.SetUserStatus(userId, 0);
             _systemLogService.WriteCurrent("修改", "禁用用户账号", Convert.ToString(userId), ipAddress, new { userId, status = 0 });
         }
 
         public void EnableUser(int userId, string ipAddress)
         {
-            AdminAuthService.RequireAdminSession();
+            UserSession session=AdminAuthService.RequireAdminSession();
+            if(_adminRepository.GetAdminLevel(session.UserId)!=0){
+                throw new InvalidOperationException("仅超级管理员可执行此操作");
+            }
             _adminRepository.SetUserStatus(userId, 1);
             _systemLogService.WriteCurrent("修改", "启用用户账号", Convert.ToString(userId), ipAddress, new { userId, status = 1 });
         }
 
         public void ResetPassword(int userId, ResetPasswordRequest request, string ipAddress)
         {
-            AdminAuthService.RequireAdminSession();
+            UserSession session=AdminAuthService.RequireAdminSession();
+            if(_adminRepository.GetAdminLevel(session.UserId)!=0){
+                throw new InvalidOperationException("仅超级管理员可执行此操作");
+            }
             if (request == null || string.IsNullOrWhiteSpace(request.Password))
             {
                 throw new InvalidOperationException("新密码不能为空");
