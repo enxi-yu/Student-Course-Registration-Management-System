@@ -27,7 +27,7 @@
 
     return '<div class="course-card">'
       + '<div class="course-card-check">'
-        + '<input type="checkbox" class="course-checkbox" data-cid="' + c.classId + '"' + checked + (c.remaining <= 0 && !pendingIds[c.classId] ? " disabled" : "") + '>'
+        + '<input type="checkbox" class="course-checkbox" data-cid="' + c.classId + '"' + checked + (c.remaining <= 0 && !selectedIds[c.classId] && !pendingIds[c.classId] ? " disabled" : "") + '>'
       + '</div>'
       + '<div class="course-card-info click-detail" data-cid="' + c.classId + '">'
         + '<h3>' + escape(c.courseName) + ' <small>' + escape(c.className) + '</small></h3>'
