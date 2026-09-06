@@ -1,4 +1,17 @@
-
+let courseFormController;
+function ensureCourseForm() {
+    if (!courseFormController) courseFormController = window.sharedUi.createForm({
+        root: '#courses-tab', submitButton: '#publishCourseButton', busyText: '新增中...',
+        fields: [
+            { name: 'courseName', label: '课程名称', selector: '#courseName', required: true },
+            { name: 'courseType', label: '课程类型', selector: '#courseType', required: true, oneOf: ['必修', '选修', '公选'] },
+            { name: 'credit', label: '学分', selector: '#credit', required: true, type: 'number', min: 0.5, invalidMessage: '学分必须大于 0' },
+            { name: 'department', label: '面向学院', selector: '#department' },
+            { name: 'courseDesc', label: '课程描述', selector: '#courseDesc' }
+        ]
+    });
+    return courseFormController;
+}
 
 function getTypeBadge(type) {
     const badges = {
@@ -11,6 +24,7 @@ function getTypeBadge(type) {
 
 async function loadCourses() {
     const tbody = document.getElementById('courseTableBody');
+    window.sharedUi.setTableState(tbody, 6, '正在加载课程数据...');
     try {
         const keyword = document.getElementById('courseKeyword').value.trim();
         const coursetype = document.getElementById('courseTypeFilter').value;
@@ -20,155 +34,59 @@ async function loadCourses() {
         const qs = params.toString();
 
         const data = await adminFetch('/api/admin/courses' + (qs ? '?' + qs : ''));
-        tbody.innerHTML = '';
-        if (data.length === 0) {
-            tbody.innerHTML = adminEmptyRow(8, '暂无课程数据');
-            return;
-        }
-        data.forEach(c => {
-            tbody.innerHTML += `
+        window.sharedUi.renderTableRows(tbody, data, c => `
                 <tr>
-                    <td>${c.courseId}</td>
-                    <td>${c.courseName}</td>
+                    <td>${adminEscape(c.courseName)}</td>
                     <td>${getTypeBadge(c.courseType)}</td>
-                    <td>${c.credit}</td>
-                    <td>${c.totalHours}</td>
-                    <td>${c.department || '-'}</td>
-                    <td>${c.courseDesc || '-'}</td>
+                    <td>${adminEscape(c.credit)}</td>
+                    <td>${adminEscape(c.department || '-')}</td>
+                    <td>${adminEscape(c.courseDesc || '-')}</td>
                     <td>
                         <button class="btn btn-sm btn-edit" onclick="openEditModal(${c.courseId})">编辑</button>
                         <button class="btn btn-sm btn-delete" onclick="deleteCourse(${c.courseId})">删除</button>
                     </td>
                 </tr>
-            `;
-        });
+            `, 6, '暂无课程数据');
     } catch (err) {
-        tbody.innerHTML = adminEmptyRow(8, (err && err.message) || 'Unauthorized: 未登录');
+        window.sharedUi.setTableError(tbody, 6, `课程数据加载失败：${(err && err.message) || '服务暂不可用'}`, loadCourses);
     }
 }
 
-function publishCourse() {
-    const name = document.getElementById('courseName').value;
-    const type = document.getElementById('courseType').value;
-    const credit = document.getElementById('credit').value;
-    const totalHours = document.getElementById('totalHours').value;
-    const department = document.getElementById('department').value;
-    const courseDesc = document.getElementById('courseDesc').value;
-
-    if (!name) {
-        return alert('请输入课程名称！');
-    }
-    if (!type) {
-        return alert('请选择课程类型！');
-    }
-    if (!credit) {
-        return alert('请输入学分！');
-    }
-    if (!totalHours) {
-        return alert('请输入总学时！');
-    }
-
-    fetch('/api/admin/courses', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            courseName: name,
-            courseType: type,
-            credit: parseFloat(credit) || 0,
-            totalHours: parseInt(totalHours) || 0,
-            department: department,
-            courseDesc: courseDesc
-        })
-    })
-    .then(res => {
-        if (res.ok) {
-            alert('课程发布成功！');
-            loadCourses();
-            clearForm();
-        } else {
-            return res.text().then(msg => alert('发布失败：' + msg));
-        }
-    })
-    .catch(err => alert('网络错误：' + err));
+async function publishCourse() {
+    if (ensureCourseForm().isSubmitting()) return;
+    try {
+        await ensureCourseForm().submit(async values => {
+            await adminFetch('/api/admin/courses', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ courseName: values.courseName, courseType: values.courseType, credit: values.credit, totalHours: 0, department: values.department, courseDesc: values.courseDesc }) });
+        }, '新增中...');
+        alert('课程新增成功！');
+        clearForm();
+        await loadCourses();
+    } catch (error) { alert('新增失败：' + error.message); }
 }
 
 function clearForm() {
     document.getElementById('courseName').value = '';
     document.getElementById('courseType').value = '';
     document.getElementById('credit').value = '';
-    document.getElementById('totalHours').value = '';
     document.getElementById('department').value = '';
     document.getElementById('courseDesc').value = '';
 }
 
-function openEditModal(id) {
-    adminFetch('/api/admin/courses/' + id)
-        .then(data => {
-            document.getElementById('editCourseId').value = data.courseId;
-            document.getElementById('editCourseIdDisplay').value = data.courseId;
-            document.getElementById('editCourseName').value = data.courseName;
-            document.getElementById('editCourseType').value = data.courseType;
-            document.getElementById('editCredit').value = data.credit;
-            document.getElementById('editTotalHours').value = data.totalHours;
-            document.getElementById('editDepartment').value = data.department || '';
-            document.getElementById('editCourseDesc').value = data.courseDesc || '';
-            document.getElementById('editModal').style.display = 'flex';
-        })
-        .catch(err => alert('加载课程信息失败：' + ((err && err.message) || '未登录')));
+async function openEditModal(id) {
+    try {
+        const data = await adminFetch('/api/admin/courses/' + id);
+        window.sharedUi.formDialog({title:'编辑课程',description:'修改课程基础信息。',submitText:'保存修改',fields:[
+            {name:'courseName',label:'课程名称',required:true,value:data.courseName},
+            {name:'courseType',label:'课程类型',kind:'select',required:true,value:data.courseType,options:['必修','选修','公选']},
+            {name:'credit',label:'学分',type:'number',required:true,min:0.5,step:0.5,value:data.credit,validate:value=>Number(value)>0?'':'学分必须大于 0'},
+            {name:'department',label:'面向学院',value:data.department||''},
+            {name:'courseDesc',label:'课程描述',kind:'textarea',wide:true,value:data.courseDesc||''}
+        ],onSubmit:values=>adminFetch('/api/admin/courses/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({...values,credit:Number(values.credit),totalHours:0})}),onSuccess:async()=>{alert('课程更新成功！');await loadCourses();}});
+    } catch (error) { alert('加载课程信息失败：'+error.message); }
 }
 
-function closeModal() {
-    document.getElementById('editModal').style.display = 'none';
-}
-
-function updateCourse() {
-    const id = document.getElementById('editCourseId').value;
-    const name = document.getElementById('editCourseName').value;
-    const type = document.getElementById('editCourseType').value;
-    const credit = document.getElementById('editCredit').value;
-    const totalHours = document.getElementById('editTotalHours').value;
-    const department = document.getElementById('editDepartment').value;
-    const courseDesc = document.getElementById('editCourseDesc').value;
-
-    if (!name) {
-        return alert('请输入课程名称！');
-    }
-    if (!type) {
-        return alert('请选择课程类型！');
-    }
-    if (!credit) {
-        return alert('请输入学分！');
-    }
-    if (!totalHours) {
-        return alert('请输入总学时！');
-    }
-
-    fetch('/api/admin/courses/' + id, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            courseName: name,
-            courseType: type,
-            credit: parseFloat(credit) || 0,
-            totalHours: parseInt(totalHours) || 0,
-            department: department,
-            courseDesc: courseDesc
-        })
-    })
-    .then(res => {
-        if (res.ok) {
-            alert('课程更新成功！');
-            closeModal();
-            loadCourses();
-        } else {
-            return res.text().then(msg => alert('更新失败：' + msg));
-        }
-    })
-    .catch(err => alert('网络错误：' + err));
-}
-
-function deleteCourse(id) {
-    if (!confirm('确定要删除这门课程吗？此操作不可撤销！')) {
+async function deleteCourse(id) {
+    if (!await adminDialog.danger('确定要删除这门课程吗？此操作不可撤销！', '删除课程')) {
         return;
     }
 

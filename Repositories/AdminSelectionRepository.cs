@@ -14,6 +14,103 @@ namespace StudentCourse.Repositories
     {
         private const string DefaultSemester = "2025-2026-2";
 
+        public IList<AdminStudentScheduleDto> GetStudentSchedule(string studentNo)
+        {
+            const string sql = @"
+                SELECT tc.class_id,c.course_name,tc.class_name,s.semester,NVL(u.real_name,'未分配') teacher_name,
+                       ct.weekday,ct.start_period,ct.end_period,ct.week_range,ct.classroom
+                  FROM course_select cs JOIN teaching_class tc ON tc.class_id=cs.class_id
+                  JOIN section s ON s.section_id=tc.section_id JOIN course c ON c.course_id=s.course_id
+                  LEFT JOIN teacher t ON t.teacher_no=tc.teacher_no LEFT JOIN ""user"" u ON u.user_id=t.user_id
+                  JOIN course_time ct ON ct.class_id=tc.class_id
+                 WHERE cs.student_no=:studentNo
+                 ORDER BY s.semester DESC,ct.weekday,ct.start_period,c.course_name";
+            var rows = new List<AdminStudentScheduleDto>();
+            using OracleConnection conn = DbConnectionFactory.OpenConnection();
+            using OracleCommand cmd = CreateCommand(conn, sql);
+            cmd.Parameters.Add("studentNo", OracleDbType.Varchar2).Value = studentNo;
+            using OracleDataReader r = cmd.ExecuteReader();
+            while (r.Read()) rows.Add(new AdminStudentScheduleDto {
+                ClassId=Convert.ToInt32(r["class_id"]), CourseName=r["course_name"]?.ToString()??"", ClassName=r["class_name"]?.ToString()??"",
+                Semester=r["semester"]?.ToString()??"", TeacherName=r["teacher_name"]?.ToString()??"", Weekday=Convert.ToInt32(r["weekday"]),
+                StartPeriod=Convert.ToInt32(r["start_period"]), EndPeriod=Convert.ToInt32(r["end_period"]), WeekRange=r["week_range"]?.ToString()??"", Classroom=r["classroom"]?.ToString()??""
+            });
+            return rows;
+        }
+
+        public IList<AdminSelectionClassDto> GetAllClassesForStudent(string studentNo)
+        {
+            const string sql = @"
+                SELECT tc.class_id,c.course_id,c.course_name,c.course_type,c.credit,s.semester,tc.teacher_no,NVL(u.real_name,'未分配') teacher_name,
+                       tc.capacity,tc.selected_count,CASE WHEN cs.class_id IS NULL THEN 0 ELSE 1 END is_selected,
+                       (SELECT LISTAGG(ct.weekday||'-'||ct.start_period||'-'||ct.end_period,'; ') WITHIN GROUP(ORDER BY ct.weekday) FROM course_time ct WHERE ct.class_id=tc.class_id) schedule_summary
+                  FROM teaching_class tc JOIN section s ON s.section_id=tc.section_id JOIN course c ON c.course_id=s.course_id
+                  LEFT JOIN teacher t ON t.teacher_no=tc.teacher_no LEFT JOIN ""user"" u ON u.user_id=t.user_id
+                  LEFT JOIN course_select cs ON cs.class_id=tc.class_id AND cs.student_no=:studentNo
+                 ORDER BY s.semester DESC,c.course_name,tc.class_id";
+            var rows=new List<AdminSelectionClassDto>();using OracleConnection conn=DbConnectionFactory.OpenConnection();using OracleCommand cmd=CreateCommand(conn,sql);cmd.Parameters.Add("studentNo",OracleDbType.Varchar2).Value=studentNo;using OracleDataReader r=cmd.ExecuteReader();
+            while(r.Read())rows.Add(new AdminSelectionClassDto{ClassId=Convert.ToInt32(r["class_id"]),CourseId=Convert.ToInt32(r["course_id"]),CourseName=r["course_name"]?.ToString()??"",CourseType=r["course_type"]?.ToString()??"",Credit=Convert.ToDecimal(r["credit"]),Semester=r["semester"]?.ToString()??"",TeacherNo=r["teacher_no"]?.ToString()??"",TeacherName=r["teacher_name"]?.ToString()??"",Capacity=Convert.ToInt32(r["capacity"]),SelectedCount=Convert.ToInt32(r["selected_count"]),ScheduleSummary=r["schedule_summary"]?.ToString()??"",IsSelected=Convert.ToInt32(r["is_selected"])==1});return rows;
+        }
+
+        public IList<AdminStudentScheduleDto> GetAllClassSchedules()
+        {
+            const string sql = @"
+                SELECT tc.class_id,c.course_name,tc.class_name,s.semester,NVL(u.real_name,'未分配') teacher_name,
+                       ct.weekday,ct.start_period,ct.end_period,ct.week_range,ct.classroom
+                  FROM teaching_class tc JOIN section s ON s.section_id=tc.section_id
+                  JOIN course c ON c.course_id=s.course_id
+                  LEFT JOIN teacher t ON t.teacher_no=tc.teacher_no LEFT JOIN ""user"" u ON u.user_id=t.user_id
+                  JOIN course_time ct ON ct.class_id=tc.class_id
+                 ORDER BY s.semester DESC,ct.weekday,ct.start_period,c.course_name";
+            var rows = new List<AdminStudentScheduleDto>();
+            using OracleConnection conn = DbConnectionFactory.OpenConnection();
+            using OracleCommand cmd = CreateCommand(conn, sql);
+            using OracleDataReader r = cmd.ExecuteReader();
+            while (r.Read()) rows.Add(new AdminStudentScheduleDto {
+                ClassId=Convert.ToInt32(r["class_id"]), CourseName=r["course_name"]?.ToString()??"", ClassName=r["class_name"]?.ToString()??"",
+                Semester=r["semester"]?.ToString()??"", TeacherName=r["teacher_name"]?.ToString()??"", Weekday=Convert.ToInt32(r["weekday"]),
+                StartPeriod=Convert.ToInt32(r["start_period"]), EndPeriod=Convert.ToInt32(r["end_period"]), WeekRange=r["week_range"]?.ToString()??"", Classroom=r["classroom"]?.ToString()??""
+            });
+            return rows;
+        }
+
+        public IList<AdminSelectionBatchDto> GetBatchesForStudent(string studentNo)
+        {
+            const string sql = @"
+                SELECT b.batch_id,b.batch_name,TO_CHAR(b.start_time,'YYYY-MM-DD HH24:MI') start_time,
+                       TO_CHAR(b.end_time,'YYYY-MM-DD HH24:MI') end_time,
+                       CASE WHEN SYSDATE < b.start_time THEN 0 ELSE 1 END actual_status,
+                       COUNT(DISTINCT bc.class_id) course_count
+                  FROM selection_batch b JOIN batch_class bc ON bc.batch_id=b.batch_id AND bc.enabled=1
+                  JOIN student st ON st.student_no=:studentNo
+                 WHERE b.end_time>=SYSDATE
+                   AND (NOT EXISTS(SELECT 1 FROM batch_class_scope x WHERE x.batch_id=bc.batch_id AND x.class_id=bc.class_id AND x.major IS NOT NULL)
+                        OR EXISTS(SELECT 1 FROM batch_class_scope x WHERE x.batch_id=bc.batch_id AND x.class_id=bc.class_id AND x.major=st.major))
+                   AND (NOT EXISTS(SELECT 1 FROM batch_class_scope x WHERE x.batch_id=bc.batch_id AND x.class_id=bc.class_id AND x.grade IS NOT NULL)
+                        OR EXISTS(SELECT 1 FROM batch_class_scope x WHERE x.batch_id=bc.batch_id AND x.class_id=bc.class_id AND x.grade=st.grade))
+                 GROUP BY b.batch_id,b.batch_name,b.start_time,b.end_time ORDER BY b.start_time DESC";
+            var rows=new List<AdminSelectionBatchDto>(); using OracleConnection conn=DbConnectionFactory.OpenConnection(); using OracleCommand cmd=CreateCommand(conn,sql);
+            cmd.Parameters.Add("studentNo",OracleDbType.Varchar2).Value=studentNo; using OracleDataReader r=cmd.ExecuteReader();
+            while(r.Read()){int status=Convert.ToInt32(r["actual_status"]);rows.Add(new AdminSelectionBatchDto{BatchId=Convert.ToInt32(r["batch_id"]),BatchName=r["batch_name"]?.ToString()??"",StartTime=r["start_time"]?.ToString()??"",EndTime=r["end_time"]?.ToString()??"",Status=status,StatusText=status==0?"未开始":"进行中",CourseCount=Convert.ToInt32(r["course_count"])});} return rows;
+        }
+
+        public IList<AdminSelectionClassDto> GetBatchClassesForStudent(string studentNo,int batchId)
+        {
+            const string sql=@"
+                SELECT tc.class_id,c.course_id,c.course_name,c.course_type,c.credit,s.semester,tc.teacher_no,NVL(u.real_name,'未分配') teacher_name,
+                       tc.capacity,tc.selected_count,CASE WHEN cs.class_id IS NULL THEN 0 ELSE 1 END is_selected,
+                       (SELECT LISTAGG(ct.weekday||'-'||ct.start_period||'-'||ct.end_period,'; ') WITHIN GROUP(ORDER BY ct.weekday) FROM course_time ct WHERE ct.class_id=tc.class_id) schedule_summary
+                  FROM batch_class bc JOIN selection_batch b ON b.batch_id=bc.batch_id
+                  JOIN teaching_class tc ON tc.class_id=bc.class_id JOIN section s ON s.section_id=tc.section_id JOIN course c ON c.course_id=s.course_id
+                  LEFT JOIN teacher t ON t.teacher_no=tc.teacher_no LEFT JOIN ""user"" u ON u.user_id=t.user_id
+                  JOIN student st ON st.student_no=:studentNo LEFT JOIN course_select cs ON cs.class_id=tc.class_id AND cs.student_no=:studentNo
+                 WHERE bc.batch_id=:batchId AND bc.enabled=1 AND b.start_time<=SYSDATE AND b.end_time>=SYSDATE
+                   AND (NOT EXISTS(SELECT 1 FROM batch_class_scope x WHERE x.batch_id=bc.batch_id AND x.class_id=bc.class_id AND x.major IS NOT NULL) OR EXISTS(SELECT 1 FROM batch_class_scope x WHERE x.batch_id=bc.batch_id AND x.class_id=bc.class_id AND x.major=st.major))
+                   AND (NOT EXISTS(SELECT 1 FROM batch_class_scope x WHERE x.batch_id=bc.batch_id AND x.class_id=bc.class_id AND x.grade IS NOT NULL) OR EXISTS(SELECT 1 FROM batch_class_scope x WHERE x.batch_id=bc.batch_id AND x.class_id=bc.class_id AND x.grade=st.grade)) ORDER BY c.course_name,tc.class_id";
+            var rows=new List<AdminSelectionClassDto>();using OracleConnection conn=DbConnectionFactory.OpenConnection();using OracleCommand cmd=CreateCommand(conn,sql);cmd.Parameters.Add("studentNo",OracleDbType.Varchar2).Value=studentNo;cmd.Parameters.Add("batchId",OracleDbType.Int32).Value=batchId;using OracleDataReader r=cmd.ExecuteReader();
+            while(r.Read())rows.Add(new AdminSelectionClassDto{ClassId=Convert.ToInt32(r["class_id"]),CourseId=Convert.ToInt32(r["course_id"]),CourseName=r["course_name"]?.ToString()??"",CourseType=r["course_type"]?.ToString()??"",Credit=Convert.ToDecimal(r["credit"]),Semester=r["semester"]?.ToString()??"",TeacherNo=r["teacher_no"]?.ToString()??"",TeacherName=r["teacher_name"]?.ToString()??"",Capacity=Convert.ToInt32(r["capacity"]),SelectedCount=Convert.ToInt32(r["selected_count"]),ScheduleSummary=r["schedule_summary"]?.ToString()??"",IsSelected=Convert.ToInt32(r["is_selected"])==1});return rows;
+        }
+
         // 可选教学班列表
         public IList<AdminSelectionClassDto> GetSelectableClasses(string? semester, string? keyword)
         {
@@ -137,7 +234,7 @@ namespace StudentCourse.Repositories
 
                 // 容量检测 + 超员扩容（force=true 时）
                 int selected, capacity;
-                const string capSql = "SELECT capacity, selected_count FROM teaching_class WHERE class_id = :classId";
+                const string capSql = "SELECT capacity, selected_count FROM teaching_class WHERE class_id = :classId FOR UPDATE";
                 using (OracleCommand cmd = CreateCommand(conn, capSql, tx))
                 {
                     cmd.Parameters.Add("classId", OracleDbType.Int32).Value = classId;
@@ -168,16 +265,14 @@ namespace StudentCourse.Repositories
                     capacity += 1;
                 }
 
-                // 取当前开放批次，可空
-                int? batchId = GetActiveBatchId(conn, tx);
-
                 // 写入选课记录
+                int batchId = GetAdminBatchId(conn, tx);
                 const string insertSql = @"INSERT INTO course_select (select_id, class_id, batch_id, student_no)
                     VALUES (course_select_id_seq.NEXTVAL, :classId, :batchId, :studentNo)";
                 using (OracleCommand cmd = CreateCommand(conn, insertSql, tx))
                 {
                     cmd.Parameters.Add("classId", OracleDbType.Int32).Value = classId;
-                    cmd.Parameters.Add("batchId", OracleDbType.Int32).Value = batchId.HasValue ? (object)batchId.Value : DBNull.Value;
+                    cmd.Parameters.Add("batchId", OracleDbType.Int32).Value = batchId;
                     cmd.Parameters.Add("studentNo", OracleDbType.Varchar2).Value = studentNo;
                     cmd.ExecuteNonQuery();
                 }
@@ -187,14 +282,9 @@ namespace StudentCourse.Repositories
 
                 tx.Commit();
                 result.Success = true;
-                if (force)
-                    result.Message = batchId.HasValue
-                        ? "代选课成功（已超员扩容 +1），已记入选课批次。"
-                        : "代选课成功（已超员扩容 +1），当前无开放选课批次，batch_id 置空。";
-                else
-                    result.Message = batchId.HasValue
-                        ? "代选课成功，已记入选课批次。"
-                        : "代选课成功，当前无开放选课批次，batch_id 置空。";
+                result.Message = force
+                    ? "代选课成功（已超员扩容 +1），已记入选课批次。"
+                    : "代选课成功，已记入选课批次。";
                 return result;
             }
             catch
@@ -241,12 +331,16 @@ namespace StudentCourse.Repositories
             const string sql = @"
                 SELECT DISTINCT c2.course_name
                   FROM course_time ct1
-                  JOIN course_time ct2
+                  JOIN teaching_class tc1 ON tc1.class_id = ct1.class_id
+                  JOIN section s1 ON s1.section_id = tc1.section_id
+                  JOIN course_time ct2 ON ct2.class_id <> ct1.class_id
                     AND ct2.weekday = ct1.weekday AND ct2.start_period <= ct1.end_period
                     AND ct2.end_period >= ct1.start_period
+                    AND TO_NUMBER(REGEXP_SUBSTR(ct2.week_range, '[0-9]+', 1, 1)) <= NVL(TO_NUMBER(REGEXP_SUBSTR(ct1.week_range, '[0-9]+', 1, 2)), TO_NUMBER(REGEXP_SUBSTR(ct1.week_range, '[0-9]+', 1, 1)))
+                    AND NVL(TO_NUMBER(REGEXP_SUBSTR(ct2.week_range, '[0-9]+', 1, 2)), TO_NUMBER(REGEXP_SUBSTR(ct2.week_range, '[0-9]+', 1, 1))) >= TO_NUMBER(REGEXP_SUBSTR(ct1.week_range, '[0-9]+', 1, 1))
                   JOIN course_select cs ON cs.class_id = ct2.class_id AND cs.student_no = :studentNo
                   JOIN teaching_class tc2 ON tc2.class_id = ct2.class_id
-                  JOIN section s2 ON s2.section_id = tc2.section_id
+                  JOIN section s2 ON s2.section_id = tc2.section_id AND s2.semester = s1.semester
                   JOIN course c2 ON c2.course_id = s2.course_id
                  WHERE ct1.class_id = :classId
                  ORDER BY c2.course_name";
@@ -279,6 +373,16 @@ namespace StudentCourse.Repositories
             using OracleCommand cmd = CreateCommand(conn, sql, tx);
             object value = cmd.ExecuteScalar();
             return value == DBNull.Value ? null : Convert.ToInt32(value);
+        }
+
+        private static int GetAdminBatchId(OracleConnection conn, OracleTransaction tx)
+        {
+            const string sql = @"SELECT batch_id FROM (SELECT batch_id,
+                    CASE WHEN start_time<=SYSDATE AND end_time>=SYSDATE THEN 0 ELSE 1 END priority,
+                    start_time FROM selection_batch ORDER BY priority,start_time DESC) WHERE ROWNUM=1";
+            using OracleCommand cmd=CreateCommand(conn,sql,tx);object value=cmd.ExecuteScalar();
+            if(value==null||value==DBNull.Value)throw new InvalidOperationException("系统中尚未创建选课批次，无法记录代选操作。");
+            return Convert.ToInt32(value);
         }
 
         private static OracleCommand CreateCommand(OracleConnection conn, string sql, OracleTransaction? tx = null)

@@ -22,6 +22,27 @@ namespace StudentCourse.Models
         public string ManagedScope { get; set; } = string.Empty;
     }
 
+    public sealed class AdminDashboardDto
+    {
+        public string Username { get; set; } = string.Empty;
+
+        public string RealName { get; set; } = string.Empty;
+
+        public string AdminNo { get; set; } = string.Empty;
+
+        public int AdminLevel { get; set; }
+
+        public string ManagedScope { get; set; } = string.Empty;
+
+        public int CourseCount { get; set; }
+
+        public int ClassCount { get; set; }
+
+        public int ActiveUserCount { get; set; }
+
+        public int PendingApplicationCount { get; set; }
+    }
+
     public sealed class AdminCredentialDto
     {
         public int UserId { get; set; }
@@ -150,7 +171,6 @@ namespace StudentCourse.Models
 
         public DateTime EndTime { get; set; }
 
-        public int? Status { get; set; }
     }
 
     public sealed class SelectionBatchDto
@@ -221,6 +241,14 @@ namespace StudentCourse.Models
         public string LogTime { get; set; } = string.Empty;
     }
 
+    public sealed class PagedResultDto<T>
+    {
+        public IList<T> Items { get; set; } = new List<T>();
+        public int Page { get; set; }
+        public int PageSize { get; set; }
+        public bool HasMore { get; set; }
+    }
+
     public sealed class ApprovalRequest
     {
         public string Status { get; set; } = string.Empty;
@@ -252,6 +280,35 @@ namespace StudentCourse.Models
         public int SelectedCount { get; set; }
 
         public string ScheduleSummary { get; set; } = string.Empty;
+
+        public bool IsSelected { get; set; }
+
+        public int Remaining => Math.Max(0, Capacity - SelectedCount);
+    }
+
+    public sealed class AdminSelectionBatchDto
+    {
+        public int BatchId { get; set; }
+        public string BatchName { get; set; } = string.Empty;
+        public string StartTime { get; set; } = string.Empty;
+        public string EndTime { get; set; } = string.Empty;
+        public int Status { get; set; }
+        public string StatusText { get; set; } = string.Empty;
+        public int CourseCount { get; set; }
+    }
+
+    public sealed class AdminStudentScheduleDto
+    {
+        public int ClassId { get; set; }
+        public string CourseName { get; set; } = string.Empty;
+        public string ClassName { get; set; } = string.Empty;
+        public string Semester { get; set; } = string.Empty;
+        public string TeacherName { get; set; } = string.Empty;
+        public int Weekday { get; set; }
+        public int StartPeriod { get; set; }
+        public int EndPeriod { get; set; }
+        public string WeekRange { get; set; } = string.Empty;
+        public string Classroom { get; set; } = string.Empty;
     }
 
     // 学生已选课程记录，用于代退课展示

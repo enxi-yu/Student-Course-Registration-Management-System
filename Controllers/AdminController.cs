@@ -20,6 +20,10 @@ namespace StudentCourse.Controllers
         private readonly AdminCourseService _adminCourseService;
         private readonly AdminApplicationService _adminApplicationService;
         private readonly AdminSelectionService _adminSelectionService;
+        private readonly SchedulingService _schedulingService;
+        private readonly SystemLogExportService _systemLogExportService;
+        private readonly EvaluationService _evaluationService;
+        private readonly EvaluationExportService _evaluationExportService;
 
         public AdminController(
             AdminAuthService adminAuthService,
@@ -29,7 +33,11 @@ namespace StudentCourse.Controllers
             SystemLogService systemLogService,
             AdminCourseService adminCourseService,
             AdminApplicationService adminApplicationService,
-            AdminSelectionService adminSelectionService)
+            AdminSelectionService adminSelectionService,
+            SchedulingService schedulingService,
+            SystemLogExportService systemLogExportService,
+            EvaluationService evaluationService,
+            EvaluationExportService evaluationExportService)
         {
             _adminAuthService = adminAuthService;
             _adminUserService = adminUserService;
@@ -39,6 +47,20 @@ namespace StudentCourse.Controllers
             _adminCourseService = adminCourseService;
             _adminApplicationService = adminApplicationService;
             _adminSelectionService = adminSelectionService;
+            _schedulingService = schedulingService;
+            _systemLogExportService = systemLogExportService;
+            _evaluationService = evaluationService;
+            _evaluationExportService = evaluationExportService;
+        }
+
+        [HttpGet("evaluations")]
+        public IActionResult GetEvaluations([FromQuery] string? keyword, [FromQuery] string? semester) => SafeOk(() => _evaluationService.Search(keyword, semester));
+
+        [HttpGet("evaluations/export")]
+        public IActionResult ExportEvaluations([FromQuery] string? keyword, [FromQuery] string? semester)
+        {
+            try { var rows=_evaluationService.Search(keyword,semester); return File(_evaluationExportService.BuildExcel(rows),"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",$"course_evaluations_{DateTime.Now:yyyyMMdd}.xlsx"); }
+            catch(InvalidOperationException ex){ return BadRequest(new { message=ex.Message }); }
         }
 
         [HttpGet("courses")]
@@ -97,6 +119,38 @@ namespace StudentCourse.Controllers
         public IActionResult GetCurrent()
         {
             return SafeOk(() => _adminAuthService.GetCurrent());
+        }
+
+        [HttpGet("scheduling/courses")]
+        public IActionResult SearchSchedulingCourses([FromQuery] string? keyword, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+            => SafeOk(() => _schedulingService.SearchCourses(keyword, page, pageSize));
+
+        [HttpGet("scheduling/teachers")]
+        public IActionResult SearchSchedulingTeachers([FromQuery] string? keyword, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+            => SafeOk(() => _schedulingService.SearchTeachers(keyword, page, pageSize));
+
+        [HttpGet("scheduling")]
+        public IActionResult GetSchedules([FromQuery] string? semester) => SafeOk(() => _schedulingService.GetSchedules(semester));
+
+        [HttpGet("scheduling/{classId:int}")]
+        public IActionResult GetSchedule(int classId) => SafeOk(() => _schedulingService.GetSchedule(classId));
+
+        [HttpPost("scheduling")]
+        public IActionResult CreateSchedule([FromBody] SchedulingInput input) => SafeOk(() => _schedulingService.Create(input, ClientIp()));
+
+        [HttpPut("scheduling/{classId:int}")]
+        public IActionResult UpdateSchedule(int classId, [FromBody] SchedulingInput input) => SafeOk(() => _schedulingService.Update(classId, input, ClientIp()));
+
+        [HttpDelete("scheduling/{classId:int}")]
+        public IActionResult DeleteSchedule(int classId)
+        {
+            return SafeOk(() => { _schedulingService.Delete(classId, ClientIp()); return new { deleted = true }; });
+        }
+
+        [HttpGet("dashboard")]
+        public IActionResult GetDashboard()
+        {
+            return SafeOk(() => _adminAuthService.GetDashboard());
         }
 
         [HttpGet("permissions")]
@@ -219,6 +273,12 @@ namespace StudentCourse.Controllers
             return SafeOk(() => _selectionBatchService.Update(batchId, input, ClientIp()));
         }
 
+        [HttpPut("batches/{batchId:int}/end")]
+        public IActionResult EndBatch(int batchId)
+        {
+            return SafeOk(() => _selectionBatchService.End(batchId, ClientIp()));
+        }
+
         [HttpGet("classes")]
         public IActionResult GetClasses([FromQuery] string? keyword)
         {
@@ -232,9 +292,33 @@ namespace StudentCourse.Controllers
         }
 
         [HttpGet("logs")]
-        public IActionResult GetLogs([FromQuery] string? keyword, [FromQuery] string? operationType, [FromQuery] DateTime? startTime, [FromQuery] DateTime? endTime)
+        public IActionResult GetLogs([FromQuery] string? keyword, [FromQuery] string? operationType, [FromQuery] DateTime? startTime, [FromQuery] DateTime? endTime, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
         {
-            return SafeOk(() => _systemLogService.GetLogs(keyword, operationType, startTime, endTime));
+            return SafeOk(() => _systemLogService.GetLogs(keyword, operationType, startTime, endTime, page, pageSize));
+        }
+
+        [HttpGet("batches/{batchId:int}/offerings")]
+        public IActionResult GetBatchOfferings(int batchId)
+        {
+            return SafeOk(() => _selectionBatchService.GetOfferings(batchId));
+        }
+
+        [HttpPut("batches/{batchId:int}/offerings")]
+        public IActionResult SaveBatchOfferings(int batchId, [FromBody] SaveBatchOfferingsRequest request)
+        {
+            return SafeOk(() => { _selectionBatchService.SaveOfferings(batchId, request, ClientIp()); return new { saved = true }; });
+        }
+
+        [HttpGet("logs/export")]
+        public IActionResult ExportLogs([FromQuery] string? keyword, [FromQuery] string? operationType, [FromQuery] DateTime? startTime, [FromQuery] DateTime? endTime)
+        {
+            try
+            {
+                IList<SystemLogDto> logs = _systemLogService.GetLogsForExport(keyword, operationType, startTime, endTime);
+                if (logs.Count == 0) return BadRequest(new { message = "当前筛选条件下没有可导出的日志" });
+                return File(_systemLogExportService.BuildExcel(logs), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"system_logs_{DateTime.Now:yyyyMMdd}.xlsx");
+            }
+            catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
         }
 
         [HttpGet("selection/classes")]
@@ -242,6 +326,21 @@ namespace StudentCourse.Controllers
         {
             return SafeOk(() => _adminSelectionService.GetSelectableClasses(semester, keyword));
         }
+
+        [HttpGet("selection/students/{studentNo}/batches")]
+        public IActionResult GetSelectionBatchesForStudent(string studentNo) => SafeOk(() => _adminSelectionService.GetBatchesForStudent(studentNo));
+
+        [HttpGet("selection/students/{studentNo}/schedule")]
+        public IActionResult GetSelectionStudentSchedule(string studentNo) => SafeOk(() => _adminSelectionService.GetStudentSchedule(studentNo));
+
+        [HttpGet("selection/students/{studentNo}/classes")]
+        public IActionResult GetAllSelectionClassesForStudent(string studentNo) => SafeOk(() => _adminSelectionService.GetAllClassesForStudent(studentNo));
+
+        [HttpGet("selection/class-schedules")]
+        public IActionResult GetAllSelectionClassSchedules() => SafeOk(() => _adminSelectionService.GetAllClassSchedules());
+
+        [HttpGet("selection/students/{studentNo}/batches/{batchId:int}/classes")]
+        public IActionResult GetBatchClassesForStudent(string studentNo,int batchId) => SafeOk(() => _adminSelectionService.GetBatchClassesForStudent(studentNo,batchId));
 
         [HttpGet("selection/students/{studentNo}/enrollments")]
         public IActionResult GetStudentEnrollments(string studentNo, [FromQuery] string? semester)
@@ -275,6 +374,7 @@ namespace StudentCourse.Controllers
             }
             catch (Oracle.ManagedDataAccess.Client.OracleException ex)
             {
+                Console.Error.WriteLine($"Oracle error {ex.Number} during {HttpContext.Request.Method} {HttpContext.Request.Path}: {ex.Message}");
                 return StatusCode(500, new { message = "服务暂不可用，请稍后重试。", traceId = HttpContext.TraceIdentifier });
             }
         }

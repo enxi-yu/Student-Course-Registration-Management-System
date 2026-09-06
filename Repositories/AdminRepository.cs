@@ -97,14 +97,13 @@ namespace StudentCourse.Repositories
                     newId = Convert.ToInt32(maxCmd.ExecuteScalar());
                 }
 
-                string sql = "INSERT INTO course (course_id, course_name, course_type, credit, total_hours, department, course_desc) VALUES (:id, :name, :type, :credit, :hours, :dept, :cdesc)";
+                string sql = "INSERT INTO course (course_id, course_name, course_type, credit, total_hours, department, course_desc) VALUES (:id, :name, :type, :credit, 0, :dept, :cdesc)";
                 using (var cmd = new OracleCommand(sql, conn))
                 {
                     cmd.Parameters.Add(new OracleParameter("id", newId));
                     cmd.Parameters.Add(new OracleParameter("name", input.CourseName));
                     cmd.Parameters.Add(new OracleParameter("type", input.CourseType));
                     cmd.Parameters.Add(new OracleParameter("credit", input.Credit));
-                    cmd.Parameters.Add(new OracleParameter("hours", input.TotalHours));
                     cmd.Parameters.Add(new OracleParameter("dept", string.IsNullOrEmpty(input.Department) ? DBNull.Value : (object)input.Department));
                     cmd.Parameters.Add(new OracleParameter("cdesc", string.IsNullOrEmpty(input.CourseDesc) ? DBNull.Value : (object)input.CourseDesc));
                     cmd.ExecuteNonQuery();
@@ -119,13 +118,12 @@ namespace StudentCourse.Repositories
         {
             using (var conn = DbConnectionFactory.OpenConnection())
             {
-                string sql = "UPDATE course SET course_name = :name, course_type = :type, credit = :credit, total_hours = :hours, department = :dept, course_desc = :cdesc WHERE course_id = :id";
+                string sql = "UPDATE course SET course_name = :name, course_type = :type, credit = :credit, department = :dept, course_desc = :cdesc WHERE course_id = :id";
                 using (var cmd = new OracleCommand(sql, conn))
                 {
                     cmd.Parameters.Add(new OracleParameter("name", input.CourseName));
                     cmd.Parameters.Add(new OracleParameter("type", input.CourseType));
                     cmd.Parameters.Add(new OracleParameter("credit", input.Credit));
-                    cmd.Parameters.Add(new OracleParameter("hours", input.TotalHours));
                     cmd.Parameters.Add(new OracleParameter("dept", string.IsNullOrEmpty(input.Department) ? DBNull.Value : (object)input.Department));
                     cmd.Parameters.Add(new OracleParameter("cdesc", string.IsNullOrEmpty(input.CourseDesc) ? DBNull.Value : (object)input.CourseDesc));
                     cmd.Parameters.Add(new OracleParameter("id", id));
@@ -194,6 +192,9 @@ namespace StudentCourse.Repositories
                         sql+= !string.IsNullOrEmpty(keyword)?" AND ":" WHERE ";
                         sql+="status=:status";
                     }
+                    sql += @" ORDER BY CASE WHEN NVL(status, '待审核') = '待审核' THEN 0 ELSE 1 END,
+                                           apply_time DESC,
+                                           apply_id DESC";
                     using (var cmd = new OracleCommand(sql, conn)){
                         cmd.BindByName =true;
                         if(!string.IsNullOrEmpty(keyword)){
@@ -273,33 +274,83 @@ namespace StudentCourse.Repositories
         // 审批开课申请（通过/驳回）
         public CourseApplicationDto ApproveApplication(string applyId, string status, string comment)
         {
-            //更新 course_application 表
-            using (var conn = DbConnectionFactory.OpenConnection())
+            using OracleConnection connection = DbConnectionFactory.OpenConnection();
+            EnsureCourseApplicationCompatibility(connection);
+            using OracleTransaction transaction = connection.BeginTransaction();
+            try
             {
-                string sql=@"UPDATE course_application
-                            SET status=:status, approve_time=SYSDATE,approve_comment=:approve_comment
-                            WHERE apply_id=:applyID";
-                using (var cmd = new OracleCommand(sql, conn)){
-                    cmd.Parameters.Add(new OracleParameter("status", status));
-                    cmd.Parameters.Add(new OracleParameter("approve_comment", comment));
-                    cmd.Parameters.Add(new OracleParameter("applyID",applyId));
-                    int rowsAffected = cmd.ExecuteNonQuery();
-                    if (rowsAffected == 0) {
-                        throw new InvalidOperationException("申请不存在");
-                    }
+                const string applicationSql = @"SELECT course_name, course_type, credit, department, course_summary, status
+                                                  FROM course_application
+                                                 WHERE apply_id = :applyId
+                                                   FOR UPDATE";
+                string courseName;
+                string courseType;
+                decimal credit;
+                string department;
+                string courseSummary;
+                string currentStatus;
+                using (OracleCommand command = CreateCommand(connection, applicationSql, transaction))
+                {
+                    command.Parameters.Add("applyId", OracleDbType.Varchar2).Value = applyId;
+                    using OracleDataReader reader = command.ExecuteReader();
+                    if (!reader.Read()) throw new InvalidOperationException("申请不存在");
+                    courseName = Convert.ToString(reader["course_name"]) ?? string.Empty;
+                    courseType = Convert.ToString(reader["course_type"]) ?? string.Empty;
+                    credit = Convert.ToDecimal(reader["credit"]);
+                    department = Convert.ToString(reader["department"]) ?? string.Empty;
+                    courseSummary = Convert.ToString(reader["course_summary"]) ?? string.Empty;
+                    currentStatus = Convert.ToString(reader["status"]) ?? string.Empty;
                 }
-                //审核通过时，同步把课程加入到course表
-                CourseApplicationDto application=GetApplicationById(applyId);
-                if (status == "通过"){
-                    if(application!=null){
-                        InsertCourse(new CourseDto{
-                            CourseName=application.CourseName,CourseType=application.CourseType,
-                            Credit=application.Credit,TotalHours=application.TotalHours,Department=application.Department,CourseDesc=application.CourseSummary
-                    });
-                    }   
+                if (currentStatus != "待审核") throw new InvalidOperationException($"该申请已{currentStatus}，不能重复审批");
+
+                if (status == "通过")
+                {
+                    int courseId = GetNextIntId(connection, transaction, "course_id_seq");
+                    const string insertCourseSql = @"INSERT INTO course
+                        (course_id, course_name, course_type, credit, total_hours, department, course_desc)
+                        VALUES (:courseId, :courseName, :courseType, :credit, 0, :department, :courseDesc)";
+                    using OracleCommand insert = CreateCommand(connection, insertCourseSql, transaction);
+                    insert.Parameters.Add("courseId", OracleDbType.Int32).Value = courseId;
+                    insert.Parameters.Add("courseName", OracleDbType.Varchar2).Value = courseName;
+                    insert.Parameters.Add("courseType", OracleDbType.Varchar2).Value = courseType;
+                    insert.Parameters.Add("credit", OracleDbType.Decimal).Value = credit;
+                    insert.Parameters.Add("department", OracleDbType.Varchar2).Value = string.IsNullOrWhiteSpace(department) ? DBNull.Value : department;
+                    insert.Parameters.Add("courseDesc", OracleDbType.Varchar2).Value = string.IsNullOrWhiteSpace(courseSummary) ? DBNull.Value : courseSummary;
+                    insert.ExecuteNonQuery();
                 }
+
+                const string updateSql = @"UPDATE course_application
+                                              SET status = :status, approve_time = SYSDATE, approve_comment = :approveComment
+                                            WHERE apply_id = :applyId";
+                using (OracleCommand update = CreateCommand(connection, updateSql, transaction))
+                {
+                    update.Parameters.Add("status", OracleDbType.Varchar2).Value = status;
+                    update.Parameters.Add("approveComment", OracleDbType.Varchar2).Value = string.IsNullOrWhiteSpace(comment) ? DBNull.Value : comment.Trim();
+                    update.Parameters.Add("applyId", OracleDbType.Varchar2).Value = applyId;
+                    update.ExecuteNonQuery();
+                }
+                transaction.Commit();
             }
-            return GetApplicationById(applyId);
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+            return GetApplicationById(applyId) ?? throw new InvalidOperationException("审批结果读取失败");
+        }
+
+        private static void EnsureCourseApplicationCompatibility(OracleConnection connection)
+        {
+            const string columnSql = @"SELECT COUNT(*) FROM user_tab_columns
+                                       WHERE table_name = 'COURSE_APPLICATION'
+                                         AND column_name = 'TEACHING_PLAN'";
+            using OracleCommand check = CreateCommand(connection, columnSql);
+            if (Convert.ToInt32(check.ExecuteScalar()) > 0) return;
+
+            // 旧版数据库没有该列，但历史触发器会在审批更新时引用它并导致 ORA-04098。
+            using OracleCommand addColumn = CreateCommand(connection,
+                "ALTER TABLE course_application ADD (teaching_plan CLOB)");
+            addColumn.ExecuteNonQuery();
         }
 
         public AdminCredentialDto? GetAdminCredential(string username)
@@ -458,6 +509,46 @@ namespace StudentCourse.Repositories
 
             using OracleDataReader reader = command.ExecuteReader();
             return reader.Read() ? MapAdminCurrent(reader) : null;
+        }
+
+        public AdminDashboardDto? GetDashboard(int userId)
+        {
+            const string sql = @"
+                SELECT u.username,
+                       u.real_name,
+                       a.admin_no,
+                       a.admin_level,
+                       a.managed_scope,
+                       (SELECT COUNT(*) FROM course) AS course_count,
+                       (SELECT COUNT(*) FROM teaching_class) AS class_count,
+                       (SELECT COUNT(*) FROM ""user"" au WHERE au.status = 1) AS active_user_count,
+                       (SELECT COUNT(*) FROM course_application ca WHERE ca.status = '待审核') AS pending_application_count
+                  FROM ""user"" u
+                  JOIN administrator a ON a.user_id = u.user_id
+                 WHERE u.user_id = :userId";
+
+            using OracleConnection connection = DbConnectionFactory.OpenConnection();
+            using OracleCommand command = CreateCommand(connection, sql);
+            command.Parameters.Add("userId", OracleDbType.Int32).Value = userId;
+
+            using OracleDataReader reader = command.ExecuteReader();
+            if (!reader.Read())
+            {
+                return null;
+            }
+
+            return new AdminDashboardDto
+            {
+                Username = Convert.ToString(reader["username"]) ?? string.Empty,
+                RealName = Convert.ToString(reader["real_name"]) ?? string.Empty,
+                AdminNo = Convert.ToString(reader["admin_no"]) ?? string.Empty,
+                AdminLevel = ToInt32(reader["admin_level"]),
+                ManagedScope = ReadText(reader["managed_scope"]),
+                CourseCount = ToInt32(reader["course_count"]),
+                ClassCount = ToInt32(reader["class_count"]),
+                ActiveUserCount = ToInt32(reader["active_user_count"]),
+                PendingApplicationCount = ToInt32(reader["pending_application_count"])
+            };
         }
 
         public int GetAdminLevel(int userId){
@@ -830,7 +921,7 @@ namespace StudentCourse.Repositories
                        batch_name,
                        TO_CHAR(start_time, 'YYYY-MM-DD HH24:MI') AS start_time,
                        TO_CHAR(end_time, 'YYYY-MM-DD HH24:MI') AS end_time,
-                       status
+                       CASE WHEN SYSDATE < start_time THEN 0 WHEN SYSDATE > end_time THEN 2 ELSE 1 END AS status
                   FROM selection_batch
                  ORDER BY start_time DESC, batch_id DESC";
 
@@ -854,7 +945,7 @@ namespace StudentCourse.Repositories
                        batch_name,
                        TO_CHAR(start_time, 'YYYY-MM-DD HH24:MI') AS start_time,
                        TO_CHAR(end_time, 'YYYY-MM-DD HH24:MI') AS end_time,
-                       status
+                       CASE WHEN SYSDATE < start_time THEN 0 WHEN SYSDATE > end_time THEN 2 ELSE 1 END AS status
                   FROM selection_batch
                  WHERE batch_id = :batchId";
 
@@ -914,6 +1005,19 @@ namespace StudentCourse.Repositories
                 throw new InvalidOperationException("选课批次不存在");
             }
 
+            return GetBatchById(batchId)!;
+        }
+
+        public SelectionBatchDto EndBatch(int batchId)
+        {
+            const string sql = @"UPDATE selection_batch
+                                    SET end_time = SYSDATE,
+                                        status = 2
+                                  WHERE batch_id = :batchId AND start_time <= SYSDATE AND end_time > SYSDATE";
+            using OracleConnection connection = DbConnectionFactory.OpenConnection();
+            using OracleCommand command = CreateCommand(connection, sql);
+            command.Parameters.Add("batchId", OracleDbType.Int32).Value = batchId;
+            if (command.ExecuteNonQuery() == 0) throw new InvalidOperationException("只有进行中的批次可以手动结束");
             return GetBatchById(batchId)!;
         }
 
@@ -1056,7 +1160,7 @@ namespace StudentCourse.Repositories
             command.ExecuteNonQuery();
         }
 
-        public IList<SystemLogDto> GetSystemLogs(string? keyword, string? operationType, DateTime? startTime, DateTime? endTime)
+        public PagedResultDto<SystemLogDto> GetSystemLogs(string? keyword, string? operationType, DateTime? startTime, DateTime? endTime, int page, int pageSize)
         {
             string sql = @"
                 SELECT l.log_id,
@@ -1097,9 +1201,9 @@ namespace StudentCourse.Repositories
                 sql += " AND l.log_time <= :endTime";
             }
 
-            sql += " ORDER BY l.log_time DESC FETCH FIRST 300 ROWS ONLY";
+            sql += " ORDER BY l.log_time DESC OFFSET :offset ROWS FETCH NEXT :fetchCount ROWS ONLY";
 
-            List<SystemLogDto> rows = new List<SystemLogDto>();
+            PagedResultDto<SystemLogDto> result = new PagedResultDto<SystemLogDto> { Page = page, PageSize = pageSize };
 
             using OracleConnection connection = DbConnectionFactory.OpenConnection();
             using OracleCommand command = CreateCommand(connection, sql);
@@ -1123,11 +1227,13 @@ namespace StudentCourse.Repositories
             {
                 command.Parameters.Add("endTime", OracleDbType.TimeStamp).Value = endTime.Value;
             }
+            command.Parameters.Add("offset", OracleDbType.Int32).Value = (page - 1) * pageSize;
+            command.Parameters.Add("fetchCount", OracleDbType.Int32).Value = pageSize + 1;
 
             using OracleDataReader reader = command.ExecuteReader();
             while (reader.Read())
             {
-                rows.Add(new SystemLogDto
+                result.Items.Add(new SystemLogDto
                 {
                     LogId = Convert.ToString(reader["log_id"]) ?? string.Empty,
                     UserId = ToInt32(reader["user_id"]),
@@ -1143,7 +1249,9 @@ namespace StudentCourse.Repositories
                 });
             }
 
-            return rows;
+            result.HasMore = result.Items.Count > pageSize;
+            if (result.HasMore) result.Items.RemoveAt(result.Items.Count - 1);
+            return result;
         }
 
         private static int InsertUser(OracleConnection connection, OracleTransaction transaction, AdminUserInput input, string passwordHash, int roleId)

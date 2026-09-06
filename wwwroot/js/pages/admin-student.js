@@ -1,4 +1,21 @@
 let adminStudents = [];
+let studentFormController;
+function ensureStudentForm() {
+    if (!studentFormController) studentFormController = window.sharedUi.createForm({
+        root: '#students-tab', submitButton: '#saveStudentButton', busyText: '保存中...',
+        fields: [
+            { name: 'username', label: '登录账号', selector: '#studentUsername', required: true },
+            { name: 'password', label: '初始密码', selector: '#studentPassword', required: () => !document.getElementById('studentUserId').value, validate: value => value && (value.length < 6 || value.length > 20) ? '密码长度必须为6-20位' : '' },
+            { name: 'realName', label: '姓名', selector: '#studentRealName', required: true },
+            { name: 'studentNo', label: '学号', selector: '#studentNo', required: true },
+            { name: 'major', label: '专业', selector: '#studentMajor', required: true },
+            { name: 'grade', label: '年级', selector: '#studentGrade', required: true },
+            { name: 'phone', label: '联系电话', selector: '#studentPhone', validate: value => value && !/^1\d{10}$/.test(value) ? '请输入11位手机号码' : '' },
+            { name: 'email', label: '电子邮箱', selector: '#studentEmail' }
+        ]
+    });
+    return studentFormController;
+}
 
 async function loadStudents() {
     const tbody = document.getElementById('studentTableBody');
@@ -6,15 +23,11 @@ async function loadStudents() {
 
     const keyword = document.getElementById('studentKeyword').value;
     const query = keyword ? `?keyword=${encodeURIComponent(keyword)}` : '';
+    window.sharedUi.setTableState(tbody, 9, '正在加载学生数据...');
 
     try {
         adminStudents = await adminFetch('/api/admin/students' + query);
-        if (!adminStudents.length) {
-            tbody.innerHTML = adminEmptyRow(9, '暂无学生数据');
-            return;
-        }
-
-        tbody.innerHTML = adminStudents.map(item => `
+        window.sharedUi.renderTableRows(tbody, adminStudents, item => `
             <tr>
                 <td>${adminEscape(item.studentNo)}</td>
                 <td>${adminEscape(item.realName)}</td>
@@ -34,25 +47,23 @@ async function loadStudents() {
                     </div>
                 </td>
             </tr>
-        `).join('');
+        `, 9, '暂无学生数据');
     } catch (error) {
-        tbody.innerHTML = adminEmptyRow(9, error.message);
+        window.sharedUi.setTableError(tbody, 9, `学生数据加载失败：${error.message}`, loadStudents);
     }
 }
 
 async function saveStudent() {
+    if (ensureStudentForm().isSubmitting()) return;
     const userId = document.getElementById('studentUserId').value;
-    const payload = readStudentForm();
-
     try {
-        await adminFetch(userId ? `/api/admin/students/${encodeURIComponent(userId)}` : '/api/admin/students', {
-            method: userId ? 'PUT' : 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+        await ensureStudentForm().submit(async values => {
+            const payload = { ...readStudentForm(), ...values };
+            await adminFetch(userId ? `/api/admin/students/${encodeURIComponent(userId)}` : '/api/admin/students', { method: userId ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
         });
         alert('学生信息已保存');
         clearStudentForm();
-        loadStudents();
+        await loadStudents();
     } catch (error) {
         alert('保存失败：' + error.message);
     }
@@ -95,7 +106,7 @@ function clearStudentForm() {
 }
 
 async function disableStudent(userId) {
-    if (!confirm('确定要禁用该学生账号吗？')) return;
+    if (!await adminDialog.danger('确定要禁用该学生账号吗？', '禁用学生账号')) return;
     await changeStudentStatus(userId, false);
 }
 
@@ -113,8 +124,9 @@ async function changeStudentStatus(userId, enabled) {
 }
 
 async function resetStudentPassword(userId) {
-    const password = prompt('请输入新的学生登录密码：');
+    const password = await adminDialog.prompt('请输入新的学生登录密码（6-20位）：', { title: '重置学生密码', inputType: 'password', maxLength: 20 });
     if (!password) return;
+    if (password.length < 6 || password.length > 20) return alert('密码长度必须为6-20位');
 
     try {
         await adminFetch(`/api/admin/students/${encodeURIComponent(userId)}/password`, {
