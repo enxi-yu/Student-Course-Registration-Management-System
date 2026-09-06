@@ -106,8 +106,9 @@ namespace StudentCourse.Student.Repositories
             return courses;
         }
 
-        public CourseDetailDto? GetCourseDetail(int classId)
+        public CourseDetailDto? GetCourseDetail(string studentNo, int classId)
         {
+            CourseDetailDto? dto = null;
             const string sql = @"
                 SELECT tc.class_id,
                        c.course_id,
@@ -129,31 +130,62 @@ namespace StudentCourse.Student.Repositories
                  WHERE tc.class_id = :classId";
 
             using (OracleConnection connection = DbConnectionFactory.OpenConnection())
-            using (OracleCommand command = CreateCommand(connection, sql))
             {
-                command.Parameters.Add("classId", OracleDbType.Int32).Value = classId;
-                using (OracleDataReader reader = command.ExecuteReader())
+                using (OracleCommand command = CreateCommand(connection, sql))
                 {
-                    if (!reader.Read()) return null;
-
-                    return new CourseDetailDto
+                    command.Parameters.Add("classId", OracleDbType.Int32).Value = classId;
+                    using (OracleDataReader reader = command.ExecuteReader())
                     {
-                        ClassId = StudentProfileRepository.SafeGetInt(reader["class_id"]),
-                        CourseId = StudentProfileRepository.SafeGetInt(reader["course_id"]),
-                        CourseName = StudentProfileRepository.SafeGetString(reader["course_name"]),
-                        ClassName = StudentProfileRepository.SafeGetString(reader["class_name"]),
-                        CourseType = StudentProfileRepository.SafeGetString(reader["course_type"]),
-                        Credit = StudentProfileRepository.SafeGetDecimal(reader["credit"]),
-                        TotalHours = StudentProfileRepository.SafeGetInt(reader["total_hours"]),
-                        TeacherName = StudentProfileRepository.SafeGetString(reader["teacher_name"]),
-                        Department = StudentProfileRepository.SafeGetString(reader["department"]),
-                        Capacity = StudentProfileRepository.SafeGetInt(reader["capacity"]),
-                        SelectedCount = StudentProfileRepository.SafeGetInt(reader["selected_count"]),
-                        Description = StudentProfileRepository.ReadClob(reader["course_desc"]),
-                        Schedule = GetClassSchedule(classId)
-                    };
+                        if (!reader.Read()) return null;
+
+                        dto = new CourseDetailDto
+                        {
+                            ClassId = StudentProfileRepository.SafeGetInt(reader["class_id"]),
+                            CourseId = StudentProfileRepository.SafeGetInt(reader["course_id"]),
+                            CourseName = StudentProfileRepository.SafeGetString(reader["course_name"]),
+                            ClassName = StudentProfileRepository.SafeGetString(reader["class_name"]),
+                            CourseType = StudentProfileRepository.SafeGetString(reader["course_type"]),
+                            Credit = StudentProfileRepository.SafeGetDecimal(reader["credit"]),
+                            TotalHours = StudentProfileRepository.SafeGetInt(reader["total_hours"]),
+                            TeacherName = StudentProfileRepository.SafeGetString(reader["teacher_name"]),
+                            Department = StudentProfileRepository.SafeGetString(reader["department"]),
+                            Capacity = StudentProfileRepository.SafeGetInt(reader["capacity"]),
+                            SelectedCount = StudentProfileRepository.SafeGetInt(reader["selected_count"]),
+                            Description = StudentProfileRepository.ReadClob(reader["course_desc"]),
+                            Schedule = GetClassSchedule(classId)
+                        };
+                    }
+                }
+
+                dto.IsSelected = false;
+                dto.CanDrop = false;
+
+                const string selSql = @"
+                    SELECT cs.batch_id
+                      FROM course_select cs
+                     WHERE cs.student_no = :studentNo AND cs.class_id = :classId";
+                using (OracleCommand cmd = CreateCommand(connection, selSql))
+                {
+                    cmd.Parameters.Add("studentNo", OracleDbType.Varchar2).Value = studentNo;
+                    cmd.Parameters.Add("classId", OracleDbType.Int32).Value = classId;
+                    object batchValue = cmd.ExecuteScalar();
+                    if (batchValue != null && batchValue != DBNull.Value)
+                    {
+                        dto.IsSelected = true;
+                        int batchId = Convert.ToInt32(batchValue);
+                        const string batchSql = @"
+                            SELECT COUNT(*) FROM selection_batch
+                             WHERE batch_id = :batchId AND start_time <= SYSDATE AND end_time >= SYSDATE";
+                        using (OracleCommand bcmd = CreateCommand(connection, batchSql))
+                        {
+                            bcmd.Parameters.Add("batchId", OracleDbType.Int32).Value = batchId;
+                            if (Convert.ToInt32(bcmd.ExecuteScalar()) > 0) dto.CanDrop = true;
+                        }
+                    }
                 }
             }
+
+            return dto;
         }
 
         public SelectionResultDto SelectCourse(string studentNo, int classId, int batchId)
@@ -259,25 +291,55 @@ namespace StudentCourse.Student.Repositories
             using (OracleConnection connection = DbConnectionFactory.OpenConnection())
             using (OracleTransaction tx = connection.BeginTransaction())
             {
+                // 1. 查找真实选课记录并锁定，避免并发重复退课
+                const string findSql = @"
+                    SELECT cs.batch_id
+                      FROM course_select cs
+                     WHERE cs.student_no = :studentNo AND cs.class_id = :classId
+                    FOR UPDATE";
 
-                const string deleteSql = @"
-                    DELETE FROM course_select
-                     WHERE student_no = :studentNo AND class_id = :classId";
-
-                using (OracleCommand cmd = CreateCommand(connection, deleteSql, tx))
+                int batchId;
+                using (OracleCommand cmd = CreateCommand(connection, findSql, tx))
                 {
                     cmd.Parameters.Add("studentNo", OracleDbType.Varchar2).Value = studentNo;
                     cmd.Parameters.Add("classId", OracleDbType.Int32).Value = classId;
-                    int affected = cmd.ExecuteNonQuery();
-
-                    if (affected == 0)
+                    object batchValue = cmd.ExecuteScalar();
+                    if (batchValue == null || batchValue == DBNull.Value)
                     {
                         result.Message = "未找到该选课记录，无法退课。";
                         return result;
                     }
+                    batchId = Convert.ToInt32(batchValue);
                 }
 
+                // 2. 校验该选课记录所属批次是否仍处于退课时间
+                const string batchSql = @"
+                    SELECT COUNT(*) FROM selection_batch
+                     WHERE batch_id = :batchId AND start_time <= SYSDATE AND end_time >= SYSDATE";
+                using (OracleCommand cmd = CreateCommand(connection, batchSql, tx))
+                {
+                    cmd.Parameters.Add("batchId", OracleDbType.Int32).Value = batchId;
+                    if (Convert.ToInt32(cmd.ExecuteScalar()) == 0)
+                    {
+                        result.Message = "当前不在该课程所属选课批次的退课时间内。";
+                        return result;
+                    }
+                }
+
+                // 3. 删除选课记录
+                const string deleteSql = @"
+                    DELETE FROM course_select
+                     WHERE student_no = :studentNo AND class_id = :classId";
+                using (OracleCommand cmd = CreateCommand(connection, deleteSql, tx))
+                {
+                    cmd.Parameters.Add("studentNo", OracleDbType.Varchar2).Value = studentNo;
+                    cmd.Parameters.Add("classId", OracleDbType.Int32).Value = classId;
+                    cmd.ExecuteNonQuery();
+                }
+
+                // 4. 更新人数
                 UpdateSelectedCount(connection, classId, tx);
+
                 tx.Commit();
 
                 result.Success = true;

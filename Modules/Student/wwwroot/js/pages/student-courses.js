@@ -156,7 +156,7 @@
       containerRef.querySelectorAll(".click-detail").forEach(function (el) {
         el.addEventListener("click", function () {
           var cid = parseInt(el.dataset.cid);
-          if (!isNaN(cid) && window.openStudentPage) window.openStudentPage("detail", { classId: cid });
+          if (!isNaN(cid) && window.openStudentPage) window.openStudentPage("detail", { classId: cid, batchId: currentBatch.batchId, returnPage: "courses", pendingIds: Object.assign({}, pendingIds) });
         });
       });
 
@@ -250,12 +250,33 @@
     });
   }
 
-  async function render(container) {
+  async function render(container, options) {
     containerRef = container;
     container.innerHTML = '<section class="panel"><div class="empty-state">正在加载选课批次...</div></section>';
     try { batches = await window.nativeApi.request("student.getSelectionBatches", {}); } catch (e) { batches = []; }
     currentBatch = null;
+    var requestedBatchId = options && options.batchId;
+    if (requestedBatchId) {
+      var target = batches.find(function (b) { return Number(b.batchId) === Number(requestedBatchId); });
+      if (target) {
+        currentBatch = target;
+        await loadCourses();
+        restorePendingIds(options && options.pendingIds);
+        refresh();
+        return;
+      }
+    }
     showBatchList();
+  }
+
+  function restorePendingIds(savedPending) {
+    if (!savedPending) return;
+    var valid = {};
+    allCourses.forEach(function (c) { valid[c.classId] = true; });
+    Object.keys(savedPending).forEach(function (id) {
+      var cid = Number(id);
+      if (valid[cid] && !selectedIds[cid]) pendingIds[cid] = true;
+    });
   }
 
   window.studentPages = window.studentPages || {};

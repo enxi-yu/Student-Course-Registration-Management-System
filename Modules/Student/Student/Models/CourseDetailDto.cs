@@ -16,6 +16,8 @@ namespace StudentCourse.Student.Models
         public int Capacity { get; set; }
         public int SelectedCount { get; set; }
         public int Remaining { get { return Capacity - SelectedCount; } }
+        public bool IsSelected { get; set; }
+        public bool CanDrop { get; set; }
         public List<ScheduleItemDto> Schedule { get; set; } = new();
         public string Description { get; set; } = string.Empty;
     }

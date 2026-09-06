@@ -98,12 +98,12 @@
       }
 
       if (page === "courses") {
-        await window.studentPages.courses.render(container);
+        await window.studentPages.courses.render(container, state.pageOptions);
         return;
       }
 
       if (page === "schedule") {
-        await window.studentPages.schedule.render(container);
+        await window.studentPages.schedule.render(container, state.pageOptions);
         return;
       }
 
@@ -123,7 +123,7 @@
       }
 
       if (page === "detail") {
-        await window.studentPages.detail.render(container, state.pageOptions.classId);
+        await window.studentPages.detail.render(container, state.pageOptions);
         return;
       }
 

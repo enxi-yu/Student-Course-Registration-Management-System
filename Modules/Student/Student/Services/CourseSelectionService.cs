@@ -40,7 +40,8 @@ namespace StudentCourse.Student.Services
 
         public CourseDetailDto? GetCourseDetail(int classId)
         {
-            return _repository.GetCourseDetail(classId);
+            StudentInfo student = GetCurrentStudent();
+            return _repository.GetCourseDetail(student.StudentNo, classId);
         }
 
         public SelectionResultDto SelectCourse(int classId, int batchId)

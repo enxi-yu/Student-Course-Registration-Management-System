@@ -6,8 +6,8 @@
   function renderGrid(schedule) {
     return window.sharedUi.timetable(schedule, { clickable: true, cardClass: "student-schedule-card" });
   }
-  function bindDetails(container) {
-    container.querySelectorAll(".student-schedule-card").forEach(card => card.addEventListener("click", () => window.openStudentPage("detail", { classId: Number(card.dataset.classId) })));
+  function bindDetails(container, semester) {
+    container.querySelectorAll(".student-schedule-card").forEach(card => card.addEventListener("click", () => window.openStudentPage("detail", { classId: Number(card.dataset.classId), returnPage: "schedule", semester: semester })));
   }
   async function loadSchedule(container, picker) {
     document.getElementById("student-schedule-summary").textContent = `当前学期：${picker.label()}`;
@@ -17,11 +17,12 @@
       const schedule = await window.nativeApi.request("student.getSchedule", { semester: picker.value() });
       if (!schedule || !schedule.length) { window.sharedUi.mountState(root, "empty", "当前学期暂无课表安排"); return; }
       root.innerHTML = renderGrid(schedule) + window.sharedUi.dataTable({ columns: ["课程名称", "教学班", "学期", "星期", "节次", "周次", "教室", "学分", "学时"], rows: schedule, row: listRow });
-      bindDetails(container);
+      bindDetails(container, picker.value());
     } catch (error) { window.sharedUi.mountState(root, "error", `加载课表失败：${error.message}`, () => loadSchedule(container, picker)); }
   }
-  async function render(container) {
-    const selected = window.academicSemester.getCurrent().canonical;
+  async function render(container, options) {
+    const requestedSemester = options && options.semester;
+    const selected = (requestedSemester && /^\d{4}-\d{4}-[12]$/.test(requestedSemester)) ? requestedSemester : window.academicSemester.getCurrent().canonical;
     const fields = '<div class="field"><label>学年学期</label><div id="student-schedule-semester-picker"></div></div>';
     const actions = `<span class="term-badge" id="student-schedule-summary">当前学期：${escapeHtml(window.academicSemester.format(selected))}</span><button class="primary-button" type="button" id="student-load-schedule-button">查询课表</button>`;
     container.innerHTML = window.sharedUi.filterBar(fields, actions) + '<div id="student-schedule-root"></div>';
