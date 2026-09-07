@@ -111,5 +111,19 @@ namespace StudentCourse.Services
             return session;
         }
 
+        public const int SuperAdminLevel=0;
+
+        public static UserSession RequireSuperAdmin()
+        {
+            UserSession session=RequireAdminSession();
+            if(session.AdminLevel!=SuperAdminLevel)
+            {
+                throw new InvalidOperationException("当前账号不是超级管理员，无权访问该功能");
+            }
+            return session;
+        }
+
+        
+
     }
 }

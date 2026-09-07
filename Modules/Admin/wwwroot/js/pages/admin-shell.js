@@ -128,14 +128,24 @@
         setGroupExpanded(group, shouldExpand);
     };
 
-    //普通管理员禁止跳到受限 tab
+    // 管理员职责划分：
+    // 超级管理员(admin_level=0)：拥有全部管理功能 —— 教学管理、选课管理、用户管理（学生/教师账号）、系统日志
+    // 教务管理员(admin_level=1)：教学管理（课程/排课/开课审批/评价/容量）、选课管理（批次/代选课程）
+    window.ADMIN_TAB_PERMISSIONS = {
+        super: ['dashboard', 'courses', 'scheduling', 'applications', 'evaluations', 'classes', 'batches', 'selection', 'students', 'teachers', 'logs'],
+        academic: ['dashboard', 'courses', 'scheduling', 'applications', 'evaluations', 'classes', 'batches', 'selection']
+    };
+
+    window.isAdminTabAllowed = function (tabName) {
+        if (window.ADMIN_LEVEL === undefined) return false;
+        const allowed = window.ADMIN_LEVEL === 0 ? window.ADMIN_TAB_PERMISSIONS.super : window.ADMIN_TAB_PERMISSIONS.academic;
+        return allowed.indexOf(tabName) >= 0;
+    };
+
     window.switchTab = function (tabName) {
-        if (window.ADMIN_LEVEL !== 0) {
-            var restricted = ['students', 'teachers', 'batches', 'logs'];
-            if (restricted.indexOf(tabName) >= 0) {
-                alert('仅超级管理员可访问此功能');
-                return;
-            }
+        if (!window.isAdminTabAllowed(tabName)) {
+            alert('当前管理员类型无权访问此功能');
+            return;
         }
 
         document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
@@ -230,7 +240,7 @@
                 } catch (e) {
                     // 退出请求失败也继续跳转
                 }
-                window.location.replace('http://localhost:5100/Login');
+                window.location.replace('/admin.html');
             });
         }
     });

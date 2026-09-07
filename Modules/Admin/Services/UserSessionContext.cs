@@ -34,6 +34,7 @@ namespace StudentCourse.Services
                 TeacherNo = principal.FindFirstValue("teacher_no") ?? string.Empty,
                 Title = principal.FindFirstValue("title") ?? string.Empty,
                 Department = principal.FindFirstValue("department") ?? string.Empty,
+                AdminLevel=int.TryParse(principal.FindFirstValue("admin_level"),out int level)?level:-1,
                 IsLoggedIn = true
             };
         }

@@ -22,11 +22,26 @@ namespace StudentCourse.Services
             return _selectionRepository.GetSelectableClasses(semester, keyword);
         }
 
-        public IList<AdminSelectionBatchDto> GetBatchesForStudent(string studentNo){AdminAuthService.RequireAdminSession();return _selectionRepository.GetBatchesForStudent(studentNo);}
-        public IList<AdminStudentScheduleDto> GetStudentSchedule(string studentNo){AdminAuthService.RequireAdminSession();return _selectionRepository.GetStudentSchedule(studentNo);}
-        public IList<AdminSelectionClassDto> GetAllClassesForStudent(string studentNo){AdminAuthService.RequireAdminSession();return _selectionRepository.GetAllClassesForStudent(studentNo);}
-        public IList<AdminStudentScheduleDto> GetAllClassSchedules(){AdminAuthService.RequireAdminSession();return _selectionRepository.GetAllClassSchedules();}
-        public IList<AdminSelectionClassDto> GetBatchClassesForStudent(string studentNo,int batchId){AdminAuthService.RequireAdminSession();return _selectionRepository.GetBatchClassesForStudent(studentNo,batchId);}
+        public IList<AdminSelectionBatchDto> GetBatchesForStudent(string studentNo){
+            AdminAuthService.RequireAdminSession();
+            return _selectionRepository.GetBatchesForStudent(studentNo);
+        }
+        public IList<AdminStudentScheduleDto> GetStudentSchedule(string studentNo){
+            AdminAuthService.RequireAdminSession();
+            return _selectionRepository.GetStudentSchedule(studentNo);
+        }
+        public IList<AdminSelectionClassDto> GetAllClassesForStudent(string studentNo){
+            AdminAuthService.RequireAdminSession();
+            return _selectionRepository.GetAllClassesForStudent(studentNo);
+        }
+        public IList<AdminStudentScheduleDto> GetAllClassSchedules(){
+            AdminAuthService.RequireAdminSession();
+            return _selectionRepository.GetAllClassSchedules();
+        }
+        public IList<AdminSelectionClassDto> GetBatchClassesForStudent(string studentNo,int batchId){
+            AdminAuthService.RequireAdminSession();
+            return _selectionRepository.GetBatchClassesForStudent(studentNo,batchId);
+        }
 
         // 查询某学生已选课程
         public IList<AdminEnrollmentDto> GetStudentEnrollments(string studentNo, string? semester)
