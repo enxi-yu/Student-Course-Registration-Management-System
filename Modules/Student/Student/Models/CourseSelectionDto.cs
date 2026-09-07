@@ -3,6 +3,7 @@ namespace StudentCourse.Student.Models
     public sealed class CourseSelectionDto
     {
         public int ClassId { get; set; }
+        public int CourseId { get; set; }
         public string CourseName { get; set; } = string.Empty;
         public string ClassName { get; set; } = string.Empty;
         public string CourseType { get; set; } = string.Empty;

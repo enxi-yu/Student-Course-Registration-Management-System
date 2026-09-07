@@ -1,13 +1,16 @@
 (function () {
   const escapeHtml = window.sharedUi.escapeHtml;
   function listRow(item) {
-    return `<tr><td>${escapeHtml(item.courseName)}</td><td>${escapeHtml(item.className)}</td><td>${escapeHtml(window.academicSemester.format(item.semester))}</td><td>${escapeHtml(window.sharedUi.weekdayText(item.weekday))}</td><td>${escapeHtml(window.sharedUi.periodText(item))}</td><td>${escapeHtml(item.weekRange || "-")}</td><td>${escapeHtml(item.classroom || "-")}</td><td>${item.credit}</td><td>${item.totalHours}</td></tr>`;
+    return `<tr class="student-schedule-table-row" data-class-id="${item.classId}"><td>${escapeHtml(item.courseName)}</td><td>${escapeHtml(item.className)}</td><td>${escapeHtml(window.academicSemester.format(item.semester))}</td><td>${escapeHtml(window.sharedUi.weekdayText(item.weekday))}</td><td>${escapeHtml(window.sharedUi.periodText(item))}</td><td>${escapeHtml(item.weekRange || "-")}</td><td>${escapeHtml(item.classroom || "-")}</td><td>${item.credit}</td><td>${item.totalHours}</td></tr>`;
   }
   function renderGrid(schedule) {
     return window.sharedUi.timetable(schedule, { clickable: true, cardClass: "student-schedule-card" });
   }
   function bindDetails(container, semester) {
     container.querySelectorAll(".student-schedule-card").forEach(card => card.addEventListener("click", () => window.openStudentPage("detail", { classId: Number(card.dataset.classId), returnPage: "schedule", semester: semester })));
+  }
+  function bindTableRows(container, semester) {
+    container.querySelectorAll(".student-schedule-table-row").forEach(row => row.addEventListener("click", () => window.openStudentPage("detail", { classId: Number(row.dataset.classId), returnPage: "schedule", semester: semester })));
   }
   async function loadSchedule(container, picker) {
     document.getElementById("student-schedule-summary").textContent = `当前学期：${picker.label()}`;
@@ -18,6 +21,7 @@
       if (!schedule || !schedule.length) { window.sharedUi.mountState(root, "empty", "当前学期暂无课表安排"); return; }
       root.innerHTML = renderGrid(schedule) + window.sharedUi.dataTable({ columns: ["课程名称", "教学班", "学期", "星期", "节次", "周次", "教室", "学分", "学时"], rows: schedule, row: listRow });
       bindDetails(container, picker.value());
+      bindTableRows(container, picker.value());
     } catch (error) { window.sharedUi.mountState(root, "error", `加载课表失败：${error.message}`, () => loadSchedule(container, picker)); }
   }
   async function render(container, options) {

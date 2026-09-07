@@ -56,6 +56,12 @@ namespace StudentCourse.Student.Services
             return _repository.DropCourse(student.StudentNo, classId);
         }
 
+        public SelectionResultDto SaveCourseSelection(int batchId, IList<int> classIds)
+        {
+            StudentInfo student = GetCurrentStudent();
+            return _repository.SaveCourseSelection(student.StudentNo, batchId, classIds);
+        }
+
         public List<ScheduleItemDto> GetWeeklySchedule(string semester)
         {
             StudentInfo student = GetCurrentStudent();

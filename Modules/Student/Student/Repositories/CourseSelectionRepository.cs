@@ -42,6 +42,7 @@ namespace StudentCourse.Student.Repositories
 
             const string sql = @"
                 SELECT tc.class_id,
+                       c.course_id,
                        c.course_name,
                        tc.class_name,
                        c.course_type,
@@ -88,6 +89,7 @@ namespace StudentCourse.Student.Repositories
                         courses.Add(new CourseSelectionDto
                         {
                             ClassId = StudentProfileRepository.SafeGetInt(reader["class_id"]),
+                            CourseId = StudentProfileRepository.SafeGetInt(reader["course_id"]),
                             CourseName = StudentProfileRepository.SafeGetString(reader["course_name"]),
                             ClassName = StudentProfileRepository.SafeGetString(reader["class_name"]),
                             CourseType = StudentProfileRepository.SafeGetString(reader["course_type"]),
@@ -346,6 +348,320 @@ namespace StudentCourse.Student.Repositories
                 result.Message = "退课成功。";
                 return result;
             }
+        }
+
+        public SelectionResultDto SaveCourseSelection(string studentNo, int batchId, IList<int> desiredClassIds)
+        {
+            var result = new SelectionResultDto { Success = false };
+            var desired = (desiredClassIds ?? new List<int>()).Distinct().ToList();
+
+            using (OracleConnection connection = DbConnectionFactory.OpenConnection())
+            using (OracleTransaction tx = connection.BeginTransaction())
+            {
+                try
+                {
+                    // 1. 校验批次开放
+                    if (!IsBatchOpen(connection, tx, batchId))
+                    {
+                        result.Message = "当前选课批次不在开放时间内。";
+                        return result;
+                    }
+
+                    // 2. 校验每个 classId 都属于该批次且符合专业/年级范围
+                    foreach (var classId in desired)
+                    {
+                        if (!ClassInBatchScope(connection, tx, studentNo, batchId, classId))
+                        {
+                            result.Message = "提交的课程不属于当前选课批次或不符合选课范围。";
+                            return result;
+                        }
+                    }
+
+                    // 3. 读取当前批次真实选课，后端自行计算 diff
+                    var currentBatchClassIds = GetBatchClassIds(connection, tx, studentNo, batchId);
+                    var toDrop = currentBatchClassIds.Where(id => !desired.Contains(id)).ToList();
+                    var toSelect = desired.Where(id => !currentBatchClassIds.Contains(id)).ToList();
+
+                    // 4. 保存完成后学生最终全部课程（其他批次保留 + 本批次 desired）
+                    var otherBatchClassIds = GetOtherBatchClassIds(connection, tx, studentNo, batchId);
+                    var finalClassIds = otherBatchClassIds.Concat(desired).Distinct().ToList();
+
+                    // 5. 同一门课程只能选择一个教学班
+                    if (finalClassIds.Count > 0 && HasDuplicateCourse(connection, tx, finalClassIds))
+                    {
+                        result.Message = "同一门课程只能选择一个教学班。";
+                        return result;
+                    }
+
+                    // 6. 最终课表时间冲突（仅同 semester 比较）
+                    var conflictNames = FindTimeConflicts(connection, tx, finalClassIds);
+                    if (conflictNames.Count > 0)
+                    {
+                        result.ConflictCourses = conflictNames;
+                        result.Message = "选课失败：与已选课程存在时间冲突。";
+                        return result;
+                    }
+
+                    // 7. 容量校验（仅新增教学班，锁定行）
+                    foreach (var classId in toSelect)
+                    {
+                        if (!HasCapacity(connection, tx, classId))
+                        {
+                            result.Message = "该课程已满，无法选课。";
+                            return result;
+                        }
+                    }
+
+                    // 8. 删除退课
+                    DeleteSelections(connection, tx, studentNo, batchId, toDrop);
+
+                    // 9. 插入选课
+                    InsertSelections(connection, tx, studentNo, batchId, toSelect);
+
+                    // 10. 更新受影响教学班人数
+                    foreach (var classId in toDrop.Concat(toSelect).Distinct())
+                    {
+                        UpdateSelectedCount(connection, classId, tx);
+                    }
+
+                    tx.Commit();
+                    result.Success = true;
+                    result.Message = "保存成功！";
+                    return result;
+                }
+                catch
+                {
+                    result.Message = "保存失败，请重试。";
+                    return result;
+                }
+            }
+        }
+
+        private static bool IsBatchOpen(OracleConnection connection, OracleTransaction tx, int batchId)
+        {
+            const string sql = "SELECT COUNT(*) FROM selection_batch WHERE batch_id=:batchId AND start_time<=SYSDATE AND end_time>=SYSDATE";
+            using (OracleCommand cmd = CreateCommand(connection, sql, tx))
+            {
+                cmd.Parameters.Add("batchId", OracleDbType.Int32).Value = batchId;
+                return Convert.ToInt32(cmd.ExecuteScalar()) > 0;
+            }
+        }
+
+        private static bool ClassInBatchScope(OracleConnection connection, OracleTransaction tx, string studentNo, int batchId, int classId)
+        {
+            const string sql = @"
+                SELECT COUNT(*)
+                  FROM batch_class bc
+                  JOIN student st ON st.student_no = :studentNo
+                 WHERE bc.batch_id = :batchId AND bc.class_id = :classId AND bc.enabled = 1
+                   AND (NOT EXISTS (SELECT 1 FROM batch_class_scope x WHERE x.batch_id=bc.batch_id AND x.class_id=bc.class_id AND x.major IS NOT NULL)
+                        OR EXISTS (SELECT 1 FROM batch_class_scope x WHERE x.batch_id=bc.batch_id AND x.class_id=bc.class_id AND x.major=st.major))
+                   AND (NOT EXISTS (SELECT 1 FROM batch_class_scope x WHERE x.batch_id=bc.batch_id AND x.class_id=bc.class_id AND x.grade IS NOT NULL)
+                        OR EXISTS (SELECT 1 FROM batch_class_scope x WHERE x.batch_id=bc.batch_id AND x.class_id=bc.class_id AND x.grade=st.grade))";
+            using (OracleCommand cmd = CreateCommand(connection, sql, tx))
+            {
+                cmd.Parameters.Add("studentNo", OracleDbType.Varchar2).Value = studentNo;
+                cmd.Parameters.Add("batchId", OracleDbType.Int32).Value = batchId;
+                cmd.Parameters.Add("classId", OracleDbType.Int32).Value = classId;
+                return Convert.ToInt32(cmd.ExecuteScalar()) > 0;
+            }
+        }
+
+        private static List<int> GetBatchClassIds(OracleConnection connection, OracleTransaction tx, string studentNo, int batchId)
+        {
+            var ids = new List<int>();
+            const string sql = "SELECT class_id FROM course_select WHERE student_no=:studentNo AND batch_id=:batchId";
+            using (OracleCommand cmd = CreateCommand(connection, sql, tx))
+            {
+                cmd.Parameters.Add("studentNo", OracleDbType.Varchar2).Value = studentNo;
+                cmd.Parameters.Add("batchId", OracleDbType.Int32).Value = batchId;
+                using (OracleDataReader reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read()) ids.Add(StudentProfileRepository.SafeGetInt(reader["class_id"]));
+                }
+            }
+            return ids;
+        }
+
+        private static List<int> GetOtherBatchClassIds(OracleConnection connection, OracleTransaction tx, string studentNo, int batchId)
+        {
+            var ids = new List<int>();
+            const string sql = "SELECT class_id FROM course_select WHERE student_no=:studentNo AND batch_id<>:batchId";
+            using (OracleCommand cmd = CreateCommand(connection, sql, tx))
+            {
+                cmd.Parameters.Add("studentNo", OracleDbType.Varchar2).Value = studentNo;
+                cmd.Parameters.Add("batchId", OracleDbType.Int32).Value = batchId;
+                using (OracleDataReader reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read()) ids.Add(StudentProfileRepository.SafeGetInt(reader["class_id"]));
+                }
+            }
+            return ids;
+        }
+
+        private static bool HasDuplicateCourse(OracleConnection connection, OracleTransaction tx, IList<int> classIds)
+        {
+            const string sql = @"
+                SELECT COUNT(*) FROM (
+                    SELECT c.course_id
+                      FROM teaching_class tc
+                      JOIN section s ON s.section_id = tc.section_id
+                      JOIN course c ON c.course_id = s.course_id
+                     WHERE tc.class_id IN {IN}
+                     GROUP BY c.course_id
+                    HAVING COUNT(DISTINCT tc.class_id) > 1
+                )";
+            using (OracleCommand cmd = CreateCommand(connection, "", tx))
+            {
+                string inClause = BuildInClause(cmd, "c", classIds);
+                cmd.CommandText = sql.Replace("{IN}", inClause);
+                return Convert.ToInt32(cmd.ExecuteScalar()) > 0;
+            }
+        }
+
+        private static List<string> FindTimeConflicts(OracleConnection connection, OracleTransaction tx, IList<int> classIds)
+        {
+            var conflicts = new List<string>();
+            if (classIds.Count == 0) return conflicts;
+
+            const string sql = @"
+                SELECT tc.class_id, s.semester, c.course_name, ct.weekday, ct.start_period, ct.end_period, ct.week_range
+                  FROM course_time ct
+                  JOIN teaching_class tc ON tc.class_id = ct.class_id
+                  JOIN section s ON s.section_id = tc.section_id
+                  JOIN course c ON c.course_id = s.course_id
+                 WHERE ct.class_id IN {IN}
+                 ORDER BY tc.class_id, ct.weekday, ct.start_period";
+
+            var slots = new List<ScheduleItemDto>();
+            using (OracleCommand cmd = CreateCommand(connection, "", tx))
+            {
+                string inClause = BuildInClause(cmd, "f", classIds);
+                cmd.CommandText = sql.Replace("{IN}", inClause);
+                using (OracleDataReader reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        slots.Add(new ScheduleItemDto
+                        {
+                            ClassId = StudentProfileRepository.SafeGetInt(reader["class_id"]),
+                            Semester = StudentProfileRepository.SafeGetString(reader["semester"]),
+                            CourseName = StudentProfileRepository.SafeGetString(reader["course_name"]),
+                            Weekday = StudentProfileRepository.SafeGetInt(reader["weekday"]),
+                            StartPeriod = StudentProfileRepository.SafeGetInt(reader["start_period"]),
+                            EndPeriod = StudentProfileRepository.SafeGetInt(reader["end_period"]),
+                            WeekRange = StudentProfileRepository.SafeGetString(reader["week_range"])
+                        });
+                    }
+                }
+            }
+
+            for (int i = 0; i < slots.Count; i++)
+            {
+                for (int j = i + 1; j < slots.Count; j++)
+                {
+                    var a = slots[i];
+                    var b = slots[j];
+                    if (a.ClassId == b.ClassId) continue;
+                    if (!string.Equals(a.Semester, b.Semester, StringComparison.OrdinalIgnoreCase)) continue;
+                    if (a.Weekday != b.Weekday) continue;
+                    if (a.StartPeriod > b.EndPeriod || b.StartPeriod > a.EndPeriod) continue;
+                    if (!WeeksOverlap(a.WeekRange, b.WeekRange)) continue;
+                    if (!conflicts.Contains(b.CourseName)) conflicts.Add(b.CourseName);
+                }
+            }
+
+            return conflicts;
+        }
+
+        private static bool HasCapacity(OracleConnection connection, OracleTransaction tx, int classId)
+        {
+            const string sql = @"
+                SELECT capacity, (SELECT COUNT(*) FROM course_select WHERE class_id = :classId) AS selected
+                  FROM teaching_class
+                 WHERE class_id = :classId
+                 FOR UPDATE";
+            using (OracleCommand cmd = CreateCommand(connection, sql, tx))
+            {
+                cmd.Parameters.Add("classId", OracleDbType.Int32).Value = classId;
+                using (OracleDataReader reader = cmd.ExecuteReader())
+                {
+                    if (!reader.Read()) return false;
+                    int capacity = StudentProfileRepository.SafeGetInt(reader["capacity"]);
+                    int selected = StudentProfileRepository.SafeGetInt(reader["selected"]);
+                    return selected < capacity;
+                }
+            }
+        }
+
+        private static void DeleteSelections(OracleConnection connection, OracleTransaction tx, string studentNo, int batchId, IList<int> classIds)
+        {
+            foreach (var classId in classIds)
+            {
+                const string sql = "DELETE FROM course_select WHERE student_no=:studentNo AND batch_id=:batchId AND class_id=:classId";
+                using (OracleCommand cmd = CreateCommand(connection, sql, tx))
+                {
+                    cmd.Parameters.Add("studentNo", OracleDbType.Varchar2).Value = studentNo;
+                    cmd.Parameters.Add("batchId", OracleDbType.Int32).Value = batchId;
+                    cmd.Parameters.Add("classId", OracleDbType.Int32).Value = classId;
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
+
+        private static void InsertSelections(OracleConnection connection, OracleTransaction tx, string studentNo, int batchId, IList<int> classIds)
+        {
+            foreach (var classId in classIds)
+            {
+                const string sql = @"
+                    INSERT INTO course_select (select_id, class_id, batch_id, student_no)
+                    VALUES (course_select_id_seq.NEXTVAL, :classId, :batchId, :studentNo)";
+                using (OracleCommand cmd = CreateCommand(connection, sql, tx))
+                {
+                    cmd.Parameters.Add("classId", OracleDbType.Int32).Value = classId;
+                    cmd.Parameters.Add("batchId", OracleDbType.Int32).Value = batchId;
+                    cmd.Parameters.Add("studentNo", OracleDbType.Varchar2).Value = studentNo;
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
+
+        private static string BuildInClause(OracleCommand cmd, string prefix, IList<int> ids)
+        {
+            var names = new List<string>();
+            for (int i = 0; i < ids.Count; i++)
+            {
+                string name = prefix + i;
+                cmd.Parameters.Add(name, OracleDbType.Int32).Value = ids[i];
+                names.Add(":" + name);
+            }
+            return "(" + string.Join(",", names) + ")";
+        }
+
+        private static bool WeeksOverlap(string a, string b)
+        {
+            var na = ExtractWeekRange(a);
+            var nb = ExtractWeekRange(b);
+            int aMin = Math.Min(na[0], na[1]);
+            int aMax = Math.Max(na[0], na[1]);
+            int bMin = Math.Min(nb[0], nb[1]);
+            int bMax = Math.Max(nb[0], nb[1]);
+            return aMin <= bMax && bMin <= aMax;
+        }
+
+        private static int[] ExtractWeekRange(string range)
+        {
+            var numbers = System.Text.RegularExpressions.Regex.Matches(range ?? "", "\\d+");
+            if (numbers.Count >= 2)
+            {
+                return new[] { int.Parse(numbers[0].Value), int.Parse(numbers[1].Value) };
+            }
+            if (numbers.Count == 1)
+            {
+                int value = int.Parse(numbers[0].Value);
+                return new[] { value, value };
+            }
+            return new[] { 1, 99 };
         }
 
         public List<ScheduleItemDto> GetWeeklySchedule(string studentNo, string semester)

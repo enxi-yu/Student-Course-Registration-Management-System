@@ -354,6 +354,10 @@ textarea {
   background: #fafbfd;
 }
 
+.student-schedule-table-row {
+  cursor: pointer;
+}
+
 /* ---- Buttons ---- */
 .primary-button {
   display: inline-block;

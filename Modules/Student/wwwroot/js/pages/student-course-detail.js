@@ -9,8 +9,8 @@
 
   async function render(container, options) {
     currentOptions = options || {};
-    var currentClassId = Number(currentOptions.classId || 0);
-    if (!currentClassId) {
+    var classId = Number(currentOptions.classId || 0);
+    if (!classId) {
       container.innerHTML = `<section class="panel"><div class="empty-state">课程不存在</div>
         <button class="secondary-button back-btn">返回</button></section>`;
       container.querySelector(".back-btn").addEventListener("click", back);
@@ -21,7 +21,7 @@
 
     var detail;
     try {
-      detail = await window.nativeApi.request("student.getCourseDetail", { classId: currentClassId });
+      detail = await window.nativeApi.request("student.getCourseDetail", { classId: classId });
     } catch (e) {
       container.innerHTML = `<section class="panel"><div class="message error">加载失败：${escapeHtml(e.message)}</div>
         <button class="secondary-button back-btn">返回</button></section>`;
@@ -44,25 +44,23 @@
     var badgeClass = detail.remaining > 0 ? "available" : "full";
     var badgeText = detail.remaining > 0 ? "剩余 " + detail.remaining + " 人" : "已满";
 
-    var hasBatch = Number(currentOptions.batchId || 0) > 0;
-    var isSelected = !!detail.isSelected;
-    var canDrop = !!detail.canDrop;
-
+    // 只有从选课中心进入（returnPage === "courses"）才是“选课编辑详情”，
+    // 从“我的课表”进入（returnPage === "schedule"）为完全只读。
+    var editable = (currentOptions.returnPage === "courses");
     var actionHtml = "";
     var actionHintHtml = "";
 
-    if (isSelected) {
-      if (canDrop) {
-        actionHtml = '<button class="danger-button drop-btn">退课</button>';
+    if (editable) {
+      var session = window.studentCourseSelectionState;
+      var isPendingSelected = session.getCourseState(classId);
+      if (isPendingSelected) {
+        actionHtml = '<button class="danger-button detail-drop-btn">退课</button>';
+      } else if (session.canSelect(classId)) {
+        actionHtml = '<button class="primary-button detail-select-btn">选课</button>';
       } else {
-        actionHtml = '<button class="danger-button drop-btn" disabled>退课</button>';
-        actionHintHtml = `<div class="message" style="margin-top:12px;margin-bottom:0;background:var(--blue-050);border:1px solid var(--blue-100);color:var(--blue-800);">当前不在该课程所属选课批次的退课时间内。</div>`;
+        actionHtml = '<button class="primary-button detail-select-btn" disabled>选课</button>';
+        actionHintHtml = `<div class="message" style="margin-top:12px;margin-bottom:0;background:var(--blue-050);border:1px solid var(--blue-100);color:var(--blue-800);">该课程已满，无法选课。</div>`;
       }
-    } else if (hasBatch) {
-      actionHtml = `<button class="primary-button select-btn"${detail.remaining <= 0 ? " disabled" : ""}>选课</button>`;
-    } else {
-      actionHtml = '<button class="primary-button select-btn" disabled>选课</button>';
-      actionHintHtml = `<div class="message" style="margin-top:12px;margin-bottom:0;background:var(--blue-050);border:1px solid var(--blue-100);color:var(--blue-800);">请从选课中心进入课程详情进行选课。</div>`;
     }
 
     container.innerHTML = `
@@ -108,46 +106,24 @@
       b.addEventListener("click", back);
     });
 
-    var selectBtn = container.querySelector(".select-btn");
+    var selectBtn = container.querySelector(".detail-select-btn");
     if (selectBtn) {
-      selectBtn.addEventListener("click", async function () {
+      selectBtn.addEventListener("click", function () {
         if (selectBtn.disabled) return;
-        if (!hasBatch) {
-          document.getElementById("detail-msg").innerHTML = `<div class="message error">请从选课中心进入课程详情进行选课。</div>`;
-          return;
+        var res = window.studentCourseSelectionState.select(classId);
+        if (res.ok) {
+          render(container, currentOptions);
+        } else {
+          document.getElementById("detail-msg").innerHTML = `<div class="message error">${escapeHtml(res.message)}</div>`;
         }
-        window.sharedUi.setBusy(selectBtn, true, "选课中...");
-        try {
-          var r = await window.nativeApi.request("student.selectCourse", { classId: currentClassId, batchId: currentOptions.batchId });
-          if (r.success) {
-            document.getElementById("detail-msg").innerHTML = `<div class="message success">选课成功！</div>`;
-            render(container, currentOptions);
-          } else {
-            document.getElementById("detail-msg").innerHTML = `<div class="message error">${escapeHtml(r.message)}</div>`;
-          }
-        } catch (e) {
-          document.getElementById("detail-msg").innerHTML = `<div class="message error">${escapeHtml(e.message)}</div>`;
-        } finally { if (selectBtn.isConnected) window.sharedUi.setBusy(selectBtn, false); }
       });
     }
 
-    var dropBtn = container.querySelector(".drop-btn");
+    var dropBtn = container.querySelector(".detail-drop-btn");
     if (dropBtn) {
-      dropBtn.addEventListener("click", async function () {
-        if (dropBtn.disabled) return;
-        if (!await window.sharedUi.confirm("确认退选该课程？")) return;
-        window.sharedUi.setBusy(dropBtn, true, "退课中...");
-        try {
-          var r = await window.nativeApi.request("student.dropCourse", { classId: currentClassId });
-          if (r.success) {
-            document.getElementById("detail-msg").innerHTML = `<div class="message success">退课成功！</div>`;
-            render(container, currentOptions);
-          } else {
-            document.getElementById("detail-msg").innerHTML = `<div class="message error">${escapeHtml(r.message)}</div>`;
-          }
-        } catch (e) {
-          document.getElementById("detail-msg").innerHTML = `<div class="message error">${escapeHtml(e.message)}</div>`;
-        } finally { if (dropBtn.isConnected) window.sharedUi.setBusy(dropBtn, false); }
+      dropBtn.addEventListener("click", function () {
+        window.studentCourseSelectionState.drop(classId);
+        render(container, currentOptions);
       });
     }
   }
@@ -156,10 +132,7 @@
     if (!window.openStudentPage) return;
     var returnPage = currentOptions && currentOptions.returnPage;
     if (returnPage === "courses") {
-      window.openStudentPage("courses", {
-        batchId: currentOptions.batchId,
-        pendingIds: currentOptions.pendingIds
-      });
+      window.openStudentPage("courses", { batchId: currentOptions.batchId });
       return;
     }
     if (returnPage === "schedule") {
