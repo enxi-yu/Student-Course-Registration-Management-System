@@ -133,6 +133,24 @@ namespace StudentCourse.Models
         public decimal CreditFinished { get; set; }
     }
 
+    public sealed class AdminStudentLookupDto
+    {
+        public string StudentNo { get; set; } = string.Empty;
+
+        public string RealName { get; set; } = string.Empty;
+
+        public string Major { get; set; } = string.Empty;
+
+        public string Grade { get; set; } = string.Empty;
+    }
+
+    public sealed class AdminStudentAudienceOptionsDto
+    {
+        public IList<string> Majors { get; set; } = new List<string>();
+
+        public IList<string> Grades { get; set; } = new List<string>();
+    }
+
     public sealed class AdminTeacherDto
     {
         public int UserId { get; set; }

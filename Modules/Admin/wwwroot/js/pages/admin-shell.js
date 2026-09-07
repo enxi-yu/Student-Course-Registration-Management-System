@@ -1,4 +1,5 @@
 (function () {
+    const loginPortalUrl = 'http://localhost:5100/Login';
     const pendingMutations = new Map();
     const pageChrome = [
         {
@@ -185,8 +186,13 @@
             const contentType = response.headers.get('content-type') || '';
             const data = contentType.includes('application/json') ? await response.json() : await response.text();
 
+            if (response.status === 401) {
+                window.location.replace(loginPortalUrl);
+                throw new Error('登录已失效，请重新登录');
+            }
+
             if (!response.ok) {
-            const message = window.sharedUi.errorText(data, String(data || response.statusText));
+                const message = window.sharedUi.errorText(data, String(data || response.statusText));
                 throw new Error(message);
             }
 
@@ -240,7 +246,7 @@
                 } catch (e) {
                     // 退出请求失败也继续跳转
                 }
-                window.location.replace('/admin.html');
+                window.location.replace(loginPortalUrl);
             });
         }
     });

@@ -51,10 +51,10 @@ function wireBatchMulti(id, emptyText) {
 
 async function loadBatchLookups() {
     if (batchClassOptions.length) return;
-    const [classes, students] = await Promise.all([adminFetch('/api/admin/classes'), adminFetch('/api/admin/students')]);
+    const [classes, audiences] = await Promise.all([adminFetch('/api/admin/classes'), adminFetch('/api/admin/lookups/student-audiences')]);
     batchClassOptions = classes;
-    batchMajors = [...new Set(students.map(x => x.major).filter(Boolean))].sort();
-    batchGrades = [...new Set(students.map(x => x.grade).filter(Boolean))].sort().reverse();
+    batchMajors = audiences.majors || [];
+    batchGrades = audiences.grades || [];
     fillBatchSelectors([], [], []);
 }
 
