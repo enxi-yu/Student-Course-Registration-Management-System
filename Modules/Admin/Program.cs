@@ -11,6 +11,8 @@ string sharedLocalSettingsPath = Path.GetFullPath(
     Path.Combine(builder.Environment.ContentRootPath, "..", "..", "appsettings.Local.json"));
 string sharedUiRootPath = Path.GetFullPath(
     Path.Combine(builder.Environment.ContentRootPath, "..", "..", "Shared", "wwwroot"));
+string dataProtectionKeysPath = Path.Combine(Path.GetTempPath(), "StudentCourse.Admin.DataProtectionKeys");
+Directory.CreateDirectory(dataProtectionKeysPath);
 builder.Configuration.AddJsonFile(sharedLocalSettingsPath, optional: true, reloadOnChange: true);
 
 builder.Logging.ClearProviders();
@@ -20,13 +22,14 @@ builder.Logging.AddConsole();
 builder.Services.AddControllers();
 builder.Services.AddHttpContextAccessor();
 // 本地演示服务可能由终端、IDE 或 Codex 等不同 Windows 身份启动。
-// 使用进程内密钥，避免默认用户密钥目录权限异常导致正确账号登录时返回 500。
-builder.Services.AddDataProtection().UseEphemeralDataProtectionProvider();
+// 使用临时目录保存 Cookie 密钥，避免默认用户密钥目录权限异常导致正确账号登录时返回 500。
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeysPath))
+    .SetApplicationName("StudentCourse.Admin");
 builder.Services
     .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
-        options.DataProtectionProvider = new EphemeralDataProtectionProvider();
         options.Cookie.Name = "StudentCourse.Admin.Auth";
         options.LoginPath = "/admin.html";
         options.Events.OnRedirectToLogin = context =>

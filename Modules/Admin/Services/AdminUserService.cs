@@ -17,21 +17,24 @@ namespace StudentCourse.Services
 
         public IList<AdminStudentDto> GetStudents(string? keyword)
         {
-            UserSession session=AdminAuthService.RequireAdminSession();
-            if(_adminRepository.GetAdminLevel(session.UserId)!=0){
-                throw new InvalidOperationException("仅超级管理员可执行此操作");
-            }
+            AdminAuthService.RequireAdminSession();
             return _adminRepository.GetStudents(keyword);
         }
 
         public AdminStudentDto CreateStudent(AdminUserInput input, string ipAddress)
         {
+            AdminAuthService.RequireSuperAdmin();
             ValidateCommon(input, requirePassword: true);
             RequirePrefix(input.Username, 'S', "学生账号必须以 S 开头");
             Require(input.StudentNo, "学号不能为空");
             Require(input.Major, "专业不能为空");
             Require(input.Grade, "年级不能为空");
             ValidateGpa(input.AvgGpa);
+            EnsureUsernameUnique(input.Username);
+            if (_adminRepository.StudentNoExists(input.StudentNo.Trim()))
+            {
+                throw new InvalidOperationException($"学号 {input.StudentNo.Trim()} 已被使用，请更换");
+            }
 
             AdminStudentDto student = _adminRepository.InsertStudent(input, PasswordHash.Hash(input.Password));
             _systemLogService.WriteCurrent("新增", "新增学生账号", student.StudentNo, ipAddress, new { student.UserId, student.StudentNo, student.RealName });
@@ -40,12 +43,18 @@ namespace StudentCourse.Services
 
         public AdminStudentDto UpdateStudent(int userId, AdminUserInput input, string ipAddress)
         {
+            AdminAuthService.RequireSuperAdmin();
             ValidateCommon(input, requirePassword: false);
             RequirePrefix(input.Username, 'S', "学生账号必须以 S 开头");
             Require(input.StudentNo, "学号不能为空");
             Require(input.Major, "专业不能为空");
             Require(input.Grade, "年级不能为空");
             ValidateGpa(input.AvgGpa);
+            EnsureUsernameUnique(input.Username, userId);
+            if (_adminRepository.StudentNoExists(input.StudentNo.Trim(), userId))
+            {
+                throw new InvalidOperationException($"学号 {input.StudentNo.Trim()} 已被其他学生使用");
+            }
 
             AdminStudentDto student = _adminRepository.UpdateStudent(userId, input);
             _systemLogService.WriteCurrent("修改", "修改学生信息", student.StudentNo, ipAddress, new { student.UserId, student.StudentNo, student.RealName });
@@ -54,20 +63,23 @@ namespace StudentCourse.Services
 
         public IList<AdminTeacherDto> GetTeachers(string? keyword)
         {
-            UserSession session=AdminAuthService.RequireAdminSession();
-            if(_adminRepository.GetAdminLevel(session.UserId)!=0){
-                throw new InvalidOperationException("仅超级管理员可执行此操作");
-            }
+            AdminAuthService.RequireAdminSession();
             return _adminRepository.GetTeachers(keyword);
         }
 
         public AdminTeacherDto CreateTeacher(AdminUserInput input, string ipAddress)
         {
+            AdminAuthService.RequireSuperAdmin();
             ValidateCommon(input, requirePassword: true);
             RequirePrefix(input.Username, 'T', "教师账号必须以 T 开头");
             Require(input.TeacherNo, "教师工号不能为空");
             Require(input.Title, "职称不能为空");
             Require(input.Department, "所属院系不能为空");
+            EnsureUsernameUnique(input.Username);
+            if (_adminRepository.TeacherNoExists(input.TeacherNo.Trim()))
+            {
+                throw new InvalidOperationException($"工号 {input.TeacherNo.Trim()} 已被使用，请更换");
+            }
 
             AdminTeacherDto teacher = _adminRepository.InsertTeacher(input, PasswordHash.Hash(input.Password));
             _systemLogService.WriteCurrent("新增", "新增教师账号", teacher.TeacherNo, ipAddress, new { teacher.UserId, teacher.TeacherNo, teacher.RealName });
@@ -76,11 +88,17 @@ namespace StudentCourse.Services
 
         public AdminTeacherDto UpdateTeacher(int userId, AdminUserInput input, string ipAddress)
         {
+            AdminAuthService.RequireSuperAdmin();
             ValidateCommon(input, requirePassword: false);
             RequirePrefix(input.Username, 'T', "教师账号必须以 T 开头");
             Require(input.TeacherNo, "教师工号不能为空");
             Require(input.Title, "职称不能为空");
             Require(input.Department, "所属院系不能为空");
+            EnsureUsernameUnique(input.Username, userId);
+            if (_adminRepository.TeacherNoExists(input.TeacherNo.Trim(), userId))
+            {
+                throw new InvalidOperationException($"工号 {input.TeacherNo.Trim()} 已被其他教师使用");
+            }
 
             AdminTeacherDto teacher = _adminRepository.UpdateTeacher(userId, input);
             _systemLogService.WriteCurrent("修改", "修改教师信息", teacher.TeacherNo, ipAddress, new { teacher.UserId, teacher.TeacherNo, teacher.RealName });
@@ -89,30 +107,21 @@ namespace StudentCourse.Services
 
         public void DisableUser(int userId, string ipAddress)
         {
-            UserSession session=AdminAuthService.RequireAdminSession();
-            if(_adminRepository.GetAdminLevel(session.UserId)!=0){
-                throw new InvalidOperationException("仅超级管理员可执行此操作");
-            }
+            AdminAuthService.RequireSuperAdmin();
             _adminRepository.SetUserStatus(userId, 0);
             _systemLogService.WriteCurrent("修改", "禁用用户账号", Convert.ToString(userId), ipAddress, new { userId, status = 0 });
         }
 
         public void EnableUser(int userId, string ipAddress)
         {
-            UserSession session=AdminAuthService.RequireAdminSession();
-            if(_adminRepository.GetAdminLevel(session.UserId)!=0){
-                throw new InvalidOperationException("仅超级管理员可执行此操作");
-            }
+            AdminAuthService.RequireSuperAdmin();
             _adminRepository.SetUserStatus(userId, 1);
             _systemLogService.WriteCurrent("修改", "启用用户账号", Convert.ToString(userId), ipAddress, new { userId, status = 1 });
         }
 
         public void ResetPassword(int userId, ResetPasswordRequest request, string ipAddress)
         {
-            UserSession session=AdminAuthService.RequireAdminSession();
-            if(_adminRepository.GetAdminLevel(session.UserId)!=0){
-                throw new InvalidOperationException("仅超级管理员可执行此操作");
-            }
+            AdminAuthService.RequireSuperAdmin();
             if (request == null || string.IsNullOrWhiteSpace(request.Password))
             {
                 throw new InvalidOperationException("新密码不能为空");
@@ -145,6 +154,15 @@ namespace StudentCourse.Services
             if (!string.IsNullOrWhiteSpace(input.Email) && !input.Email.Contains("@"))
             {
                 throw new InvalidOperationException("电子邮箱格式不正确");
+            }
+        }
+
+        private void EnsureUsernameUnique(string? username, int? excludeUserId = null)
+        {
+            string value = (username ?? string.Empty).Trim();
+            if (_adminRepository.UsernameExists(value, excludeUserId))
+            {
+                throw new InvalidOperationException($"登录账号 {value} 已被使用，请更换");
             }
         }
 

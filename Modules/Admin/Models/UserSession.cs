@@ -17,5 +17,7 @@ namespace StudentCourse.Models
         public string Department { get; set; }
 
         public bool IsLoggedIn { get; set; }
+
+        public int AdminLevel { get; set; }=-1;
     }
 }

@@ -21,7 +21,8 @@ public sealed class AuthController : ControllerBase
                 new Claim(ClaimTypes.NameIdentifier, current.UserId.ToString()),
                 new Claim(ClaimTypes.Name, current.Username),
                 new Claim(ClaimTypes.GivenName, current.RealName),
-                new Claim(ClaimTypes.Role, "Admin")
+                new Claim(ClaimTypes.Role, "Admin"),
+                new Claim("admin_level",current.AdminLevel.ToString())
             };
             await HttpContext.SignInAsync(new ClaimsPrincipal(new ClaimsIdentity(claims, "Cookies")));
             return Ok(current);

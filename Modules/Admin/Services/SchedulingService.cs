@@ -26,8 +26,15 @@ namespace StudentCourse.Services
             AdminAuthService.RequireAdminSession();
             return _repository.SearchTeachers(keyword, Math.Max(1, page), Math.Clamp(pageSize, 1, 50));
         }
-        public IList<ScheduleRowDto> GetSchedules(string? semester) { AdminAuthService.RequireAdminSession(); return _repository.GetSchedules(semester); }
-        public ScheduleDetailDto GetSchedule(int classId) { AdminAuthService.RequireAdminSession(); return _repository.GetSchedule(classId); }
+        public IList<ScheduleRowDto> GetSchedules(string? semester) { 
+            AdminAuthService.RequireAdminSession();
+            return _repository.GetSchedules(semester); 
+        }
+        
+        public ScheduleDetailDto GetSchedule(int classId) { 
+            AdminAuthService.RequireAdminSession();
+            return _repository.GetSchedule(classId); 
+        }
 
         public ScheduleRowDto Create(SchedulingInput input, string ipAddress)
         {

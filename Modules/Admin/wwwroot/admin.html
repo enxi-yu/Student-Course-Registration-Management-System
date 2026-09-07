@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>管理员端 - 学生选课管理系统</title>
-  <link rel="stylesheet" href="/shared-ui/css/interface-unified.css?v=23">
+  <link rel="stylesheet" href="/shared-ui/css/interface-unified.css?v=24">
   <link rel="stylesheet" href="css/admin-extra.css?v=log-filter-grid1">
   <style>
     table, th, td { border: 1px solid #e0e0e0 !important; border-collapse: collapse; }
@@ -335,7 +335,7 @@
             <button class="nav-item nav-sub-item" type="button" data-tab="teachers" onclick="switchTab('teachers')">教师管理</button>
           </div>
         </div>
-        <div class="nav-collapsible">
+        <div class="nav-collapsible" data-hide-when-empty>
           <button class="nav-item nav-group-toggle" type="button" aria-expanded="false" aria-controls="admin-nav-selection" onclick="toggleAdminNavGroup('admin-nav-selection', this)">
             <span>选课管理</span><span class="nav-chevron" aria-hidden="true">⌄</span>
           </button>
@@ -716,8 +716,7 @@
             </div>
             <div class="toolbar-row">
               <div class="field inline-field">
-                <label>学号 / 姓名</label>
-                <input type="text" id="selectionKeyword" placeholder="2026001 或 张" onkeydown="if(event.key==='Enter') searchStudentsForSelection()">
+                <input type="text" id="selectionKeyword" placeholder="学号/姓名" onkeydown="if(event.key==='Enter') searchStudentsForSelection()">
               </div>
               <button class="btn btn-primary" onclick="searchStudentsForSelection()">查询</button>
             </div>
@@ -790,14 +789,14 @@
   </div>
 
   <script src="/shared-ui/js/academic-semester.js?v=4"></script>
-  <script src="/shared-ui/js/ui-components.js?v=12"></script>
+  <script src="/shared-ui/js/ui-components.js?v=13"></script>
   <script src="js/admin-dialog.js?v=shared-dialog1"></script>
   <script src="js/pages/admin-course.js?v=shared-form-dialog1"></script>
   <script src="js/pages/admin-scheduling.js?v=shared-utils1"></script>
   <script src="js/pages/admin-application.js?v=shared-utils1"></script>
-  <script src="js/pages/admin-dashboard.js?v=shared-dashboard2"></script>
-  <script src="js/pages/admin-shell.js?v=log-filter-grid1"></script>
-  <script src="js/pages/admin-auth.js?v=no-permissions1"></script>
+  <script src="js/pages/admin-dashboard.js?v=super-role1"></script>
+  <script src="js/pages/admin-shell.js?v=super-role1"></script>
+  <script src="js/pages/admin-auth.js?v=super-role1"></script>
   <script src="js/pages/admin-student.js?v=shared-state1"></script>
   <script src="js/pages/admin-teacher.js?v=shared-state1"></script>
   <script src="js/pages/admin-batch.js?v=end-refresh1"></script>

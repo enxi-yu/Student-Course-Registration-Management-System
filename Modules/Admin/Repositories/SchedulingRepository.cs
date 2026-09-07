@@ -188,11 +188,12 @@ namespace StudentCourse.Repositories
             {
                 int sectionId = FindOrCreateSection(connection, transaction, input.CourseId, input.Semester);
                 int classId = NextSequenceValue(connection, transaction, "teaching_class_id_seq");
+                EnsureClassNameUnique(connection, transaction, sectionId, input.ClassName);
                 const string classSql = "INSERT INTO teaching_class (class_id, class_name, teacher_no, capacity, selected_count, section_id) VALUES (:classId, :className, :teacherNo, :capacity, 0, :sectionId)";
                 using (OracleCommand command = CreateCommand(connection, classSql, transaction))
                 {
                     command.Parameters.Add("classId", OracleDbType.Int32).Value = classId;
-                    command.Parameters.Add("className", OracleDbType.Varchar2).Value = input.ClassName;
+                    command.Parameters.Add("className", OracleDbType.Varchar2).Value = input.ClassName.Trim();
                     command.Parameters.Add("teacherNo", OracleDbType.Varchar2).Value = input.TeacherNo;
                     command.Parameters.Add("capacity", OracleDbType.Int32).Value = input.Capacity;
                     command.Parameters.Add("sectionId", OracleDbType.Int32).Value = sectionId;
@@ -248,6 +249,7 @@ namespace StudentCourse.Repositories
                 if (input.Capacity < selectedCount) throw new InvalidOperationException($"课程容量不能小于当前已选人数 {selectedCount}");
 
                 int sectionId = FindOrCreateSection(connection, transaction, input.CourseId, input.Semester);
+                EnsureClassNameUnique(connection, transaction, sectionId, input.ClassName, classId);
                 CheckConflicts(connection, transaction, input, classId);
 
                 using (OracleCommand times = CreateCommand(connection, "DELETE FROM course_time WHERE class_id = :classId", transaction))
@@ -328,6 +330,25 @@ namespace StudentCourse.Repositories
         {
             using OracleCommand command = CreateCommand(connection, $"SELECT {sequenceName}.NEXTVAL FROM dual", transaction);
             return Convert.ToInt32(command.ExecuteScalar());
+        }
+
+        private static void EnsureClassNameUnique(OracleConnection connection, OracleTransaction transaction, int sectionId, string? className, int? excludedClassId = null)
+        {
+            string value = (className ?? string.Empty).Trim();
+            string sql = @"SELECT COUNT(*) FROM teaching_class WHERE section_id = :sectionId AND TRIM(class_name) = :className";
+            if (excludedClassId.HasValue) 
+                sql += " AND class_id <> :excludedClassId";
+            using (OracleCommand command = CreateCommand(connection, sql, transaction))
+            {
+                command.Parameters.Add("sectionId", OracleDbType.Int32).Value = sectionId;
+                command.Parameters.Add("className", OracleDbType.Varchar2).Value = value;
+                if (excludedClassId.HasValue) 
+                    command.Parameters.Add("excludedClassId", OracleDbType.Int32).Value = excludedClassId.Value;
+                if (Convert.ToInt32(command.ExecuteScalar()) > 0)
+                {
+                    throw new InvalidOperationException($"同课程同学期已存在教学班“{value}”，请更换教学班名称");
+                }
+            }
         }
 
         private static void CheckConflicts(OracleConnection connection, OracleTransaction transaction, SchedulingInput input, int excludedClassId)
