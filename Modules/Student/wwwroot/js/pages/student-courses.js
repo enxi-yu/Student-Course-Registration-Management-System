@@ -259,8 +259,11 @@
           window.sharedUi.setBusy(saveBtn, true, "正在保存...");
           var classIds = Object.keys(pendingIds).map(Number);
           try {
-            await window.nativeApi.request("student.saveCourseSelection", { batchId: currentBatch.batchId, classIds: classIds });
-            window.sharedUi.alert("保存成功！");
+            var result = await window.nativeApi.request("student.saveCourseSelection", { batchId: currentBatch.batchId, classIds: classIds });
+            if (!result || result.success !== true) {
+              throw new Error(result && result.message ? result.message : "保存失败，请重试。");
+            }
+            window.sharedUi.alert(result.message || "保存成功！");
             await loadCourses();
             refresh();
           } catch (e) {
