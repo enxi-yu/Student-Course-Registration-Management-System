@@ -14,6 +14,7 @@
     "student.getCourseDetail": { method: "GET", url: "/api/student/courses/{classId}" },
     "student.selectCourse": { method: "POST", url: "/api/student/courses/select" },
     "student.dropCourse": { method: "POST", url: "/api/student/courses/drop" },
+    "student.saveCourseSelection": { method: "POST", url: "/api/student/courses/save" },
     "student.getSchedule": { method: "GET", url: "/api/student/schedule" },
     "student.getGrades": { method: "GET", url: "/api/student/grades" },
     "student.getGpa": { method: "GET", url: "/api/student/gpa" },

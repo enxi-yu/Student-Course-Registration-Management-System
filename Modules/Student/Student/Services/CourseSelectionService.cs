@@ -40,7 +40,8 @@ namespace StudentCourse.Student.Services
 
         public CourseDetailDto? GetCourseDetail(int classId)
         {
-            return _repository.GetCourseDetail(classId);
+            StudentInfo student = GetCurrentStudent();
+            return _repository.GetCourseDetail(student.StudentNo, classId);
         }
 
         public SelectionResultDto SelectCourse(int classId, int batchId)
@@ -53,6 +54,12 @@ namespace StudentCourse.Student.Services
         {
             StudentInfo student = GetCurrentStudent();
             return _repository.DropCourse(student.StudentNo, classId);
+        }
+
+        public SelectionResultDto SaveCourseSelection(int batchId, IList<int> classIds)
+        {
+            StudentInfo student = GetCurrentStudent();
+            return _repository.SaveCourseSelection(student.StudentNo, batchId, classIds);
         }
 
         public List<ScheduleItemDto> GetWeeklySchedule(string semester)

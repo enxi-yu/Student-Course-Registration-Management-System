@@ -66,32 +66,64 @@ namespace StudentCourse.Student.Repositories
 
         public void SubmitEvaluation(string studentNo, int classId, int d1, int d2, int d3, int d4, string comment)
         {
-            const string updateSql = @"
-                UPDATE course_evaluation
-                   SET d1_score = :d1, d2_score = :d2, d3_score = :d3, d4_score = :d4,
-                       eval_score = :evalScore, eval_content = :evalContent, eval_time = SYSDATE
-                 WHERE student_no = :studentNo AND class_id = :classId";
-            const string insertSql = @"
-                INSERT INTO course_evaluation
-                    (eval_id, student_no, class_id, d1_score, d2_score, d3_score, d4_score, eval_score, eval_content, eval_time)
-                VALUES (:evalId, :studentNo, :classId, :d1, :d2, :d3, :d4, :evalScore, :evalContent, SYSDATE)";
+            decimal evalScore = Math.Round((d1 + d2 + d3 + d4) / 4.0m, 1);
 
             using (OracleConnection connection = DbConnectionFactory.OpenConnection())
             using (OracleTransaction transaction = connection.BeginTransaction())
             {
                 try
                 {
-                    decimal evalScore = Math.Round((d1 + d2 + d3 + d4) / 4.0m, 1);
-                    using OracleCommand update = CreateCommand(connection, updateSql);
-                    update.Transaction = transaction;
-                    AddEvaluationParameters(update, studentNo, classId, d1, d2, d3, d4, evalScore, comment, includeId: false);
-                    if (update.ExecuteNonQuery() == 0)
+                    // 1. 必须已选该课程
+                    const string selectSql = @"
+                        SELECT COUNT(*) FROM course_select
+                         WHERE student_no = :studentNo AND class_id = :classId";
+                    using (OracleCommand cmd = CreateCommand(connection, selectSql))
                     {
-                        using OracleCommand insert = CreateCommand(connection, insertSql);
+                        cmd.Transaction = transaction;
+                        cmd.Parameters.Add("studentNo", OracleDbType.Varchar2).Value = studentNo;
+                        cmd.Parameters.Add("classId", OracleDbType.Int32).Value = classId;
+                        if (Convert.ToInt32(cmd.ExecuteScalar()) == 0)
+                            throw new InvalidOperationException("您尚未选择该课程，无法评价。");
+                    }
+
+                    // 2. 必须已出成绩
+                    const string scoreSql = @"
+                        SELECT COUNT(*) FROM student_score
+                         WHERE student_no = :studentNo AND class_id = :classId AND total_score IS NOT NULL";
+                    using (OracleCommand cmd = CreateCommand(connection, scoreSql))
+                    {
+                        cmd.Transaction = transaction;
+                        cmd.Parameters.Add("studentNo", OracleDbType.Varchar2).Value = studentNo;
+                        cmd.Parameters.Add("classId", OracleDbType.Int32).Value = classId;
+                        if (Convert.ToInt32(cmd.ExecuteScalar()) == 0)
+                            throw new InvalidOperationException("该课程尚未录入成绩，无法评价。");
+                    }
+
+                    // 3. 必须未评价过（禁止重复提交 / 覆盖原评价）
+                    const string evalSql = @"
+                        SELECT COUNT(*) FROM course_evaluation
+                         WHERE student_no = :studentNo AND class_id = :classId";
+                    using (OracleCommand cmd = CreateCommand(connection, evalSql))
+                    {
+                        cmd.Transaction = transaction;
+                        cmd.Parameters.Add("studentNo", OracleDbType.Varchar2).Value = studentNo;
+                        cmd.Parameters.Add("classId", OracleDbType.Int32).Value = classId;
+                        if (Convert.ToInt32(cmd.ExecuteScalar()) > 0)
+                            throw new InvalidOperationException("该课程已经评价，不能重复提交。");
+                    }
+
+                    // 4. 只允许新增评价
+                    const string insertSql = @"
+                        INSERT INTO course_evaluation
+                            (eval_id, student_no, class_id, d1_score, d2_score, d3_score, d4_score, eval_score, eval_content, eval_time)
+                        VALUES (:evalId, :studentNo, :classId, :d1, :d2, :d3, :d4, :evalScore, :evalContent, SYSDATE)";
+                    using (OracleCommand insert = CreateCommand(connection, insertSql))
+                    {
                         insert.Transaction = transaction;
                         AddEvaluationParameters(insert, studentNo, classId, d1, d2, d3, d4, evalScore, comment, includeId: true);
                         insert.ExecuteNonQuery();
                     }
+
                     transaction.Commit();
                 }
                 catch

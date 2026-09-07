@@ -45,6 +45,12 @@ namespace StudentCourse.Student.Controllers
             return SafeOk(() => _service.DropCourse(request.ClassId));
         }
 
+        [HttpPost("api/student/courses/save")]
+        public IActionResult SaveCourseSelection([FromBody] SaveCourseSelectionRequest request)
+        {
+            return SafeOk(() => _service.SaveCourseSelection(request.BatchId, request.ClassIds));
+        }
+
         [HttpGet("api/student/schedule")]
         public IActionResult GetWeeklySchedule([FromQuery] string? semester)
         {
@@ -77,5 +83,11 @@ namespace StudentCourse.Student.Controllers
     public sealed class DropCourseRequest
     {
         public int ClassId { get; set; }
+    }
+
+    public sealed class SaveCourseSelectionRequest
+    {
+        public int BatchId { get; set; }
+        public List<int> ClassIds { get; set; } = new();
     }
 }
