@@ -17,21 +17,28 @@ namespace StudentCourse.Services
 
         public SchedulingLookupDto<CourseOptionDto> SearchCourses(string? keyword, int page, int pageSize)
         {
-            AdminAuthService.RequireAdminSession();
+            AdminAuthService.RequireCourseAdmin();
             return _repository.SearchCourses(keyword, Math.Max(1, page), Math.Clamp(pageSize, 1, 50));
         }
 
         public SchedulingLookupDto<TeacherOptionDto> SearchTeachers(string? keyword, int page, int pageSize)
         {
-            AdminAuthService.RequireAdminSession();
+            AdminAuthService.RequireCourseAdmin();
             return _repository.SearchTeachers(keyword, Math.Max(1, page), Math.Clamp(pageSize, 1, 50));
         }
-        public IList<ScheduleRowDto> GetSchedules(string? semester) { AdminAuthService.RequireAdminSession(); return _repository.GetSchedules(semester); }
-        public ScheduleDetailDto GetSchedule(int classId) { AdminAuthService.RequireAdminSession(); return _repository.GetSchedule(classId); }
+        public IList<ScheduleRowDto> GetSchedules(string? semester) { 
+            AdminAuthService.RequireCourseAdmin();
+            return _repository.GetSchedules(semester); 
+        }
+        
+        public ScheduleDetailDto GetSchedule(int classId) { 
+            AdminAuthService.RequireCourseAdmin();
+            return _repository.GetSchedule(classId); 
+        }
 
         public ScheduleRowDto Create(SchedulingInput input, string ipAddress)
         {
-            AdminAuthService.RequireAdminSession();
+            AdminAuthService.RequireCourseAdmin();
             Validate(input);
             ScheduleRowDto result = _repository.Create(input);
             _logs.WriteCurrent("新增", "新增课程排课", Convert.ToString(result.ClassId), ipAddress, input);
@@ -40,7 +47,7 @@ namespace StudentCourse.Services
 
         public ScheduleRowDto Update(int classId, SchedulingInput input, string ipAddress)
         {
-            AdminAuthService.RequireAdminSession();
+            AdminAuthService.RequireCourseAdmin();
             Validate(input);
             ScheduleRowDto result = _repository.Update(classId, input);
             _logs.WriteCurrent("修改", "修改课程排课", Convert.ToString(classId), ipAddress, input);
@@ -49,7 +56,7 @@ namespace StudentCourse.Services
 
         public void Delete(int classId, string ipAddress)
         {
-            AdminAuthService.RequireAdminSession();
+            AdminAuthService.RequireCourseAdmin();
             _repository.Delete(classId);
             _logs.WriteCurrent("删除", "删除课程排课", Convert.ToString(classId), ipAddress, null);
         }

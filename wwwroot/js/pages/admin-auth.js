@@ -12,31 +12,29 @@ async function loadAdminCurrent() {
     }
 }
 
-// 普通管理员（level != 0）隐藏的菜单项
-const RESTRICTED_TABS = ['students', 'teachers', 'batches', 'logs'];
-
+// 职责划分：系统管理员(level=0)管用户与日志，教务管理员(level=1)管教学与选课，权限表见 admin-shell.js
 function applyAdminMenuVisibility() {
-    const isSuper = window.ADMIN_LEVEL === 0;
+    const loggedIn = window.ADMIN_LEVEL !== undefined;
     let firstVisibleTab = null;
 
     document.querySelectorAll('.nav-item[data-tab]').forEach(btn => {
         const tab = btn.getAttribute('data-tab');
-        const restricted = RESTRICTED_TABS.indexOf(tab) >= 0;
-        const visible = !restricted || isSuper;
+        const visible = loggedIn && window.isAdminTabAllowed(tab);
         btn.style.display = visible ? '' : 'none';
         if (visible && firstVisibleTab == null) firstVisibleTab = tab;
     });
 
-    document.querySelectorAll('.nav-collapsible[data-hide-when-empty]').forEach(group => {
+    // 所有导航分组统一处理：组内没有可见项就整组隐藏（含分组标题）
+    document.querySelectorAll('.nav-collapsible').forEach(group => {
         const hasVisibleItem = Array.from(group.querySelectorAll('.nav-item[data-tab]'))
             .some(btn => btn.style.display !== 'none');
         group.style.display = hasVisibleItem ? '' : 'none';
     });
 
     // 面板同步隐藏
-    RESTRICTED_TABS.forEach(tab => {
-        const el = document.getElementById(tab + '-tab');
-        if (el) el.style.display = isSuper ? '' : 'none';
+    document.querySelectorAll('.tab-content').forEach(el => {
+        const tab = el.id.replace(/-tab$/, '');
+        el.style.display = loggedIn && window.isAdminTabAllowed(tab) ? '' : 'none';
     });
 
     // 当前激活tab被隐藏则切到第一个可见tab

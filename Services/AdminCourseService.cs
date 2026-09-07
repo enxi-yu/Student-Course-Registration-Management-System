@@ -16,13 +16,13 @@ namespace StudentCourse.Services
 
         public IList<CourseDto> GetCourses(string? keyword, string? coursetype)
         {
-            AdminAuthService.RequireAdminSession();
+            AdminAuthService.RequireCourseAdmin();
             return _adminRepository.GetCourses(keyword,coursetype);
         }
 
         public CourseDto GetCourse(int courseId)
         {
-            AdminAuthService.RequireAdminSession();
+            AdminAuthService.RequireCourseAdmin();
             CourseDto? course = _adminRepository.GetCourseById(courseId);
             if (course == null)
             {
@@ -33,7 +33,7 @@ namespace StudentCourse.Services
 
         public CourseDto CreateCourse(CourseDto input, string ipAddress)
         {
-            AdminAuthService.RequireAdminSession();
+            AdminAuthService.RequireCourseAdmin();
             ValidateCourseInput(input);
 
             CourseDto created = _adminRepository.InsertCourse(input);
@@ -43,7 +43,7 @@ namespace StudentCourse.Services
 
         public CourseDto UpdateCourse(int courseId, CourseDto input, string ipAddress)
         {
-            AdminAuthService.RequireAdminSession();
+            AdminAuthService.RequireCourseAdmin();
             ValidateCourseInput(input);
 
             CourseDto? current = _adminRepository.GetCourseById(courseId);
@@ -59,7 +59,7 @@ namespace StudentCourse.Services
 
         public void DeleteCourse(int courseId, string ipAddress)
         {
-            AdminAuthService.RequireAdminSession();
+            AdminAuthService.RequireCourseAdmin();
 
             CourseDto? current = _adminRepository.GetCourseById(courseId);
             if (current == null)

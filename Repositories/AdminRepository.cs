@@ -551,14 +551,6 @@ namespace StudentCourse.Repositories
             };
         }
 
-        public int GetAdminLevel(int userId){
-            const string sql = @"SELECT admin_level FROM administrator WHERE user_id=:userId";
-            using OracleConnection connection = DbConnectionFactory.OpenConnection();
-            using OracleCommand command = CreateCommand(connection, sql);
-            command.Parameters.Add("userId", OracleDbType.Int32).Value = userId;
-            return ToInt32(command.ExecuteScalar());
-        }
-
         public void UpdateLastLogin(int userId)
         {
             const string sql = @"UPDATE ""user"" SET last_login = SYSDATE WHERE user_id = :userId";
@@ -884,6 +876,45 @@ namespace StudentCourse.Repositories
 
             transaction.Commit();
             return GetTeacherByUserId(userId)!;
+        }
+
+        public bool UsernameExists(string username, int? excludeUserId = null)
+        {
+            string sql = @"SELECT COUNT(*) FROM ""user"" WHERE username = :username";
+            if (excludeUserId.HasValue) 
+                sql += " AND user_id <> :excludeUserId";
+            using OracleConnection connection = DbConnectionFactory.OpenConnection();
+            using OracleCommand command = CreateCommand(connection, sql);
+            command.Parameters.Add("username", OracleDbType.Varchar2).Value = username;
+            if (excludeUserId.HasValue) 
+            command.Parameters.Add("excludeUserId", OracleDbType.Int32).Value = excludeUserId.Value;
+            return Convert.ToInt32(command.ExecuteScalar()) > 0;
+        }
+
+        public bool StudentNoExists(string studentNo, int? excludeUserId = null)
+        {
+            string sql = @"SELECT COUNT(*) FROM student WHERE student_no = :studentNo";
+            if (excludeUserId.HasValue) 
+                sql += " AND user_id <> :excludeUserId";
+            using OracleConnection connection = DbConnectionFactory.OpenConnection();
+            using OracleCommand command = CreateCommand(connection, sql);
+            command.Parameters.Add("studentNo", OracleDbType.Varchar2).Value = studentNo;
+            if (excludeUserId.HasValue) 
+                command.Parameters.Add("excludeUserId", OracleDbType.Int32).Value = excludeUserId.Value;
+            return Convert.ToInt32(command.ExecuteScalar()) > 0;
+        }
+
+        public bool TeacherNoExists(string teacherNo, int? excludeUserId = null)
+        {
+            string sql = @"SELECT COUNT(*) FROM teacher WHERE teacher_no = :teacherNo";
+            if (excludeUserId.HasValue) 
+                sql += " AND user_id <> :excludeUserId";
+            using OracleConnection connection = DbConnectionFactory.OpenConnection();
+            using OracleCommand command = CreateCommand(connection, sql);
+            command.Parameters.Add("teacherNo", OracleDbType.Varchar2).Value = teacherNo;
+            if (excludeUserId.HasValue) 
+                command.Parameters.Add("excludeUserId", OracleDbType.Int32).Value = excludeUserId.Value;
+            return Convert.ToInt32(command.ExecuteScalar()) > 0;
         }
 
         public void SetUserStatus(int userId, int status)

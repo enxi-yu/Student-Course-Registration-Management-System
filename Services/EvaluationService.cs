@@ -6,6 +6,10 @@ namespace StudentCourse.Services
     {
         private readonly EvaluationRepository _repository;
         public EvaluationService(EvaluationRepository repository) => _repository = repository;
-        public IList<AdminEvaluationDto> Search(string? keyword, string? semester) { AdminAuthService.RequireAdminSession(); return _repository.Search(keyword, semester); }
+        public IList<AdminEvaluationDto> Search(string? keyword, string? semester)
+        { 
+            AdminAuthService.RequireCourseAdmin();
+            return _repository.Search(keyword, semester); 
+        }
     }
 }

@@ -16,13 +16,13 @@ namespace StudentCourse.Services
 
         public IList<AdminClassDto> GetClasses(string? keyword)
         {
-            AdminAuthService.RequireAdminSession();
+            AdminAuthService.RequireCourseAdmin();
             return _adminRepository.GetClasses(keyword);
         }
 
         public AdminClassDto UpdateCapacity(int classId, CapacityUpdateRequest request, string ipAddress)
         {
-            AdminAuthService.RequireAdminSession();
+            AdminAuthService.RequireCourseAdmin();
             if (request == null)
             {
                 throw new InvalidOperationException("请求参数不能为空");

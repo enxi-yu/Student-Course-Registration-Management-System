@@ -111,5 +111,28 @@ namespace StudentCourse.Services
             return session;
         }
 
+        public const int SystemAdminLevel=0;
+        public const int CourseAdminLevel=1;
+
+        public static UserSession RequireSystemAdmin()
+        {
+            UserSession session=RequireAdminSession();
+            if(session.AdminLevel!=SystemAdminLevel)
+            {
+                throw new InvalidOperationException("当前账号不是系统管理员，无权访问该功能");
+            }
+            return session;
+        }
+
+        public static UserSession RequireCourseAdmin()
+        {
+            UserSession session=RequireAdminSession();
+            if(session.AdminLevel!=CourseAdminLevel)
+            {
+                throw new InvalidOperationException("当前账号不是教务管理员，无权访问该功能");
+            }
+            return session;
+        }
+
     }
 }

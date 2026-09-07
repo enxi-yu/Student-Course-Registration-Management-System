@@ -16,13 +16,13 @@ namespace StudentCourse.Services
 
         public IList<CourseApplicationDto> GetApplications(string? keyword,string? status)
         {
-            AdminAuthService.RequireAdminSession();
+            AdminAuthService.RequireCourseAdmin();
             return _adminRepository.GetApplications(keyword,status);
         }
 
         public CourseApplicationDto GetApplication(string applyId)
         {
-            AdminAuthService.RequireAdminSession();
+            AdminAuthService.RequireCourseAdmin();
             CourseApplicationDto? application = _adminRepository.GetApplicationById(applyId);
             if (application == null)
             {
@@ -33,7 +33,7 @@ namespace StudentCourse.Services
 
         public CourseApplicationDto ApproveApplication(string applyId, ApprovalRequest request, string ipAddress)
         {
-            AdminAuthService.RequireAdminSession();
+            AdminAuthService.RequireCourseAdmin();
 
             if (request == null)
             {

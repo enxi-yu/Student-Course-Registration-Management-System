@@ -15,16 +15,13 @@ namespace StudentCourse.Services
 
         public PagedResultDto<SystemLogDto> GetLogs(string? keyword, string? operationType, DateTime? startTime, DateTime? endTime, int page, int pageSize)
         {
-            UserSession session=AdminAuthService.RequireAdminSession();
-            if(_adminRepository.GetAdminLevel(session.UserId)!=0){
-                throw new InvalidOperationException("仅超级管理员可执行此操作");
-            }
+            AdminAuthService.RequireSystemAdmin();
             return _adminRepository.GetSystemLogs(keyword, operationType, startTime, endTime, Math.Max(1, page), Math.Clamp(pageSize, 1, 500));
         }
 
         public IList<SystemLogDto> GetLogsForExport(string? keyword, string? operationType, DateTime? startTime, DateTime? endTime)
         {
-            AdminAuthService.RequireAdminSession();
+            AdminAuthService.RequireSystemAdmin();
             List<SystemLogDto> rows = new List<SystemLogDto>();
             int page = 1;
             while (true)
