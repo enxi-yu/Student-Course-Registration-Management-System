@@ -279,6 +279,60 @@ namespace StudentCourse.Controllers
             });
         }
 
+        [HttpGet("academics")]
+        [Authorize(Policy = "SuperAdmin")]
+        public IActionResult GetAcademicAdmins([FromQuery] string? keyword)
+        {
+            return SafeOk(() => _adminUserService.GetAcademicAdmins(keyword));
+        }
+
+        [HttpPost("academics")]
+        [Authorize(Policy = "SuperAdmin")]
+        public IActionResult CreateAcademicAdmin([FromBody] AdminUserInput input)
+        {
+            return SafeOk(() => _adminUserService.CreateAcademicAdmin(input, ClientIp()));
+        }
+
+        [HttpPut("academics/{userId:int}")]
+        [Authorize(Policy = "SuperAdmin")]
+        public IActionResult UpdateAcademicAdmin(int userId, [FromBody] AdminUserInput input)
+        {
+            return SafeOk(() => _adminUserService.UpdateAcademicAdmin(userId, input, ClientIp()));
+        }
+
+        [HttpPut("academics/{userId:int}/disable")]
+        [Authorize(Policy = "SuperAdmin")]
+        public IActionResult DisableAcademicAdmin(int userId)
+        {
+            return SafeOk(() =>
+            {
+                _adminUserService.DisableUser(userId, ClientIp());
+                return new { disabled = true };
+            });
+        }
+
+        [HttpPut("academics/{userId:int}/enable")]
+        [Authorize(Policy = "SuperAdmin")]
+        public IActionResult EnableAcademicAdmin(int userId)
+        {
+            return SafeOk(() =>
+            {
+                _adminUserService.EnableUser(userId, ClientIp());
+                return new { enabled = true };
+            });
+        }
+
+        [HttpPut("academics/{userId:int}/password")]
+        [Authorize(Policy = "SuperAdmin")]
+        public IActionResult ResetAcademicAdminPassword(int userId, [FromBody] ResetPasswordRequest request)
+        {
+            return SafeOk(() =>
+            {
+                _adminUserService.ResetPassword(userId, request, ClientIp());
+                return new { reset = true };
+            });
+        }
+
         [HttpGet("batches")]
         public IActionResult GetBatches()
         {
@@ -386,7 +440,16 @@ namespace StudentCourse.Controllers
             return SafeOk(() => _adminSelectionService.DropForStudent(studentNo, classId, ClientIp()));
         }
 
-        
+        [HttpPut("profile")]
+        public IActionResult UpdateProfile([FromBody] UpdateAdminProfileRequest request)
+        {
+            return SafeOk(() => _adminAuthService.UpdateProfile(request));
+        }
+        [HttpPost("password")]
+        public IActionResult Updatepassword([FromBody]UpdateAdminPasswordRequest request)
+        {
+            return SafeOk(() => _adminAuthService.UpdatePassword(request));
+        }
 
         private IActionResult SafeOk<T>(Func<T> action)
         {

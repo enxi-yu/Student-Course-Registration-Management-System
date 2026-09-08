@@ -18,8 +18,28 @@ namespace StudentCourse.Models
         public string AdminNo { get; set; } = string.Empty;
 
         public int AdminLevel { get; set; }
+                
+        public string Phone { get; set; } = string.Empty;
+
+        public string Email { get; set; } = string.Empty;
 
         public string ManagedScope { get; set; } = string.Empty;
+    }
+
+    public sealed class UpdateAdminProfileRequest
+    {
+        public string Phone { get; set; } = string.Empty;
+
+        public string Email { get; set; } = string.Empty;
+    }
+
+    public sealed class UpdateAdminPasswordRequest
+    {
+        public string OldPassword { get; set; } = string.Empty;
+
+        public string NewPassword { get; set; } = string.Empty;
+
+        public string ConfirmPassword { get; set; } = string.Empty;
     }
 
     public sealed class AdminDashboardDto
@@ -102,6 +122,8 @@ namespace StudentCourse.Models
         public string Title { get; set; } = string.Empty;
 
         public string Department { get; set; } = string.Empty;
+
+        public string AdminNo{get;set;}=string.Empty;
     }
 
     public sealed class AdminStudentDto
@@ -174,6 +196,29 @@ namespace StudentCourse.Models
         public string Title { get; set; } = string.Empty;
 
         public string Department { get; set; } = string.Empty;
+    }
+
+    public sealed class AcademicAdminDto
+    {
+        public int UserId { get; set; }
+
+        public string Username { get; set; } = string.Empty;
+
+        public string RealName { get; set; } = string.Empty;
+
+        public string Phone { get; set; } = string.Empty;
+
+        public string Email { get; set; } = string.Empty;
+
+        public int Status { get; set; }
+
+        public string LastLogin { get; set; } = string.Empty;
+
+        public string CreateTime { get; set; } = string.Empty;
+
+        public string AdminNo { get; set; } = string.Empty;
+
+        public int AdminLevel =1;
     }
 
     public sealed class ResetPasswordRequest

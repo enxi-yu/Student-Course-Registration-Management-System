@@ -21,7 +21,7 @@
             key: 'applications',
             title: '开课申请',
             description: '查询并审批教师提交的开课申请。',
-            fields: '<div class="field"><label for="applicationKeyword">申请查询</label><input type="text" id="applicationKeyword" placeholder="申请编号 / 课程名称 / 教师工号 / 院系"></div>' +
+            fields: '<div class="field"><label for="applicationKeyword">申请查询</label><input type="text" id="applicationKeyword" placeholder="申请编号 / 课程名称 / 教师工号"></div>' +
                 '<div class="field"><label for="applicationStatusFilter">状态</label><select id="applicationStatusFilter"><option value="">全部</option><option value="待审核">待审核</option><option value="通过">已通过</option><option value="驳回">已驳回</option><option value="已开课">已开课</option></select></div>',
             actions: '<button class="btn btn-primary" type="button" onclick="loadApplications()">查询</button>'
         },
@@ -38,6 +38,13 @@
             description: '新增、查询和维护教师资料及账号状态。',
             fields: '<div class="field"><label for="teacherKeyword">搜索教师</label><input type="text" id="teacherKeyword" placeholder="工号 / 姓名 / 院系"></div>',
             actions: '<button class="btn btn-primary" type="button" onclick="loadTeachers()">查询</button>'
+        },
+        {
+            key: 'academics',
+            title: '教务管理',
+            description: '新增、查询和维护教务管理员账号。',
+            fields: '<div class="field"><label for="academicKeyword">搜索教务管理员</label><input type="text" id="academicKeyword" placeholder="编号 / 姓名 / 登录账号"></div>',
+            actions: '<button class="btn btn-primary" type="button" onclick="loadAcademics()">查询</button>'
         },
         {
             key: 'batches',
@@ -103,10 +110,12 @@
         evaluations: () => typeof loadEvaluations === 'function' && loadEvaluations(),
         students: () => typeof loadStudents === 'function' && loadStudents(),
         teachers: () => typeof loadTeachers === 'function' && loadTeachers(),
+        academics: () => typeof loadAcademics === 'function' && loadAcademics(),
         batches: () => typeof loadBatches === 'function' && loadBatches(),
         classes: () => typeof loadAdminClasses === 'function' && loadAdminClasses(),
         selection: () => typeof loadSelectionPage === 'function' && loadSelectionPage(),
-        logs: () => typeof initializeLogPage === 'function' && initializeLogPage()
+        logs: () => typeof initializeLogPage === 'function' && initializeLogPage(),
+        profile: () => typeof renderAdminProfile === 'function' && renderAdminProfile()
     };
 
     function setGroupExpanded(group, expanded) {
@@ -133,8 +142,8 @@
     // 超级管理员(admin_level=0)：拥有全部管理功能 —— 教学管理、选课管理、用户管理（学生/教师账号）、系统日志
     // 教务管理员(admin_level=1)：教学管理（课程/排课/开课审批/评价/容量）、选课管理（批次/代选课程）
     window.ADMIN_TAB_PERMISSIONS = {
-        super: ['dashboard', 'courses', 'scheduling', 'applications', 'evaluations', 'classes', 'batches', 'selection', 'students', 'teachers', 'logs'],
-        academic: ['dashboard', 'courses', 'scheduling', 'applications', 'evaluations', 'classes', 'batches', 'selection']
+        super: ['dashboard', 'courses', 'scheduling', 'applications', 'evaluations', 'classes', 'batches', 'selection', 'students', 'teachers', 'academics', 'logs', 'profile'],
+        academic: ['dashboard', 'courses', 'scheduling', 'applications', 'evaluations', 'classes', 'batches', 'selection', 'profile']
     };
 
     window.isAdminTabAllowed = function (tabName) {

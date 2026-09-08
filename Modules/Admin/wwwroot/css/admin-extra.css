@@ -113,17 +113,22 @@
 }
 
 .batch-multi { position:relative; max-width:680px; }
-.batch-multi-trigger { width:100%; min-height:48px; padding:11px 42px 11px 14px; border:1px solid #cad8eb; border-radius:8px; background:#fff; color:#243b5a; text-align:left; font:inherit; cursor:pointer; position:relative; }
-.batch-multi-trigger::after { content:'⌄'; position:absolute; right:15px; top:10px; font-size:20px; }
+.batch-multi-trigger { width:100%; min-height:32px; padding:6px 30px 6px 10px; border:1px solid #cad8eb; border-radius:7px; background:#fff; color:#243b5a; text-align:left; font:inherit; font-size:13px; cursor:pointer; position:relative; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.batch-multi-trigger::after { content:'⌄'; position:absolute; right:11px; top:50%; transform:translateY(-50%); font-size:14px; color:#72839b; }
 .batch-multi.open .batch-multi-trigger { border-color:var(--ui-blue-700); box-shadow:0 0 0 3px rgba(18,105,220,.12); }
-.batch-multi-menu { display:none; position:absolute; z-index:30; left:0; right:0; top:calc(100% + 6px); padding:10px; border:1px solid #cad8eb; border-radius:10px; background:#fff; box-shadow:0 12px 30px rgba(24,52,91,.16); }
+.batch-multi-menu { display:none; position:absolute; z-index:30; left:0; right:0; top:calc(100% + 5px); padding:6px; border:1px solid #cad8eb; border-radius:8px; background:#fff; box-shadow:0 12px 30px rgba(24,52,91,.16); }
 .batch-multi.open .batch-multi-menu { display:block; }
-.batch-multi-search { width:100%; margin-bottom:8px; }
-.batch-multi-options { max-height:240px; overflow:auto; display:grid; gap:3px; }
-.batch-multi-option { display:flex; align-items:flex-start; gap:9px; padding:9px 8px; border-radius:7px; cursor:pointer; line-height:1.4; }
+.batch-multi-search { width:100%; margin-bottom:5px; font-size:13px; }
+.batch-multi-options { max-height:212px; overflow:auto; display:grid; gap:1px; }
+.batch-multi-option { display:flex; align-items:center; gap:6px; padding:2px 6px; border-radius:4px; cursor:pointer; font-size:13px; line-height:1.25; }
 .batch-multi-option:hover { background:#f3f7fd; }
-.batch-multi-option input { width:auto; margin-top:3px; }
-.batch-multi-option small { display:block; color:#72839b; }
+.batch-multi-option input { width:14px; height:14px; margin:0; flex:none; accent-color:var(--ui-blue-700, #1269dc); }
+.batch-multi-option small { display:block; color:#72839b; font-size:11px; line-height:1.2; margin-top:1px; }
+.batch-multi-option.batch-multi-all { grid-column:1/-1; align-items:center; padding:3px 6px 4px; margin-bottom:2px; border-bottom:1px solid #e6edf6; border-radius:0; font-weight:600; color:#1269dc; }
+.batch-multi-option.batch-multi-all:hover { background:#fff; }
+.batch-multi-option.batch-multi-all input { margin:0; }
+.batch-multi-option > span { flex:1; min-width:0; }
+.batch-multi-option > span small { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
 @media (max-width: 720px) {
   .scheduling-form-grid { grid-template-columns: minmax(0, 1fr); }
@@ -215,3 +220,23 @@ body { margin: 0; min-width: 980px; }
   .log-filter-bar .toolbar { grid-template-columns: 1fr; }
   .log-filter-bar .toolbar-actions { justify-content: flex-start; margin-left: 0; }
 }
+
+/* 个人资料页（共享 renderProfilePage 生成），与教师/学生端同款样式。 */
+.profile-page-actions, .dialog-actions { display: flex; justify-content: flex-end; gap: 10px; }
+/* 资料卡片三列展示（覆盖 interface-unified.css 中 .profile-grid 的两列默认值，需放在其之前加载）。 */
+#shared-profile-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.profile-dialog { width: min(760px, calc(100vw - 32px)); max-height: calc(100vh - 48px); padding: 0; border: 0; border-radius: 14px; box-shadow: 0 24px 70px rgba(15, 35, 75, .24); }
+.profile-dialog::backdrop { background: rgba(15, 29, 59, .46); }
+.dialog-card { padding: 24px; }
+.dialog-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.dialog-heading h3 { margin: 0; }
+.dialog-close { border: 0; background: transparent; color: var(--ui-muted); font-size: 28px; line-height: 1; cursor: pointer; }
+.dialog-actions { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--ui-line); }
+.profile-dialog input:disabled { color: #64748b; background: #f3f6fa; cursor: not-allowed; }
+.password-visibility { display: flex; align-items: center; gap: 8px; color: var(--ui-muted); }
+.password-visibility input { width: auto; }
+.profile-form { display: grid; gap: 16px; }
+.form-field { display: grid; gap: 7px; }
+.form-field span { color: var(--ui-ink); font-size: 14px; font-weight: 600; }
+.form-field input { width: 100%; min-height: 40px; box-sizing: border-box; padding: 8px 12px; border: 1px solid var(--ui-line); border-radius: 6px; background: #fff; color: var(--ui-ink); outline: none; }
+.form-field input:focus { border-color: var(--ui-blue-700); box-shadow: 0 0 0 3px rgba(18, 105, 220, .12); }
