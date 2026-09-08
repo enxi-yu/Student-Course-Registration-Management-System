@@ -298,6 +298,7 @@ namespace StudentCourse.Repositories
                 decimal credit;
                 string courseSummary;
                 string currentStatus;
+                string department;
                 using (OracleCommand command = CreateCommand(connection, applicationSql, transaction))
                 {
                     command.Parameters.Add("applyId", OracleDbType.Varchar2).Value = applyId;
