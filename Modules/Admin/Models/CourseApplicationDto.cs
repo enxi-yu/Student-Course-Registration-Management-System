@@ -12,15 +12,11 @@ namespace StudentCourse.Models
 
         public decimal Credit { get; set; }
 
-        public int TotalHours { get; set; }
-
         public string Textbook { get; set; } = string.Empty;
 
         public string CourseSummary { get; set; } = string.Empty;
 
         public string CourseType { get; set; } = string.Empty;
-
-        public string Department { get; set; } = string.Empty;
 
         public string ApplyTime { get; set; } = string.Empty;
 
@@ -29,13 +25,5 @@ namespace StudentCourse.Models
         public string ApproveTime { get; set; } = string.Empty;
 
         public string ApproveComment { get; set; } = string.Empty;
-
-        public string TargetMajor { get; set; } = string.Empty;
-
-        public string TargetGrade { get; set; } = string.Empty;
-
-        public string Description { get; set; } = string.Empty;
-
-        public string ReviewRemark { get; set; } = string.Empty;
     }
 }

@@ -32,7 +32,7 @@ namespace StudentCourse.Services
             Normalize(input);
             Validate(input);
 
-            if (_courseApplicationRepository.HasActiveCourseName(session.TeacherNo, input.CourseName))
+            if (_courseApplicationRepository.HasActiveCourseName(session.TeacherNo, input.CourseName!))
             {
                 throw new InvalidOperationException("你已经申请过同名课程，不能重复申请。");
             }
@@ -55,23 +55,8 @@ namespace StudentCourse.Services
 
             input.CourseName = input.CourseName?.Trim();
             input.CourseType = input.CourseType?.Trim();
-            input.TotalHours = 0;
             input.Textbook = input.Textbook?.Trim();
-            input.Department = FirstNotBlank(input.Department, input.TargetMajor);
-            input.CourseSummary = FirstNotBlank(input.CourseSummary, input.Description);
-        }
-
-        private static string? FirstNotBlank(params string?[] values)
-        {
-            foreach (string? value in values)
-            {
-                if (!string.IsNullOrWhiteSpace(value))
-                {
-                    return value.Trim();
-                }
-            }
-
-            return null;
+            input.CourseSummary = input.CourseSummary?.Trim();
         }
 
         private static void Validate(CourseApplicationInput input)
@@ -111,19 +96,14 @@ namespace StudentCourse.Services
                 throw new InvalidOperationException("课程类型只能选择公选、选修或必修");
             }
 
-            if (string.IsNullOrWhiteSpace(input.Department))
-            {
-                throw new InvalidOperationException("面向学院不能为空");
-            }
-
-            if (input.Department.Trim().Length > 20)
-            {
-                throw new InvalidOperationException("面向学院不能超过 20 个字符");
-            }
-
             if (!string.IsNullOrWhiteSpace(input.Textbook) && input.Textbook.Trim().Length > 200)
             {
                 throw new InvalidOperationException("参考教材不能超过 200 个字符");
+            }
+
+            if (!string.IsNullOrWhiteSpace(input.CourseSummary) && input.CourseSummary.Trim().Length > 4000)
+            {
+                throw new InvalidOperationException("课程简介不能超过 4000 个字符");
             }
         }
     }

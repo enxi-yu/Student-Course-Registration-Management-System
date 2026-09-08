@@ -5,7 +5,7 @@
     schedule: { title: "我的课表", description: "查看本学期授课安排和上课地点。" },
     students: { title: "选课名单", description: "查看当前教学班的选课学生信息，并支持导出名单。" },
     scores: { title: "成绩录入", description: "录入和维护学生课程成绩，系统自动生成成绩等级。" },
-    applications: { title: "开课申请", description: "提交和查看教师开课申请" },
+    applications: { title: "开课申请", description: "提交并查看开课申请记录。" },
     evaluations: { title: "课程评价", description: "查看本人教学班的匿名评价汇总与文字反馈。" },
     password: { title: "个人资料", description: "查看个人资料，维护联系方式和账号安全。" }
   };

@@ -2,36 +2,26 @@
 {
     public sealed class CourseApplicationDto
     {
-        public string ApplicationId { get; set; }
+        public string ApplicationId { get; set; } = string.Empty;
 
-        public string CourseName { get; set; }
+        public string TeacherNo { get; set; } = string.Empty;
 
-        public string CourseType { get; set; }
+        public string CourseName { get; set; } = string.Empty;
+
+        public string CourseType { get; set; } = string.Empty;
 
         public decimal Credit { get; set; }
 
-        public int TotalHours { get; set; }
+        public string Textbook { get; set; } = string.Empty;
 
-        public string TargetMajor { get; set; }
+        public string CourseSummary { get; set; } = string.Empty;
 
-        public string TargetGrade { get; set; }
+        public string Status { get; set; } = string.Empty;
 
-        public string Description { get; set; }
+        public string ApplyTime { get; set; } = string.Empty;
 
-        public string Department { get; set; }
+        public string ApproveTime { get; set; } = string.Empty;
 
-        public string Textbook { get; set; }
-
-        public string CourseSummary { get; set; }
-
-        public string Status { get; set; }
-
-        public string ApplyTime { get; set; }
-
-        public string ApproveTime { get; set; }
-
-        public string ReviewRemark { get; set; }
-
-        public string ApproveComment { get; set; }
+        public string ApproveComment { get; set; } = string.Empty;
     }
 }

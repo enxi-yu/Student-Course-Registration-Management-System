@@ -132,9 +132,9 @@ INSERT INTO course_evaluation VALUES ('EVAL_DEMO_01', 'S_DEMO_01', 8207, 5, 4, 5
 INSERT INTO course_evaluation VALUES ('EVAL_DEMO_02', 'S_DEMO_03', 8207, 4, 5, 4, 5, 4.5, '课堂互动充分，重点突出。', SYSDATE-109);
 INSERT INTO course_evaluation VALUES ('EVAL_DEMO_03', 'S_DEMO_01', 8208, 4, 4, 4, 4, 4.0, '整体学习效果良好。', SYSDATE-108);
 
-INSERT INTO course_application (apply_id,teacher_no,course_name,course_type,credit,total_hours,department,course_summary,apply_time,status) VALUES ('APPLY_DEMO_PENDING','T_DEMO_01','软件工程实践','选修',2,32,'软件学院','包含需求、设计、开发与测试',SYSDATE-1,'待审核');
-INSERT INTO course_application (apply_id,teacher_no,course_name,course_type,credit,total_hours,department,course_summary,apply_time,status,approve_time,approve_comment) VALUES ('APPLY_DEMO_APPROVED','T_DEMO_02','云计算基础','选修',2,32,'计算机学院','云平台基础与实践',SYSDATE-10,'通过',SYSDATE-9,'申请内容完整');
-INSERT INTO course_application (apply_id,teacher_no,course_name,course_type,credit,total_hours,department,course_summary,apply_time,status,approve_time,approve_comment) VALUES ('APPLY_DEMO_REJECTED','T_DEMO_03','智能系统专题','选修',2,24,'人工智能学院','专题内容待完善',SYSDATE-8,'驳回',SYSDATE-7,'请补充教学计划');
+INSERT INTO course_application (apply_id,teacher_no,course_name,course_type,credit,textbook,course_summary,apply_time,status) VALUES ('APPLY_DEMO_PENDING','T_DEMO_01','软件工程实践','选修',2,'软件工程案例教程','包含需求、设计、开发与测试',SYSDATE-1,'待审核');
+INSERT INTO course_application (apply_id,teacher_no,course_name,course_type,credit,textbook,course_summary,apply_time,status,approve_time,approve_comment) VALUES ('APPLY_DEMO_APPROVED','T_DEMO_02','云计算基础','选修',2,'云计算基础与实践','云平台基础与实践',SYSDATE-10,'通过',SYSDATE-9,'申请内容完整');
+INSERT INTO course_application (apply_id,teacher_no,course_name,course_type,credit,textbook,course_summary,apply_time,status,approve_time,approve_comment) VALUES ('APPLY_DEMO_REJECTED','T_DEMO_03','智能系统专题','选修',2,'智能系统导论','专题内容待完善',SYSDATE-8,'驳回',SYSDATE-7,'请补充教学计划');
 
 INSERT INTO system_log VALUES ('LOG_DEMO_01',9301,'登录','管理员登录系统','A_DEMO_01','127.0.0.1',NULL,'成功',NULL,SYSDATE-1);
 INSERT INTO system_log VALUES ('LOG_DEMO_02',9301,'修改容量','将 Web应用开发01班容量调整为2','8203','127.0.0.1','{"capacity":2,"reason":"测试满班状态"}','成功',NULL,SYSDATE-0.5);
