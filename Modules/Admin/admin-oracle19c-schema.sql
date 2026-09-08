@@ -318,19 +318,12 @@ BEGIN
             course_name VARCHAR2(100) NOT NULL,
             course_type VARCHAR2(20),
             credit NUMBER(3,1) NOT NULL,
-            total_hours NUMBER NOT NULL,
-            department VARCHAR2(100),
-            course_summary VARCHAR2(4000),
-            teaching_plan CLOB,
-            description CLOB,
-            target_major VARCHAR2(50),
-            target_grade VARCHAR2(10),
             textbook VARCHAR2(200),
+            course_summary CLOB,
             apply_time DATE DEFAULT SYSDATE NOT NULL,
             status VARCHAR2(20) DEFAULT '待审核' NOT NULL,
             approve_time DATE,
-            approve_comment VARCHAR2(255),
-            review_remark VARCHAR2(255)
+            approve_comment VARCHAR2(255)
         )
     ]';
 EXCEPTION
@@ -354,27 +347,9 @@ DECLARE
     END;
 BEGIN
     add_column_if_missing('course_application', 'course_type', 'ALTER TABLE course_application ADD (course_type VARCHAR2(20))');
-    add_column_if_missing('course_application', 'department', 'ALTER TABLE course_application ADD (department VARCHAR2(100))');
-    add_column_if_missing('course_application', 'course_summary', 'ALTER TABLE course_application ADD (course_summary VARCHAR2(4000))');
-    add_column_if_missing('course_application', 'teaching_plan', 'ALTER TABLE course_application ADD (teaching_plan CLOB)');
-    add_column_if_missing('course_application', 'description', 'ALTER TABLE course_application ADD (description CLOB)');
-    add_column_if_missing('course_application', 'target_major', 'ALTER TABLE course_application ADD (target_major VARCHAR2(50))');
-    add_column_if_missing('course_application', 'target_grade', 'ALTER TABLE course_application ADD (target_grade VARCHAR2(10))');
-    add_column_if_missing('course_application', 'review_remark', 'ALTER TABLE course_application ADD (review_remark VARCHAR2(255))');
-END;
-/
-
-CREATE OR REPLACE TRIGGER trg_course_app_summary
-BEFORE INSERT OR UPDATE ON course_application
-FOR EACH ROW
-BEGIN
-    IF :NEW.course_summary IS NULL THEN
-        IF :NEW.description IS NOT NULL THEN
-            :NEW.course_summary := DBMS_LOB.SUBSTR(:NEW.description, 4000, 1);
-        ELSIF :NEW.teaching_plan IS NOT NULL THEN
-            :NEW.course_summary := DBMS_LOB.SUBSTR(:NEW.teaching_plan, 4000, 1);
-        END IF;
-    END IF;
+    add_column_if_missing('course_application', 'textbook', 'ALTER TABLE course_application ADD (textbook VARCHAR2(200))');
+    add_column_if_missing('course_application', 'course_summary', 'ALTER TABLE course_application ADD (course_summary CLOB)');
+    add_column_if_missing('course_application', 'approve_comment', 'ALTER TABLE course_application ADD (approve_comment VARCHAR2(255))');
 END;
 /
 

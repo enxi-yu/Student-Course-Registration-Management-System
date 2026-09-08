@@ -178,15 +178,19 @@ namespace StudentCourse.Repositories
             List<CourseApplicationDto> list = new List<CourseApplicationDto>();
             try{
                 using (var conn = DbConnectionFactory.OpenConnection()){
-                    string sql = @"SELECT apply_id, teacher_no, course_name, credit, textbook, 
-                                       course_summary, course_type, apply_time, status, 
-                                       approve_time, approve_comment 
+                    string sql = @"SELECT apply_id, teacher_no, course_name, credit, textbook,
+                                       course_summary, course_type,
+                                       TO_CHAR(apply_time, 'YYYY-MM-DD HH24:MI:SS') AS apply_time,
+                                       status,
+                                       TO_CHAR(approve_time, 'YYYY-MM-DD HH24:MI:SS') AS approve_time,
+                                       approve_comment
                                 FROM course_application";
                     if(!string.IsNullOrEmpty(keyword)){
                         sql+=@" WHERE (apply_id LIKE :keyword
                         OR course_name LIKE :keyword
                         OR teacher_no LIKE :keyword
-                        OR department LIKE :keyword)";
+                        OR textbook LIKE :keyword
+                        OR DBMS_LOB.INSTR(course_summary, :keywordText) > 0)";
                     }
                     if(!string.IsNullOrEmpty(status)){
                         sql+= !string.IsNullOrEmpty(keyword)?" AND ":" WHERE ";
@@ -199,6 +203,7 @@ namespace StudentCourse.Repositories
                         cmd.BindByName =true;
                         if(!string.IsNullOrEmpty(keyword)){
                             cmd.Parameters.Add("keyword", OracleDbType.Varchar2).Value = "%" + keyword.Trim() + "%";
+                            cmd.Parameters.Add("keywordText", OracleDbType.Varchar2).Value = keyword.Trim();
                         }
                         if(!string.IsNullOrEmpty(status)){
                             cmd.Parameters.Add("status", OracleDbType.Varchar2).Value = status;
@@ -211,7 +216,7 @@ namespace StudentCourse.Repositories
                                     CourseName = reader["course_name"].ToString() ?? "",
                                     Credit = Convert.ToDecimal(reader["credit"]),
                                     Textbook = reader["textbook"]?.ToString() ?? "",
-                                    CourseSummary = reader["course_summary"]?.ToString() ?? "",
+                                    CourseSummary = ReadText(reader["course_summary"]),
                                     CourseType = reader["course_type"].ToString() ?? "",
                                     ApplyTime = reader["apply_time"]?.ToString() ?? "",
                                     Status = reader["status"].ToString() ?? "",
@@ -234,9 +239,12 @@ namespace StudentCourse.Repositories
         {
             using (var conn = DbConnectionFactory.OpenConnection())
             {
-                string sql = @"SELECT apply_id, teacher_no, course_name, credit,  textbook, 
-                                       course_summary, course_type,apply_time, status, 
-                                       approve_time, approve_comment 
+                string sql = @"SELECT apply_id, teacher_no, course_name, credit, textbook,
+                                       course_summary, course_type,
+                                       TO_CHAR(apply_time, 'YYYY-MM-DD HH24:MI:SS') AS apply_time,
+                                       status,
+                                       TO_CHAR(approve_time, 'YYYY-MM-DD HH24:MI:SS') AS approve_time,
+                                       approve_comment
                                 FROM course_application
                                 WHERE apply_id = :applyID";
                     using (var cmd = new OracleCommand(sql, conn))
@@ -253,7 +261,7 @@ namespace StudentCourse.Repositories
                                 CourseName = reader["course_name"].ToString() ?? "",
                                 Credit = Convert.ToDecimal(reader["credit"]),
                                 Textbook = reader["textbook"]?.ToString() ?? "",
-                                CourseSummary = reader["course_summary"]?.ToString() ?? "",
+                                CourseSummary = ReadText(reader["course_summary"]),
                                 CourseType = reader["course_type"].ToString() ?? "",
                                 ApplyTime = reader["apply_time"]?.ToString() ?? "",
                                 Status = reader["status"].ToString() ?? "",
@@ -271,14 +279,20 @@ namespace StudentCourse.Repositories
         public CourseApplicationDto ApproveApplication(string applyId, string status, string comment)
         {
             using OracleConnection connection = DbConnectionFactory.OpenConnection();
-            EnsureCourseApplicationCompatibility(connection);
             using OracleTransaction transaction = connection.BeginTransaction();
             try
             {
-                const string applicationSql = @"SELECT course_name, course_type, credit, course_summary, status
-                                                  FROM course_application
-                                                 WHERE apply_id = :applyId
-                                                   FOR UPDATE";
+                const string applicationSql = @"SELECT ca.teacher_no,
+                                                       ca.course_name,
+                                                       ca.course_type,
+                                                       ca.credit,
+                                                       ca.course_summary,
+                                                       ca.status,
+                                                       t.department
+                                                  FROM course_application ca
+                                                  LEFT JOIN teacher t ON t.teacher_no = ca.teacher_no
+                                                 WHERE ca.apply_id = :applyId
+                                                   FOR UPDATE OF ca.status";
                 string courseName;
                 string courseType;
                 decimal credit;
@@ -292,7 +306,8 @@ namespace StudentCourse.Repositories
                     courseName = Convert.ToString(reader["course_name"]) ?? string.Empty;
                     courseType = Convert.ToString(reader["course_type"]) ?? string.Empty;
                     credit = Convert.ToDecimal(reader["credit"]);
-                    courseSummary =Convert.ToString(reader["course_summary"]) ?? string.Empty;
+                    department = Convert.ToString(reader["department"]) ?? string.Empty;
+                    courseSummary = ReadText(reader["course_summary"]);
                     currentStatus = Convert.ToString(reader["status"]) ?? string.Empty;
                 }
                 if (currentStatus != "待审核") throw new InvalidOperationException($"该申请已{currentStatus}，不能重复审批");
@@ -330,20 +345,6 @@ namespace StudentCourse.Repositories
                 throw;
             }
             return GetApplicationById(applyId) ?? throw new InvalidOperationException("审批结果读取失败");
-        }
-
-        private static void EnsureCourseApplicationCompatibility(OracleConnection connection)
-        {
-            const string columnSql = @"SELECT COUNT(*) FROM user_tab_columns
-                                       WHERE table_name = 'COURSE_APPLICATION'
-                                         AND column_name = 'TEACHING_PLAN'";
-            using OracleCommand check = CreateCommand(connection, columnSql);
-            if (Convert.ToInt32(check.ExecuteScalar()) > 0) return;
-
-            // 旧版数据库没有该列，但历史触发器会在审批更新时引用它并导致 ORA-04098。
-            using OracleCommand addColumn = CreateCommand(connection,
-                "ALTER TABLE course_application ADD (teaching_plan CLOB)");
-            addColumn.ExecuteNonQuery();
         }
 
         public AdminCredentialDto? GetAdminCredential(string username)

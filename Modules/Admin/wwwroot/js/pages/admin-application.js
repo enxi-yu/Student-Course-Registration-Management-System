@@ -25,7 +25,7 @@ let applicationPage = 1;
 async function loadApplications(resetPage = true) {
     const tbody = document.getElementById('applicationTableBody');
     if (resetPage) applicationPage = 1;
-    window.sharedUi.setTableState(tbody, 9, '正在加载开课申请...');
+    window.sharedUi.setTableState(tbody, 12, '正在加载开课申请...');
     try {
         const keyword = document.getElementById('applicationKeyword').value.trim();
         const status = document.getElementById('applicationStatusFilter').value;
@@ -35,7 +35,7 @@ async function loadApplications(resetPage = true) {
         const qs = params.toString();
 
         const data = await adminFetch('/api/admin/applications' + (qs ? '?' + qs : ''));
-        applicationPage = window.sharedUi.renderPagedTable({ body: tbody, rows: data, page: applicationPage, pageSize: 15, colspan: 9, emptyText: '暂无开课申请记录', pagination: 'applicationPagination', onPageChange: page => { applicationPage = page; loadApplications(false); }, row: app => {
+        applicationPage = window.sharedUi.renderPagedTable({ body: tbody, rows: data, page: applicationPage, pageSize: 15, colspan: 12, emptyText: '暂无开课申请记录', pagination: 'applicationPagination', onPageChange: page => { applicationPage = page; loadApplications(false); }, row: app => {
             const statusInfo = getStatusInfo(app.status);
             const typeClass = getTypeClass(app.courseType);
             return `
@@ -46,14 +46,17 @@ async function loadApplications(resetPage = true) {
                 <td><span class="type-badge ${typeClass}">${app.courseType}</span></td>
                 <td>${app.credit}</td>
                 <td>${app.textbook || '-'}</td>
+                <td>${app.courseSummary || '-'}</td>
                 <td>${app.applyTime || '-'}</td>
                 <td>${window.sharedUi.statusBadge(statusInfo.text, statusInfo.class)}</td>
+                <td>${app.approveTime || '-'}</td>
+                <td>${app.approveComment || '-'}</td>
                 <td><button class="btn btn-sm btn-edit table-action" onclick="viewDetail('${app.applyId}')">查看详情</button></td>
               </tr>
             `;
         }});
     } catch (error) {
-        window.sharedUi.setTableError(tbody, 9, window.sharedUi.errorText(error, '加载失败'), () => loadApplications(false));
+        window.sharedUi.setTableError(tbody, 12, window.sharedUi.errorText(error, '加载失败'), () => loadApplications(false));
     }
 }
 
@@ -69,12 +72,12 @@ function viewDetail(applyId) {
                 <p><strong>课程名称：</strong>${data.courseName}</p>
                 <p><strong>课程类型：</strong>${data.courseType}</p>
                 <p><strong>学分：</strong>${data.credit}</p>
-                <p><strong>教材：</strong>${data.textbook || '-'}</p>
+                <p><strong>参考教材：</strong>${data.textbook || '-'}</p>
+                <p><strong>课程简介：</strong>${data.courseSummary || '-'}</p>
                 <p><strong>申请时间：</strong>${data.applyTime || '-'}</p>
-                <p><strong>状态：</strong>${getStatusInfo(data.status).text}</p>
+                <p><strong>审批状态：</strong>${getStatusInfo(data.status).text}</p>
                 <p><strong>审批时间：</strong>${data.approveTime || '-'}</p>
                 <p><strong>审批意见：</strong>${data.approveComment || '-'}</p>
-                <p><strong>课程简介：</strong>${data.courseSummary || '-'}</p>
             `;
 
             const btnApprove = document.getElementById('btnApprove');
