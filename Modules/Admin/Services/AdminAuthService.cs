@@ -1,6 +1,7 @@
 using StudentCourse.Models;
 using StudentCourse.Repositories;
 using StudentCourse.Shared.Security;
+using System.Text.RegularExpressions;
 
 namespace StudentCourse.Services
 {
@@ -123,7 +124,80 @@ namespace StudentCourse.Services
             return session;
         }
 
-        
+        public AdminCurrentDto UpdateProfile(UpdateAdminProfileRequest request)
+        {
+            RequireAdminSession();
+            if (request == null)
+            {
+                throw new InvalidOperationException("个人资料请求不能为空。");
+            }
+
+            AdminCurrentDto admin = GetCurrent();
+            string phone = (request.Phone ?? string.Empty).Trim();
+            string email = (request.Email ?? string.Empty).Trim();
+
+            if (!string.IsNullOrEmpty(phone) && !Regex.IsMatch(phone, @"^\d{11}$"))
+            {
+                throw new InvalidOperationException("手机号必须为 11 位数字。");
+            }
+
+            if (!string.IsNullOrEmpty(email) && !Regex.IsMatch(email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
+            {
+                throw new InvalidOperationException("邮箱格式不正确。");
+            }
+
+            _adminRepository.UpdateProfile(admin.UserId, phone, email);
+            admin.Phone = phone;
+            admin.Email = email;
+            return admin;
+        }
+
+        public object UpdatePassword(UpdateAdminPasswordRequest request)
+        {
+            UserSession session =RequireAdminSession();
+            Validate(request);
+
+            string? storedPassword = _adminRepository.GetAdminPassword(session.UserId);
+            if( !PasswordHash.Verify(storedPassword, request.OldPassword.Trim(), out _))
+            {
+                throw new InvalidOperationException("原密码不正确，修改失败");
+            }
+            _adminRepository.ResetPassword(session.UserId,PasswordHash.Hash(request.NewPassword.Trim()));
+            return new { Changed = true };
+        }       
+
+        private static void Validate(UpdateAdminPasswordRequest request)
+        {
+            if (request == null)
+            {
+                throw new InvalidOperationException("修改密码请求不能为空。");
+            }
+
+            if (string.IsNullOrWhiteSpace(request.OldPassword))
+            {
+                throw new InvalidOperationException("原密码不能为空。");
+            }
+
+            if (string.IsNullOrWhiteSpace(request.NewPassword))
+            {
+                throw new InvalidOperationException("新密码不能为空。");
+            }
+
+            if (request.NewPassword.Trim().Length < 6 || request.NewPassword.Trim().Length > 20)
+            {
+                throw new InvalidOperationException("新密码长度必须为 6 到 20 位。");
+            }
+
+            if (request.NewPassword.Trim() != (request.ConfirmPassword ?? string.Empty).Trim())
+            {
+                throw new InvalidOperationException("两次输入的新密码不一致。");
+            }
+
+            if (request.OldPassword.Trim() == request.NewPassword.Trim())
+            {
+                throw new InvalidOperationException("新密码不能和原密码相同。");
+            }
+        }
 
     }
 }

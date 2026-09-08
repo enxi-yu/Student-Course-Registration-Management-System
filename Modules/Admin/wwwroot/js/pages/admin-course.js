@@ -6,7 +6,7 @@ function ensureCourseForm() {
             { name: 'courseName', label: '课程名称', selector: '#courseName', required: true },
             { name: 'courseType', label: '课程类型', selector: '#courseType', required: true, oneOf: ['必修', '选修', '公选'] },
             { name: 'credit', label: '学分', selector: '#credit', required: true, type: 'number', min: 0.5, invalidMessage: '学分必须大于 0' },
-            { name: 'department', label: '面向学院', selector: '#department' },
+            { name: 'department', label: '开课学院', selector: '#department' },
             { name: 'courseDesc', label: '课程描述', selector: '#courseDesc' }
         ]
     });
@@ -79,7 +79,7 @@ async function openEditModal(id) {
             {name:'courseName',label:'课程名称',required:true,value:data.courseName},
             {name:'courseType',label:'课程类型',kind:'select',required:true,value:data.courseType,options:['必修','选修','公选']},
             {name:'credit',label:'学分',type:'number',required:true,min:0.5,step:0.5,value:data.credit,validate:value=>Number(value)>0?'':'学分必须大于 0'},
-            {name:'department',label:'面向学院',value:data.department||''},
+            {name:'department',label:'开课学院',value:data.department||''},
             {name:'courseDesc',label:'课程描述',kind:'textarea',wide:true,value:data.courseDesc||''}
         ],onSubmit:values=>adminFetch('/api/admin/courses/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({...values,credit:Number(values.credit),totalHours:0})}),onSuccess:async()=>{alert('课程更新成功！');await loadCourses();}});
     } catch (error) { alert('加载课程信息失败：'+error.message); }

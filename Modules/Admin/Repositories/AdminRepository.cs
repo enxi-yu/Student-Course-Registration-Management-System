@@ -296,7 +296,6 @@ namespace StudentCourse.Repositories
                 string courseName;
                 string courseType;
                 decimal credit;
-                string department;
                 string courseSummary;
                 string currentStatus;
                 using (OracleCommand command = CreateCommand(connection, applicationSql, transaction))
@@ -317,14 +316,13 @@ namespace StudentCourse.Repositories
                 {
                     int courseId = GetNextIntId(connection, transaction, "course_id_seq");
                     const string insertCourseSql = @"INSERT INTO course
-                        (course_id, course_name, course_type, credit, total_hours, department, course_desc)
-                        VALUES (:courseId, :courseName, :courseType, :credit, 0, :department, :courseDesc)";
+                        (course_id, course_name, course_type, credit,  course_desc)
+                        VALUES (:courseId, :courseName, :courseType, :credit, :courseDesc)";
                     using OracleCommand insert = CreateCommand(connection, insertCourseSql, transaction);
                     insert.Parameters.Add("courseId", OracleDbType.Int32).Value = courseId;
                     insert.Parameters.Add("courseName", OracleDbType.Varchar2).Value = courseName;
                     insert.Parameters.Add("courseType", OracleDbType.Varchar2).Value = courseType;
                     insert.Parameters.Add("credit", OracleDbType.Decimal).Value = credit;
-                    insert.Parameters.Add("department", OracleDbType.Varchar2).Value = string.IsNullOrWhiteSpace(department) ? DBNull.Value : department;
                     insert.Parameters.Add("courseDesc", OracleDbType.Varchar2).Value = string.IsNullOrWhiteSpace(courseSummary) ? DBNull.Value : courseSummary;
                     insert.ExecuteNonQuery();
                 }
@@ -370,6 +368,19 @@ namespace StudentCourse.Repositories
 
             using OracleDataReader reader = command.ExecuteReader();
             return reader.Read() ? MapAdminCredential(reader) : null;
+        }
+
+        public string? GetAdminPassword(int userId)
+        {
+            const string sql=@"SELECT u.password
+                                FROM ""user"" u
+                                JOIN administrator a ON a.user_id=u.user_id
+                                WHERE u.user_id=:userId";
+            using OracleConnection connection = DbConnectionFactory.OpenConnection();
+            using OracleCommand command = CreateCommand(connection, sql);
+            command.Parameters.Add("userId", OracleDbType.Int32).Value = userId;
+            using OracleDataReader reader = command.ExecuteReader();
+            return reader.Read() ? reader["password"].ToString() : null;
         }
 
         public void EnsureDefaultAdmin(string passwordHash)
@@ -492,6 +503,7 @@ namespace StudentCourse.Repositories
                 SELECT u.user_id,
                        u.username,
                        u.real_name,
+                       u.phone,u.email,
                        a.admin_no,
                        a.admin_level,
                        a.managed_scope
@@ -813,6 +825,121 @@ namespace StudentCourse.Repositories
             return GetStudentByUserId(userId)!;
         }
 
+        public IList<AcademicAdminDto> GetAcademicAdmins(string? keyword)
+        {
+            string sql = @"
+                SELECT u.user_id,
+                       u.username,
+                       u.real_name,
+                       u.phone,
+                       u.email,
+                       u.status,
+                       TO_CHAR(u.last_login, 'YYYY-MM-DD HH24:MI:SS') AS last_login,
+                       TO_CHAR(u.create_time, 'YYYY-MM-DD HH24:MI:SS') AS create_time,
+                       a.admin_no
+                  FROM administrator a
+                  JOIN ""user"" u ON u.user_id = a.user_id
+                  WHERE a.admin_level=1";
+
+            if (!string.IsNullOrWhiteSpace(keyword))
+            {
+                sql += @"
+                 AND( UPPER(a.admin_no) LIKE :keyword
+                    OR UPPER(u.username) LIKE :keyword
+                    OR UPPER(u.real_name) LIKE :keyword)";
+            }
+
+            sql += " ORDER BY a.admin_no FETCH FIRST 200 ROWS ONLY";
+
+            List<AcademicAdminDto> rows = new List<AcademicAdminDto>();
+
+            using OracleConnection connection = DbConnectionFactory.OpenConnection();
+            using OracleCommand command = CreateCommand(connection, sql);
+            if (!string.IsNullOrWhiteSpace(keyword))
+            {
+                command.Parameters.Add("keyword", OracleDbType.Varchar2).Value = "%" + keyword.Trim().ToUpperInvariant() + "%";
+            }
+
+            using OracleDataReader reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                rows.Add(MapAcdemicAdmin(reader));
+            }
+
+            return rows;
+        }
+
+        public AcademicAdminDto? GetAcademicAdminByUserId(int userId)
+        {
+            const string sql = @"
+                SELECT u.user_id,
+                       u.username,
+                       u.real_name,
+                       u.phone,
+                       u.email,
+                       u.status,
+                       TO_CHAR(u.last_login, 'YYYY-MM-DD HH24:MI:SS') AS last_login,
+                       TO_CHAR(u.create_time, 'YYYY-MM-DD HH24:MI:SS') AS create_time,
+                       a.admin_no
+                  FROM administrator a
+                  JOIN ""user"" u ON u.user_id = a.user_id
+                 WHERE u.user_id = :userId";
+
+            using OracleConnection connection = DbConnectionFactory.OpenConnection();
+            using OracleCommand command = CreateCommand(connection, sql);
+            command.Parameters.Add("userId", OracleDbType.Int32).Value = userId;
+
+            using OracleDataReader reader = command.ExecuteReader();
+            return reader.Read() ? MapAcdemicAdmin(reader) : null;
+        }
+
+        public AcademicAdminDto InsertAcademicAdmin(AdminUserInput input, string passwordHash)
+        {
+            using OracleConnection connection = DbConnectionFactory.OpenConnection();
+            using OracleTransaction transaction = connection.BeginTransaction();
+            int userId = InsertUser(connection, transaction, input, passwordHash, 2);
+
+            const string sql = @"
+                INSERT INTO administrator (
+                    user_id,admin_no,admin_level,managed_scope
+                ) VALUES (
+                    :userId,:adminNo,1,'{""scope"":""teaching""}'
+                )";
+
+            using (OracleCommand command = CreateCommand(connection, sql, transaction))
+            {
+                command.Parameters.Add("userId", OracleDbType.Int32).Value = userId;
+                command.Parameters.Add("adminNo", OracleDbType.Varchar2).Value = input.AdminNo.Trim();
+                command.ExecuteNonQuery();
+            }
+            transaction.Commit();
+            return GetAcademicAdminByUserId(userId)!;
+        }
+
+        public AcademicAdminDto UpdateAcademicAdmin(int userId, AdminUserInput input)
+        {
+            using OracleConnection connection = DbConnectionFactory.OpenConnection();
+            using OracleTransaction transaction = connection.BeginTransaction();
+            UpdateUser(connection, transaction, userId, input);
+
+            const string sql = @"
+                UPDATE administrator
+                   SET admin_no = :adminNo
+                 WHERE user_id = :userId";
+
+            using (OracleCommand command = CreateCommand(connection, sql, transaction))
+            {
+                command.Parameters.Add("adminNo", OracleDbType.Varchar2).Value = input.AdminNo.Trim();
+                command.Parameters.Add("userId", OracleDbType.Int32).Value = userId;
+                if (command.ExecuteNonQuery() == 0)
+                {
+                    throw new InvalidOperationException("教务管理员不存在");
+                }
+            }
+            transaction.Commit();
+            return GetAcademicAdminByUserId(userId)!;
+        }
+
         public IList<AdminTeacherDto> GetTeachers(string? keyword)
         {
             string sql = @"
@@ -982,6 +1109,19 @@ namespace StudentCourse.Repositories
             using OracleConnection connection = DbConnectionFactory.OpenConnection();
             using OracleCommand command = CreateCommand(connection, sql);
             command.Parameters.Add("teacherNo", OracleDbType.Varchar2).Value = teacherNo;
+            if (excludeUserId.HasValue) 
+                command.Parameters.Add("excludeUserId", OracleDbType.Int32).Value = excludeUserId.Value;
+            return Convert.ToInt32(command.ExecuteScalar()) > 0;
+        }
+
+        public bool AdminNoExists(string adminNo, int? excludeUserId = null)
+        {
+            string sql = @"SELECT COUNT(*) FROM administrator WHERE admin_no = :adminNo";
+            if (excludeUserId.HasValue) 
+                sql += " AND user_id <> :excludeUserId";
+            using OracleConnection connection = DbConnectionFactory.OpenConnection();
+            using OracleCommand command = CreateCommand(connection, sql);
+            command.Parameters.Add("adminNo", OracleDbType.Varchar2).Value = adminNo;
             if (excludeUserId.HasValue) 
                 command.Parameters.Add("excludeUserId", OracleDbType.Int32).Value = excludeUserId.Value;
             return Convert.ToInt32(command.ExecuteScalar()) > 0;
@@ -1421,6 +1561,21 @@ namespace StudentCourse.Repositories
             }
         }
 
+        //管理员在自己的资料页修改手机号和邮箱
+        public void UpdateProfile(int userId, string? phone,string? email)
+        {
+            const string sql = @" UPDATE ""user""
+                                SET phone = :phone,email = :email
+                                WHERE user_id = :userId";
+            using OracleConnection connection = DbConnectionFactory.OpenConnection();
+            using OracleCommand command = CreateCommand(connection, sql);
+            command.Parameters.Add("phone", OracleDbType.Varchar2).Value = DbValue(phone);
+            command.Parameters.Add("email", OracleDbType.Varchar2).Value = DbValue(email);
+            command.Parameters.Add("userId", OracleDbType.Int32).Value = userId;
+            if (command.ExecuteNonQuery() == 0)
+                throw new InvalidOperationException("用户不存在");
+        }
+
         private static int GetNextIntId(OracleConnection connection, OracleTransaction? transaction, string sequenceName)
         {
             string sql = $"SELECT {sequenceName}.NEXTVAL FROM dual";
@@ -1481,6 +1636,8 @@ namespace StudentCourse.Repositories
                 UserId = ToInt32(reader["user_id"]),
                 Username = Convert.ToString(reader["username"]) ?? string.Empty,
                 RealName = Convert.ToString(reader["real_name"]) ?? string.Empty,
+                Phone=Convert.ToString(reader["phone"]) ?? string.Empty,
+                Email=Convert.ToString(reader["email"]) ?? string.Empty,
                 AdminNo = Convert.ToString(reader["admin_no"]) ?? string.Empty,
                 AdminLevel = ToInt32(reader["admin_level"]),
                 ManagedScope = ReadText(reader["managed_scope"])
@@ -1522,6 +1679,22 @@ namespace StudentCourse.Repositories
                 TeacherNo = Convert.ToString(reader["teacher_no"]) ?? string.Empty,
                 Title = Convert.ToString(reader["title"]) ?? string.Empty,
                 Department = Convert.ToString(reader["department"]) ?? string.Empty
+            };
+        }
+
+        private static AcademicAdminDto MapAcdemicAdmin(OracleDataReader reader)
+        {
+            return new AcademicAdminDto
+            {
+                UserId = ToInt32(reader["user_id"]),
+                Username = Convert.ToString(reader["username"]) ?? string.Empty,
+                RealName = Convert.ToString(reader["real_name"]) ?? string.Empty,
+                Phone = Convert.ToString(reader["phone"]) ?? string.Empty,
+                Email = Convert.ToString(reader["email"]) ?? string.Empty,
+                Status = ToInt32(reader["status"]),
+                LastLogin = Convert.ToString(reader["last_login"]) ?? string.Empty,
+                CreateTime = Convert.ToString(reader["create_time"]) ?? string.Empty,
+                AdminNo = Convert.ToString(reader["admin_no"]) ?? string.Empty,
             };
         }
 

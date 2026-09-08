@@ -11,7 +11,7 @@ function ensureBatchForm() {
         fields: [
             { name: 'batchName', label: '批次名称', selector: '#batchName', required: true },
             { name: 'startTime', label: '开始时间', selector: '#batchStartTime', required: true },
-            { name: 'endTime', label: '结束时间', selector: '#batchEndTime', required: true, validate: (value, values) => value <= values.startTime ? '结束时间必须晚于开始时间' : '' },
+            { name: 'endTime', label: '结束时间', selector: '#batchEndTime', required: true, validate: (value, values) => (value && values.startTime && new Date(value) <= new Date(values.startTime)) ? '结束时间必须晚于开始时间' : '' },
             { name: 'classIds', label: '开放课程', read: () => batchChecked('batchCourseOptions').map(Number), required: true, requiredMessage: '请至少选择一门开放课程' },
             { name: 'majors', label: '面向专业', read: () => batchChecked('batchMajorOptions') },
             { name: 'grades', label: '面向年级', read: () => batchChecked('batchGradeOptions') }
@@ -94,15 +94,29 @@ async function editBatch(batchId) {
     try {
         const offerings = await adminFetch(`/api/admin/batches/${batchId}/offerings`);
         const selected = offerings.filter(x => x.selected);
-        window.sharedUi.formDialog({title:'编辑选课批次',description:'修改开放时间、课程范围及面向学生。',submitText:'保存修改',fields:[
-            {name:'batchName',label:'批次名称',required:true,value:item.batchName||''},
-            {name:'startTime',label:'开始时间',type:'datetime-local',required:true,value:toDateTimeLocal(item.startTime)},
-            {name:'endTime',label:'结束时间',type:'datetime-local',required:true,value:toDateTimeLocal(item.endTime),validate:(value,values)=>value>values.startTime?'':'结束时间必须晚于开始时间'},
-            {name:'classIds',label:'开放课程',kind:'multiselect',wide:true,required:true,value:selected.map(x=>x.classId),options:batchClassOptions.map(x=>({value:x.classId,label:`${x.courseName} · ${x.className} · ${x.teacherName||'未分配教师'}`})),validate:value=>value.length?'':'请至少选择一门开放课程'},
-            {name:'majors',label:'面向专业',kind:'multiselect',value:[...new Set(selected.flatMap(x=>x.majors||[]))],options:batchMajors},
-            {name:'grades',label:'面向年级',kind:'multiselect',value:[...new Set(selected.flatMap(x=>x.grades||[]))],options:batchGrades}
-        ],onSubmit:async values=>{const batch=await adminFetch(`/api/admin/batches/${batchId}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({batchName:values.batchName,startTime:values.startTime,endTime:values.endTime})});await adminFetch(`/api/admin/batches/${batch.batchId}/offerings`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({offerings:values.classIds.map(classId=>({classId:Number(classId),majors:values.majors,grades:values.grades}))})});},onSuccess:async()=>{alert('选课批次已保存');await loadBatches();}});
-    } catch(error){ alert('读取批次配置失败：'+error.message); }
+        const dialog = window.sharedUi.formDialog({
+            title: '编辑选课批次', description: '修改开放时间、课程范围及面向学生。', submitText: '保存修改',
+            fields: [
+                { name: 'batchName', label: '批次名称', required: true, value: item.batchName || '' },
+                { name: 'startTime', label: '开始时间', type: 'datetime-local', required: true, value: toDateTimeLocal(item.startTime) },
+                { name: 'endTime', label: '结束时间', type: 'datetime-local', required: true, value: toDateTimeLocal(item.endTime), validate: (value, values) => value > values.startTime ? '' : '结束时间必须晚于开始时间' },
+                { name: 'classIds', label: '开放课程', kind: 'multiselect', wide: true, required: true, value: selected.map(x => x.classId), options: batchClassOptions.map(x => ({ value: x.classId, label: `${x.courseName} · ${x.className} · ${x.teacherName || '未分配教师'}` })), validate: value => value.length ? '' : '请至少选择一门开放课程' },
+                { name: 'majors', label: '面向专业', kind: 'multiselect', value: [...new Set(selected.flatMap(x => x.majors || []))], options: batchMajors },
+                { name: 'grades', label: '面向年级', kind: 'multiselect', value: [...new Set(selected.flatMap(x => x.grades || []))], options: batchGrades }
+            ],
+            onSubmit: async values => {
+                const batch = await adminFetch(`/api/admin/batches/${batchId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ batchName: values.batchName, startTime: values.startTime, endTime: values.endTime }) });
+                await adminFetch(`/api/admin/batches/${batch.batchId}/offerings`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ offerings: values.classIds.map(classId => ({ classId: Number(classId), majors: values.majors, grades: values.grades })) }) });
+            },
+            onSuccess: async () => { alert('选课批次已保存'); await loadBatches(); }
+        });
+        const dialogForm = dialog.form, originalSubmit = dialogForm.onsubmit;
+        dialogForm.onsubmit = event => {
+            const start = dialogForm.elements['startTime']?.value || '', end = dialogForm.elements['endTime']?.value || '';
+            if (start && end && new Date(end).getTime() <= new Date(start).getTime()) { window.sharedUi.alert('结束时间必须晚于开始时间'); return false; }
+            return originalSubmit.call(dialogForm, event);
+        };
+    } catch (error) { alert('读取批次配置失败：' + error.message); }
 }
 
 async function endBatch(batchId) {

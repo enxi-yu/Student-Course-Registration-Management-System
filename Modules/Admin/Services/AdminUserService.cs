@@ -117,6 +117,47 @@ namespace StudentCourse.Services
             return teacher;
         }
 
+        public IList<AcademicAdminDto> GetAcademicAdmins(string? keyword)
+        {
+            AdminAuthService.RequireSuperAdmin();
+            return _adminRepository.GetAcademicAdmins(keyword);
+        }
+
+        public AcademicAdminDto CreateAcademicAdmin(AdminUserInput input, string ipAddress)
+        {
+            AdminAuthService.RequireSuperAdmin();
+            ValidateCommon(input, requirePassword: true);
+            RequirePrefix(input.Username, 'A', "教务管理员账号必须以 A 开头");
+            Require(input.AdminNo, "管理员工号不能为空");
+
+            EnsureUsernameUnique(input.Username);
+            if (_adminRepository.AdminNoExists(input.AdminNo.Trim()))
+            {
+                throw new InvalidOperationException($"工号 {input.AdminNo.Trim()} 已被使用，请更换");
+            }
+
+            AcademicAdminDto academicadmin = _adminRepository.InsertAcademicAdmin(input, PasswordHash.Hash(input.Password));
+            _systemLogService.WriteCurrent("新增", "新增教务管理员账号", academicadmin.AdminNo, ipAddress, new { academicadmin.UserId, academicadmin.AdminNo, academicadmin.RealName });
+            return academicadmin;
+        }
+
+        public AcademicAdminDto UpdateAcademicAdmin(int userId, AdminUserInput input, string ipAddress)
+        {
+            AdminAuthService.RequireSuperAdmin();
+            ValidateCommon(input, requirePassword: false);
+            RequirePrefix(input.Username, 'A', "教务管理员账号必须以 A 开头");
+            Require(input.AdminNo, "管理员工号不能为空");
+            EnsureUsernameUnique(input.Username,userId);
+            if (_adminRepository.AdminNoExists(input.AdminNo.Trim(),userId))
+            {
+                throw new InvalidOperationException($"工号 {input.AdminNo.Trim()} 已被使用，请更换");
+            }
+
+            AcademicAdminDto academicadmin = _adminRepository.UpdateAcademicAdmin(userId, input);
+            _systemLogService.WriteCurrent("修改", "修改教务管理员信息", academicadmin.AdminNo, ipAddress, new { academicadmin.UserId, academicadmin.AdminNo, academicadmin.RealName });
+            return academicadmin;
+        }
+
         public void DisableUser(int userId, string ipAddress)
         {
             AdminAuthService.RequireSuperAdmin();

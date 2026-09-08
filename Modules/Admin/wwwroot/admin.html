@@ -4,13 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>管理员端 - 学生选课管理系统</title>
-  <link rel="stylesheet" href="/shared-ui/css/interface-unified.css?v=24">
-  <link rel="stylesheet" href="css/admin-extra.css?v=log-filter-grid1">
+  <link rel="stylesheet" href="css/admin-extra.css?v=unified-admin-2">
   <style>
-    table, th, td { border: 1px solid #e0e0e0 !important; border-collapse: collapse; }
-    th, td { padding: 12px 16px; }
-    th { background-color: #f8f9fa; font-weight: 600; color: #495057; }
-    tr:hover { background-color: #f8f9fa; }
+    table:not(.data-table) { border-collapse: collapse; }
+    table:not(.data-table) th, table:not(.data-table) td { border: 1px solid #e0e0e0; padding: 12px 16px; }
+    table:not(.data-table) th { background-color: #f8f9fa; font-weight: 600; color: #495057; }
+    table:not(.data-table) tr:hover { background-color: #f8f9fa; }
     
     .form-card {
       background: #fff;
@@ -192,23 +191,6 @@
       color: #2d3748;
     }
     
-    .data-table {
-      background: #fff;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-      overflow: hidden;
-      width: 100%;
-    }
-    
-    .data-table thead {
-      background: #f8f9fa;
-    }
-    
-    .data-table thead th {
-      color: #495057;
-      font-weight: 600;
-    }
-    
     .type-badge {
       display: inline-block;
       padding: 3px 10px;
@@ -277,11 +259,6 @@
     .nav-item {
       cursor: pointer;
     }
-    
-    .nav-item.active {
-      background: #007bff !important;
-      color: #fff !important;
-    }
 
     .schedule-time-row {
       display: grid;
@@ -301,6 +278,8 @@
       .schedule-time-row { grid-template-columns: repeat(3, minmax(140px, 1fr)); }
     }
   </style>
+
+  <link rel="stylesheet" href="/shared-ui/css/interface-unified.css?v=25">
 </head>
 <body>
   <div class="teacher-shell">
@@ -333,6 +312,7 @@
           <div class="nav-group-items" id="admin-nav-users" hidden>
             <button class="nav-item nav-sub-item" type="button" data-tab="students" onclick="switchTab('students')">学生管理</button>
             <button class="nav-item nav-sub-item" type="button" data-tab="teachers" onclick="switchTab('teachers')">教师管理</button>
+            <button class="nav-item nav-sub-item" type="button" data-tab="academics" onclick="switchTab('academics')">教务管理</button>
           </div>
         </div>
         <div class="nav-collapsible" data-hide-when-empty>
@@ -345,6 +325,7 @@
           </div>
         </div>
         <button class="nav-item" type="button" data-tab="logs" onclick="switchTab('logs')">系统日志</button>
+        <button class="nav-item" type="button" data-tab="profile" onclick="switchTab('profile')">个人资料</button>
       </nav>
     </aside>
 
@@ -391,7 +372,7 @@
                 <input type="number" id="credit" step="0.5" min="0" placeholder="例如：3.0">
               </div>
               <div class="field">
-                <label>面向学院</label>
+                <label>开课学院</label>
                 <input type="text" id="department" placeholder="例如：计算机科学与技术学院">
               </div>
               <div class="field field-wide">
@@ -414,7 +395,7 @@
                 <th>课程名称</th>
                 <th>课程类型</th>
                 <th>学分</th>
-                <th>面向学院</th>
+                <th>开课学院</th>
                 <th>课程描述</th>
                 <th>操作</th>
               </tr>
@@ -632,6 +613,69 @@
           </div>
         </div>
 
+        <div id="academics-tab" class="tab-content">
+          <div id="academicsPageHeading"></div>
+          <div class="form-card">
+            <div class="form-card-header">
+              <h3 id="academicFormTitle">新增教务管理员账号</h3>
+            </div>
+            <input type="hidden" id="academicUserId">
+            <div class="form-grid">
+              <div class="field">
+                <label>登录账号 <span class="required">*</span></label>
+                <input type="text" id="academicUsername" placeholder="通常填写工号">
+              </div>
+              <div class="field">
+                <label>管理员工号 <span class="required">*</span></label>
+                <input type="text" id="academicAdminNo">
+              </div>
+              <div class="field">
+                <label>姓名 <span class="required">*</span></label>
+                <input type="text" id="academicRealName">
+              </div>
+              <div class="field">
+                <label>初始/重置密码 <span class="required">*</span></label>
+                <input type="password" id="academicPassword" placeholder="新增时必填，编辑时可留空">
+              </div>
+              <div class="field">
+                <label>联系电话</label>
+                <input type="text" id="academicPhone" maxlength="11">
+              </div>
+              <div class="field">
+                <label>电子邮箱</label>
+                <input type="email" id="academicEmail">
+              </div>
+              <div class="field">
+                <label>账号状态</label>
+                <select id="academicStatus">
+                  <option value="1">激活</option>
+                  <option value="0">禁用</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button class="btn btn-secondary" onclick="clearAcademicForm()">重置</button>
+              <button class="btn btn-primary" id="saveAcademicButton" onclick="saveAcademic()">保存教务管理员</button>
+            </div>
+          </div>
+          <div id="academicsFilterBar"></div>
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>管理员编号</th>
+                  <th>姓名</th>
+                  <th>登录账号</th>
+                  <th>账号状态</th>
+                  <th>联系方式</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="academicTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
         <div id="batches-tab" class="tab-content">
           <div id="batchesPageHeading"></div>
           <div class="form-card">
@@ -773,6 +817,11 @@
           </div>
         </div>
 
+        <div id="profile-tab" class="tab-content">
+          <div id="profilePageHeading"></div>
+          <div id="adminProfileRoot"></div>
+        </div>
+
       </main>
     </section>
   </div>
@@ -796,14 +845,16 @@
   <script src="js/pages/admin-scheduling.js?v=shared-utils1"></script>
   <script src="js/pages/admin-application.js?v=leader-schema1"></script>
   <script src="js/pages/admin-dashboard.js?v=super-role1"></script>
-  <script src="js/pages/admin-shell.js?v=super-role1"></script>
+  <script src="js/pages/admin-shell.js?v=super-academic1"></script>
   <script src="js/pages/admin-auth.js?v=super-role1"></script>
   <script src="js/pages/admin-student.js?v=shared-state1"></script>
   <script src="js/pages/admin-teacher.js?v=shared-state1"></script>
+  <script src="js/pages/admin-academic.js?v=academic1"></script>
   <script src="js/pages/admin-batch.js?v=end-refresh1"></script>
   <script src="js/pages/admin-class.js?v=shared-form-dialog1"></script>
   <script src="js/pages/admin-selection-unrestricted.js?v=shared-state1"></script>
   <script src="js/pages/admin-log.js?v=shared-table2"></script>
   <script src="js/pages/admin-evaluation.js?v=shared-utils1"></script>
+  <script src="js/pages/admin-profile.js?v=profile1"></script>
 </body>
 </html>
