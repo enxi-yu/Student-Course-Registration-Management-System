@@ -17,8 +17,20 @@ namespace StudentCourse.Services
 
         public IList<AdminStudentDto> GetStudents(string? keyword)
         {
-            AdminAuthService.RequireAdminSession();
+            AdminAuthService.RequireSuperAdmin();
             return _adminRepository.GetStudents(keyword);
+        }
+
+        public IList<AdminStudentLookupDto> GetStudentLookups(string? keyword)
+        {
+            AdminAuthService.RequireAdminSession();
+            return _adminRepository.GetStudentLookups(keyword);
+        }
+
+        public AdminStudentAudienceOptionsDto GetStudentAudienceOptions()
+        {
+            AdminAuthService.RequireAdminSession();
+            return _adminRepository.GetStudentAudienceOptions();
         }
 
         public AdminStudentDto CreateStudent(AdminUserInput input, string ipAddress)
@@ -63,7 +75,7 @@ namespace StudentCourse.Services
 
         public IList<AdminTeacherDto> GetTeachers(string? keyword)
         {
-            AdminAuthService.RequireAdminSession();
+            AdminAuthService.RequireSuperAdmin();
             return _adminRepository.GetTeachers(keyword);
         }
 

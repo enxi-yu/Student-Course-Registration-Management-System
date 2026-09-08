@@ -159,25 +159,41 @@ namespace StudentCourse.Controllers
             return SafeOk(() => _adminAuthService.GetPermissions());
         }
 
+        [HttpGet("lookups/students")]
+        public IActionResult GetStudentLookups([FromQuery] string? keyword)
+        {
+            return SafeOk(() => _adminUserService.GetStudentLookups(keyword));
+        }
+
+        [HttpGet("lookups/student-audiences")]
+        public IActionResult GetStudentAudienceOptions()
+        {
+            return SafeOk(() => _adminUserService.GetStudentAudienceOptions());
+        }
+
         [HttpGet("students")]
+        [Authorize(Policy = "SuperAdmin")]
         public IActionResult GetStudents([FromQuery] string? keyword)
         {
             return SafeOk(() => _adminUserService.GetStudents(keyword));
         }
 
         [HttpPost("students")]
+        [Authorize(Policy = "SuperAdmin")]
         public IActionResult CreateStudent([FromBody] AdminUserInput input)
         {
             return SafeOk(() => _adminUserService.CreateStudent(input, ClientIp()));
         }
 
         [HttpPut("students/{userId:int}")]
+        [Authorize(Policy = "SuperAdmin")]
         public IActionResult UpdateStudent(int userId, [FromBody] AdminUserInput input)
         {
             return SafeOk(() => _adminUserService.UpdateStudent(userId, input, ClientIp()));
         }
 
         [HttpPut("students/{userId:int}/disable")]
+        [Authorize(Policy = "SuperAdmin")]
         public IActionResult DisableStudent(int userId)
         {
             return SafeOk(() =>
@@ -188,6 +204,7 @@ namespace StudentCourse.Controllers
         }
 
         [HttpPut("students/{userId:int}/enable")]
+        [Authorize(Policy = "SuperAdmin")]
         public IActionResult EnableStudent(int userId)
         {
             return SafeOk(() =>
@@ -198,6 +215,7 @@ namespace StudentCourse.Controllers
         }
 
         [HttpPut("students/{userId:int}/password")]
+        [Authorize(Policy = "SuperAdmin")]
         public IActionResult ResetStudentPassword(int userId, [FromBody] ResetPasswordRequest request)
         {
             return SafeOk(() =>
@@ -208,24 +226,28 @@ namespace StudentCourse.Controllers
         }
 
         [HttpGet("teachers")]
+        [Authorize(Policy = "SuperAdmin")]
         public IActionResult GetTeachers([FromQuery] string? keyword)
         {
             return SafeOk(() => _adminUserService.GetTeachers(keyword));
         }
 
         [HttpPost("teachers")]
+        [Authorize(Policy = "SuperAdmin")]
         public IActionResult CreateTeacher([FromBody] AdminUserInput input)
         {
             return SafeOk(() => _adminUserService.CreateTeacher(input, ClientIp()));
         }
 
         [HttpPut("teachers/{userId:int}")]
+        [Authorize(Policy = "SuperAdmin")]
         public IActionResult UpdateTeacher(int userId, [FromBody] AdminUserInput input)
         {
             return SafeOk(() => _adminUserService.UpdateTeacher(userId, input, ClientIp()));
         }
 
         [HttpPut("teachers/{userId:int}/disable")]
+        [Authorize(Policy = "SuperAdmin")]
         public IActionResult DisableTeacher(int userId)
         {
             return SafeOk(() =>
@@ -236,6 +258,7 @@ namespace StudentCourse.Controllers
         }
 
         [HttpPut("teachers/{userId:int}/enable")]
+        [Authorize(Policy = "SuperAdmin")]
         public IActionResult EnableTeacher(int userId)
         {
             return SafeOk(() =>
@@ -246,6 +269,7 @@ namespace StudentCourse.Controllers
         }
 
         [HttpPut("teachers/{userId:int}/password")]
+        [Authorize(Policy = "SuperAdmin")]
         public IActionResult ResetTeacherPassword(int userId, [FromBody] ResetPasswordRequest request)
         {
             return SafeOk(() =>
@@ -292,6 +316,7 @@ namespace StudentCourse.Controllers
         }
 
         [HttpGet("logs")]
+        [Authorize(Policy = "SuperAdmin")]
         public IActionResult GetLogs([FromQuery] string? keyword, [FromQuery] string? operationType, [FromQuery] DateTime? startTime, [FromQuery] DateTime? endTime, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
         {
             return SafeOk(() => _systemLogService.GetLogs(keyword, operationType, startTime, endTime, page, pageSize));
@@ -310,6 +335,7 @@ namespace StudentCourse.Controllers
         }
 
         [HttpGet("logs/export")]
+        [Authorize(Policy = "SuperAdmin")]
         public IActionResult ExportLogs([FromQuery] string? keyword, [FromQuery] string? operationType, [FromQuery] DateTime? startTime, [FromQuery] DateTime? endTime)
         {
             try

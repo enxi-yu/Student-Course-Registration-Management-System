@@ -43,7 +43,14 @@ builder.Services
             return Task.CompletedTask;
         };
     });
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("SuperAdmin", policy =>
+    {
+        policy.RequireRole("Admin");
+        policy.RequireClaim("admin_level", AdminAuthService.SuperAdminLevel.ToString());
+    });
+});
 builder.Services.AddCors(options => options.AddPolicy("LoginPortal", policy => policy.WithOrigins("http://localhost:5100").AllowAnyHeader().AllowAnyMethod().AllowCredentials()));
 
 builder.Services.AddScoped<AdminRepository>();

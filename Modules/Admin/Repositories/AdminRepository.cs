@@ -642,6 +642,80 @@ namespace StudentCourse.Repositories
             return rows;
         }
 
+        public IList<AdminStudentLookupDto> GetStudentLookups(string? keyword)
+        {
+            string sql = @"
+                SELECT s.student_no,
+                       u.real_name,
+                       s.major,
+                       s.grade
+                  FROM student s
+                  JOIN ""user"" u ON u.user_id = s.user_id";
+
+            if (!string.IsNullOrWhiteSpace(keyword))
+            {
+                sql += @"
+                 WHERE UPPER(s.student_no) LIKE :keyword
+                    OR UPPER(u.username) LIKE :keyword
+                    OR UPPER(u.real_name) LIKE :keyword
+                    OR UPPER(s.major) LIKE :keyword";
+            }
+
+            sql += " ORDER BY s.student_no FETCH FIRST 200 ROWS ONLY";
+
+            List<AdminStudentLookupDto> rows = new List<AdminStudentLookupDto>();
+            using OracleConnection connection = DbConnectionFactory.OpenConnection();
+            using OracleCommand command = CreateCommand(connection, sql);
+            if (!string.IsNullOrWhiteSpace(keyword))
+            {
+                command.Parameters.Add("keyword", OracleDbType.Varchar2).Value = "%" + keyword.Trim().ToUpperInvariant() + "%";
+            }
+
+            using OracleDataReader reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                rows.Add(new AdminStudentLookupDto
+                {
+                    StudentNo = Convert.ToString(reader["student_no"]) ?? string.Empty,
+                    RealName = Convert.ToString(reader["real_name"]) ?? string.Empty,
+                    Major = Convert.ToString(reader["major"]) ?? string.Empty,
+                    Grade = Convert.ToString(reader["grade"]) ?? string.Empty
+                });
+            }
+
+            return rows;
+        }
+
+        public AdminStudentAudienceOptionsDto GetStudentAudienceOptions()
+        {
+            AdminStudentAudienceOptionsDto result = new AdminStudentAudienceOptionsDto();
+            using OracleConnection connection = DbConnectionFactory.OpenConnection();
+
+            const string majorSql = "SELECT DISTINCT major FROM student WHERE major IS NOT NULL ORDER BY major";
+            using (OracleCommand command = CreateCommand(connection, majorSql))
+            using (OracleDataReader reader = command.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    string major = Convert.ToString(reader["major"])?.Trim() ?? string.Empty;
+                    if (major.Length > 0) result.Majors.Add(major);
+                }
+            }
+
+            const string gradeSql = "SELECT DISTINCT grade FROM student WHERE grade IS NOT NULL ORDER BY grade DESC";
+            using (OracleCommand command = CreateCommand(connection, gradeSql))
+            using (OracleDataReader reader = command.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    string grade = Convert.ToString(reader["grade"])?.Trim() ?? string.Empty;
+                    if (grade.Length > 0) result.Grades.Add(grade);
+                }
+            }
+
+            return result;
+        }
+
         public AdminStudentDto? GetStudentByUserId(int userId)
         {
             const string sql = @"
