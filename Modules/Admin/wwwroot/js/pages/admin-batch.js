@@ -26,8 +26,20 @@ function batchChecked(containerId) {
 
 function updateBatchMulti(id, emptyText) {
     const root = document.getElementById(id);
-    const values = Array.from(root.querySelectorAll('input[type="checkbox"]:checked')).map(x => x.dataset.label || x.value);
+    const values = Array.from(root.querySelectorAll('.batch-multi-option input[type="checkbox"]:checked')).map(x => x.dataset.label || x.value);
     root.querySelector('.batch-multi-trigger').textContent = values.length ? `已选择 ${values.length} 项：${values.slice(0, 2).join('、')}${values.length > 2 ? '…' : ''}` : emptyText;
+}
+
+// 全选框基于当前筛选的情况显示
+function updateBatchCheckAll(root) {
+    const checkAll = root.querySelector('.batch-multi-checkall input');
+    if (!checkAll) return;
+    const options = Array.from(root.querySelectorAll('.batch-multi-option'));
+    const visible = options.filter(o => o.style.display !== 'none');
+    const total = visible.length;
+    const selected = visible.filter(o => o.querySelector('input').checked).length;
+    checkAll.indeterminate = selected > 0 && selected < total;
+    checkAll.checked = total > 0 && selected === total;
 }
 
 function renderBatchOptions(containerId, items, selected, valueKey, labelBuilder) {
@@ -42,11 +54,25 @@ function renderBatchOptions(containerId, items, selected, valueKey, labelBuilder
 
 function wireBatchMulti(id, emptyText) {
     const root = document.getElementById(id);
+    const menu = root.querySelector('.batch-multi-menu');
+    menu.querySelectorAll('.batch-multi-checkall').forEach(x => x.remove());
+    const checkAll = document.createElement('label');
+    checkAll.className = 'batch-multi-checkall';
+    checkAll.innerHTML = '<input type="checkbox"><span>全选</span>';
+    menu.insertBefore(checkAll, root.querySelector('.batch-multi-options'));
+    const refresh = () => { updateBatchCheckAll(root); updateBatchMulti(id, emptyText); };
     root.querySelector('.batch-multi-trigger').onclick = event => { event.stopPropagation(); document.querySelectorAll('.batch-multi.open').forEach(x => { if (x !== root) x.classList.remove('open'); }); root.classList.toggle('open'); };
-    root.querySelectorAll('input[type="checkbox"]').forEach(x => x.onchange = () => updateBatchMulti(id, emptyText));
+    root.querySelectorAll('.batch-multi-option input').forEach(x => x.onchange = refresh);
+    // 全选点击作用于全部项
+    checkAll.querySelector('input').onchange = () => {
+        const check = checkAll.querySelector('input').checked;
+        root.querySelectorAll('.batch-multi-option input[type="checkbox"]').forEach(x => { x.checked = check; });
+        refresh();
+    };
+    // 搜索仅做显示过滤，删除输入后勾选状态保留
     const search = root.querySelector('.batch-multi-search');
-    if (search) search.oninput = () => root.querySelectorAll('.batch-multi-option').forEach(x => x.style.display = x.dataset.search.includes(search.value.trim().toLowerCase()) ? '' : 'none');
-    updateBatchMulti(id, emptyText);
+    if (search) search.oninput = () => { root.querySelectorAll('.batch-multi-option').forEach(x => x.style.display = x.dataset.search.includes(search.value.trim().toLowerCase()) ? '' : 'none'); updateBatchCheckAll(root); };
+    refresh();
 }
 
 async function loadBatchLookups() {

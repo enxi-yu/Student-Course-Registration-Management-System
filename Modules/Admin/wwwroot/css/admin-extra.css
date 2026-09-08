@@ -120,15 +120,16 @@
 .batch-multi.open .batch-multi-menu { display:block; }
 .batch-multi-search { width:100%; margin-bottom:5px; font-size:13px; }
 .batch-multi-options { max-height:212px; overflow:auto; display:grid; gap:1px; }
-.batch-multi-option { display:flex; align-items:center; gap:6px; padding:2px 6px; border-radius:4px; cursor:pointer; font-size:13px; line-height:1.25; }
-.batch-multi-option:hover { background:#f3f7fd; }
-.batch-multi-option input { width:14px; height:14px; margin:0; flex:none; accent-color:var(--ui-blue-700, #1269dc); }
-.batch-multi-option small { display:block; color:#72839b; font-size:11px; line-height:1.2; margin-top:1px; }
-.batch-multi-option.batch-multi-all { grid-column:1/-1; align-items:center; padding:3px 6px 4px; margin-bottom:2px; border-bottom:1px solid #e6edf6; border-radius:0; font-weight:600; color:#1269dc; }
-.batch-multi-option.batch-multi-all:hover { background:#fff; }
-.batch-multi-option.batch-multi-all input { margin:0; }
-.batch-multi-option > span { flex:1; min-width:0; }
-.batch-multi-option > span small { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.form-grid .field .batch-multi-option { display:flex; align-items:center; gap:6px; padding:2px 6px; border-radius:4px; cursor:pointer; font-size:13px; line-height:1.25; margin-bottom:0; font-weight:400; color:#243b5a; }
+.form-grid .field .batch-multi-option:hover { background:#f3f7fd; }
+.form-grid .field .batch-multi-option input,
+.form-grid .field .batch-multi-checkall input { width:14px; height:14px; flex:none; padding:0; margin:0; border:0; border-radius:0; box-shadow:none; background:none; accent-color:var(--ui-blue-700, #1269dc); }
+.form-grid .field .batch-multi-option small { display:block; color:#72839b; font-size:11px; line-height:1.2; margin-top:1px; }
+/* 全选行：勾/横杠/空*/
+.form-grid .field .batch-multi-checkall { display:flex; align-items:center; gap:6px; padding:3px 6px 5px; margin-bottom:2px; border-bottom:1px solid #e6edf6; border-radius:0; font-weight:600; color:#1269dc; cursor:pointer; font-size:13px; line-height:1.25; }
+.form-grid .field .batch-multi-checkall:hover { background:#fff; }
+.form-grid .field .batch-multi-option > span { flex:1; min-width:0; }
+.form-grid .field .batch-multi-option > span small { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
 @media (max-width: 720px) {
   .scheduling-form-grid { grid-template-columns: minmax(0, 1fr); }
