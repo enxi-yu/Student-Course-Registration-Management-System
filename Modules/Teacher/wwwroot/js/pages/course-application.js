@@ -30,14 +30,15 @@
   function row(application) {
     return `
       <tr>
+        <td>${escapeHtml(application.applicationId || "-")}</td>
+        <td>${escapeHtml(application.teacherNo || "-")}</td>
         <td>${escapeHtml(application.courseName)}</td>
         <td>${escapeHtml(application.courseType || "-")}</td>
         <td>${application.credit}</td>
-        <td>${escapeHtml(application.department || "-")}</td>
         <td>${escapeHtml(application.textbook || "-")}</td>
         <td>${escapeHtml(application.courseSummary || "-")}</td>
-        <td><span class="status-badge ${statusClass(application.status)}">${escapeHtml(application.status || "待审核")}</span></td>
         <td>${escapeHtml(application.applyTime || "-")}</td>
+        <td><span class="status-badge ${statusClass(application.status)}">${escapeHtml(application.status || "待审核")}</span></td>
         <td>${escapeHtml(application.approveTime || "-")}</td>
         <td>${escapeHtml(application.approveComment || "-")}</td>
       </tr>
@@ -47,12 +48,12 @@
   async function loadApplications(resetPage = false) {
     const body = document.getElementById("applications-table-body");
     if (resetPage) applicationPage = 1;
-    window.sharedUi.setTableState(body, 10, "正在加载申请记录...");
+    window.sharedUi.setTableState(body, 11, "正在加载申请记录...");
     try {
       const applications = await window.nativeApi.request("teacher.getCourseApplications", {});
-      applicationPage = window.sharedUi.renderPagedTable({ body, rows: applications, row, page: applicationPage, pageSize: 10, colspan: 10, emptyText: "暂无开课申请记录", pagination: "teacherApplicationPagination", onPageChange: page => { applicationPage = page; loadApplications(false); } });
+      applicationPage = window.sharedUi.renderPagedTable({ body, rows: applications, row, page: applicationPage, pageSize: 10, colspan: 11, emptyText: "暂无开课申请记录", pagination: "teacherApplicationPagination", onPageChange: page => { applicationPage = page; loadApplications(false); } });
     } catch (error) {
-      window.sharedUi.setTableError(body, 10, `加载申请记录失败：${error.message}`, loadApplications);
+      window.sharedUi.setTableError(body, 11, `加载申请记录失败：${error.message}`, loadApplications);
     }
   }
 
@@ -65,9 +66,8 @@
           ${window.sharedUi.formControl({ label: "课程名称", name: "courseName", required: true, maxLength: 100, placeholder: "例如：数据库系统实践" })}
           ${window.sharedUi.formControl({ label: "课程类型", name: "courseType", kind: "select", required: true, emptyText: "请选择课程类型", options: COURSE_TYPES })}
           ${window.sharedUi.formControl({ label: "学分", name: "credit", type: "number", required: true, min: 0.5, step: 0.5, placeholder: "2.0" })}
-          ${window.sharedUi.formControl({ label: "面向学院", name: "department", required: true, maxLength: 20, placeholder: "例如：软件学院" })}
           ${window.sharedUi.formControl({ label: "参考教材", name: "textbook", maxLength: 200, placeholder: "可选，例如：数据库系统概论" })}
-          ${window.sharedUi.formControl({ label: "课程描述", name: "courseSummary", kind: "textarea", wide: true, placeholder: "填写课程目标、主要内容和考核方式" })}
+          ${window.sharedUi.formControl({ label: "课程简介", name: "courseSummary", kind: "textarea", wide: true, placeholder: "填写课程目标、主要内容和考核方式" })}
           <div class="field-actions">
             <button class="primary-button" type="submit">提交申请</button>
           </div>
@@ -78,21 +78,22 @@
         <table class="data-table">
           <thead>
             <tr>
+              <th>申请编号</th>
+              <th>教师工号</th>
               <th>课程名称</th>
               <th>课程类型</th>
               <th>学分</th>
-              <th>面向学院</th>
               <th>参考教材</th>
-              <th>课程描述</th>
-              <th>审批状态</th>
+              <th>课程简介</th>
               <th>申请时间</th>
+              <th>审批状态</th>
               <th>审批时间</th>
               <th>审批意见</th>
             </tr>
           </thead>
           <tbody id="applications-table-body">
             <tr>
-              <td colspan="10"><div class="empty-state">正在加载申请记录...</div></td>
+              <td colspan="11"><div class="empty-state">正在加载申请记录...</div></td>
             </tr>
           </tbody>
         </table></div><div id="teacherApplicationPagination"></div>
@@ -105,8 +106,7 @@
         { name: "courseName", label: "课程名称", required: true },
         { name: "courseType", label: "课程类型", required: true, oneOf: COURSE_TYPES },
         { name: "credit", label: "学分", required: true, type: "number", min: 0.5, invalidMessage: "学分必须大于 0" },
-        { name: "department", label: "面向学院", required: true },
-        { name: "textbook", label: "参考教材" }, { name: "courseSummary", label: "课程描述" }
+        { name: "textbook", label: "参考教材" }, { name: "courseSummary", label: "课程简介" }
       ]
     });
     document.getElementById("application-form").addEventListener("submit", async (event) => {
@@ -116,9 +116,9 @@
       try {
         await applicationForm.submit(async values => {
           const payload = {
-            courseName: values.courseName, credit: values.credit, totalHours: 0,
+            courseName: values.courseName, credit: values.credit,
             textbook: values.textbook, courseSummary: values.courseSummary,
-            courseType: values.courseType, department: values.department
+            courseType: values.courseType
           };
           await window.nativeApi.request("teacher.submitCourseApplication", payload);
         }, "提交中...");
