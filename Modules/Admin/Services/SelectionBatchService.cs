@@ -27,6 +27,19 @@ namespace StudentCourse.Services
         {
             AdminAuthService.RequireAdminSession();
             if (_adminRepository.GetBatchById(batchId) == null) throw new InvalidOperationException("选课批次不存在");
+
+            List<int> classIds = (request?.Offerings ?? new List<BatchOfferingInput>())
+                                .Select(x => x.ClassId).Distinct().ToList();
+            string? semester=null;
+            foreach(int classId in classIds){
+                AdminClassDto? teachingclass=  _adminRepository.GetClassById(classId);
+                if(teachingclass==null)
+                    throw new InvalidOperationException("教学班不存在");
+                if(semester==null)
+                    semester=teachingclass.Semester;
+                else if(semester!=teachingclass.Semester)
+                    throw new InvalidOperationException("同一选课批次中只能开放同一学期的教学班");
+            }
             _batchOfferingRepository.Save(batchId, request?.Offerings ?? new List<BatchOfferingInput>());
             _systemLogService.WriteCurrent("修改", "配置批次释放课程", batchId.ToString(), ipAddress,
                 new { BatchId = batchId, Count = request?.Offerings?.Count ?? 0 });

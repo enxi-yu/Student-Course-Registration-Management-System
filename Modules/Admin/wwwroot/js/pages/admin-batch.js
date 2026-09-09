@@ -12,6 +12,7 @@ function ensureBatchForm() {
             { name: 'batchName', label: '批次名称', selector: '#batchName', required: true },
             { name: 'startTime', label: '开始时间', selector: '#batchStartTime', required: true },
             { name: 'endTime', label: '结束时间', selector: '#batchEndTime', required: true, validate: (value, values) => (value && values.startTime && new Date(value) <= new Date(values.startTime)) ? '结束时间必须晚于开始时间' : '' },
+            { name: 'semester', label: '所属学期', selector: '#batchSemester', required: true, requiredMessage: '请先选择所属学期' },
             { name: 'classIds', label: '开放课程', read: () => batchChecked('batchCourseOptions').map(Number), required: true, requiredMessage: '请至少选择一门开放课程' },
             { name: 'majors', label: '面向专业', read: () => batchChecked('batchMajorOptions') },
             { name: 'grades', label: '面向年级', read: () => batchChecked('batchGradeOptions') }
@@ -81,14 +82,45 @@ async function loadBatchLookups() {
     batchClassOptions = classes;
     batchMajors = audiences.majors || [];
     batchGrades = audiences.grades || [];
-    fillBatchSelectors([], [], []);
+    wireBatchSemester();
+    fillBatchSelectors([], [], [], '');
 }
 
-function fillBatchSelectors(classIds, majors, grades) {
-    renderBatchOptions('batchCourseOptions', batchClassOptions, classIds, 'classId', x => ({ title:`${x.courseName} · ${x.className}`, detail:`${x.teacherName || '未分配教师'} · ${x.semester}`, search:`${x.courseName} ${x.className} ${x.teacherName || ''} ${x.semester}` }));
-    renderBatchOptions('batchMajorOptions', batchMajors, majors, '', x => ({title:x, detail:'', search:x}));
-    renderBatchOptions('batchGradeOptions', batchGrades, grades, '', x => ({title:x, detail:'', search:x}));
-    wireBatchMulti('batchCourseMulti', '请选择开放课程'); wireBatchMulti('batchMajorMulti', '全部专业'); wireBatchMulti('batchGradeMulti', '全部年级');
+function batchCourseLabel(x) {
+    return { title: `${x.courseName} · ${x.className}`, detail: `${x.teacherName || '未分配教师'} · ${x.semester}`, search: `${x.courseName} ${x.className} ${x.teacherName || ''} ${x.semester}` };
+}
+
+function batchSemesterList() {
+    return [...new Set(batchClassOptions.map(x => x.semester).filter(Boolean))];
+}
+
+let batchSemester = '';
+
+// 未选学期时不渲染课程并提示先选学期；选中/切换学期仅加载该学期教学班
+function fillBatchSelectors(classIds, majors, grades, semester) {
+    const courses = semester ? batchClassOptions.filter(x => x.semester === semester) : [];
+    renderBatchOptions('batchCourseOptions', courses, semester ? (classIds || []) : [], 'classId', batchCourseLabel);
+    renderBatchOptions('batchMajorOptions', batchMajors, majors || [], '', x => ({ title: x, detail: '', search: x }));
+    renderBatchOptions('batchGradeOptions', batchGrades, grades || [], '', x => ({ title: x, detail: '', search: x }));
+    wireBatchMulti('batchCourseMulti', semester ? '请选择开放课程' : '请先选择所属学期');
+    wireBatchMulti('batchMajorMulti', '全部专业');
+    wireBatchMulti('batchGradeMulti', '全部年级');
+}
+
+function fillBatchSemesterSelect(select, value) {
+    select.innerHTML = '<option value="">请选择学期</option>' + batchSemesterList().map(s => `<option value="${adminEscape(s)}">${adminEscape(s)}</option>`).join('');
+    select.value = value || '';
+}
+
+function wireBatchSemester() {
+    const select = document.getElementById('batchSemester');
+    if (!select) return;
+    fillBatchSemesterSelect(select, '');
+    select.onchange = async () => {
+        if (batchChecked('batchCourseOptions').length && !(await window.sharedUi.confirm('切换学期将清空已勾选的开放课程，确定切换吗？'))) { select.value = batchSemester; return; }
+        batchSemester = select.value;
+        fillBatchSelectors([], batchChecked('batchMajorOptions'), batchChecked('batchGradeOptions'), batchSemester);
+    };
 }
 
 async function loadBatches(resetPage = true) {
@@ -136,10 +168,14 @@ async function editBatch(batchId) {
         const selected = offerings.filter(x => x.selected);
         const selectedMajors = [...new Set(selected.flatMap(x => x.majors || []))];
         const selectedGrades = [...new Set(selected.flatMap(x => x.grades || []))];
+        const classSemesters = [...new Set(selected.map(x => x.semester).filter(Boolean))];
+        const initSemester = classSemesters.length === 1 ? classSemesters[0] : '';
+        if (classSemesters.length > 1) await window.sharedUi.alert('该批次已开放的课程跨了多个学期，请选择目标学期后重新保存，其它学期的课程将被移除。');
         const dialog = window.sharedUi.formDialog({
-            title: '编辑选课批次', description: '修改开放时间、课程范围及面向学生。', submitText: '保存修改',
+            title: '编辑选课批次', description: '先选择所属学期，再在该学期的教学班中勾选开放课程。', submitText: '保存修改',
             fields: [
                 { name: 'batchName', label: '批次名称', required: true, value: item.batchName || '' },
+                { name: 'semester', label: '所属学期', kind: 'select', required: true, value: initSemester, options: batchSemesterList() },
                 { name: 'startTime', label: '开始时间', type: 'datetime-local', required: true, value: toDateTimeLocal(item.startTime) },
                 { name: 'endTime', label: '结束时间', type: 'datetime-local', required: true, value: toDateTimeLocal(item.endTime) },
                 { name: 'classIds', label: '开放课程', kind: 'multiselect', wide: true, required: true, value: [], options: [] },
@@ -147,11 +183,22 @@ async function editBatch(batchId) {
                 { name: 'grades', label: '面向年级', kind: 'multiselect', value: [], options: [] }
             ]
         });
-        dialogBatchList(dialog, 'classIds', { wrapId: 'dlgClassMulti', optionsId: 'dlgClassOptions', emptyText: '请选择开放课程', searchPlaceholder: '搜索课程、教学班或教师', items: batchClassOptions, selected: selected.map(x => x.classId), valueKey: 'classId', labelBuilder: x => ({ title: `${x.courseName} · ${x.className}`, detail: `${x.teacherName || '未分配教师'} · ${x.semester}`, search: `${x.courseName} ${x.className} ${x.teacherName || ''} ${x.semester}` }) });
-        dialogBatchList(dialog, 'majors', { wrapId: 'dlgMajorMulti', optionsId: 'dlgMajorOptions', emptyText: '全部专业', items: batchMajors, selected: selectedMajors, valueKey: '', labelBuilder: x => ({ title: x, detail: '', search: x }) });
-        dialogBatchList(dialog, 'grades', { wrapId: 'dlgGradeMulti', optionsId: 'dlgGradeOptions', emptyText: '全部年级', items: batchGrades, selected: selectedGrades, valueKey: '', labelBuilder: x => ({ title: x, detail: '', search: x }) });
         const dialogForm = dialog.form, submitButton = dialogForm.querySelector('[type="submit"]');
         const setBusy = busy => { submitButton.disabled = busy; submitButton.textContent = busy ? '保存中...' : '保存修改'; };
+        const dialogClassCfg = { wrapId: 'dlgClassMulti', optionsId: 'dlgClassOptions', emptyText: '请选择开放课程', searchPlaceholder: '搜索课程、教学班或教师', items: initSemester ? batchClassOptions.filter(x => x.semester === initSemester) : [], selected: selected.filter(x => x.semester === initSemester).map(x => x.classId), valueKey: 'classId', labelBuilder: batchCourseLabel };
+        dialogBatchList(dialog, 'classIds', dialogClassCfg);
+        dialogBatchList(dialog, 'majors', { wrapId: 'dlgMajorMulti', optionsId: 'dlgMajorOptions', emptyText: '全部专业', items: batchMajors, selected: selectedMajors, valueKey: '', labelBuilder: x => ({ title: x, detail: '', search: x }) });
+        dialogBatchList(dialog, 'grades', { wrapId: 'dlgGradeMulti', optionsId: 'dlgGradeOptions', emptyText: '全部年级', items: batchGrades, selected: selectedGrades, valueKey: '', labelBuilder: x => ({ title: x, detail: '', search: x }) });
+        let dialogSemester = initSemester;
+        const semesterSelect = dialogForm.elements['semester'];
+        semesterSelect.addEventListener('change', async () => {
+            if (batchChecked('dlgClassOptions').length && !(await window.sharedUi.confirm('切换学期将清空已勾选的开放课程，确定切换吗？'))) { semesterSelect.value = dialogSemester; return; }
+            dialogSemester = semesterSelect.value;
+            dialogClassCfg.items = dialogSemester ? batchClassOptions.filter(x => x.semester === dialogSemester) : [];
+            dialogClassCfg.selected = [];
+            renderBatchOptions(dialogClassCfg.optionsId, dialogClassCfg.items, [], dialogClassCfg.valueKey, dialogClassCfg.labelBuilder);
+            wireBatchMulti(dialogClassCfg.wrapId, dialogClassCfg.emptyText);
+        });
         dialogForm.onsubmit = async event => {
             event.preventDefault();
             if (submitButton.disabled) return;
@@ -186,7 +233,9 @@ async function endBatch(batchId) {
 }
 
 function clearBatchForm() {
-    document.getElementById('batchFormTitle').textContent='新增选课批次'; document.getElementById('batchId').value=''; document.getElementById('batchName').value=''; document.getElementById('batchStartTime').value=''; document.getElementById('batchEndTime').value=''; fillBatchSelectors([],[],[]);
+    document.getElementById('batchFormTitle').textContent='新增选课批次'; document.getElementById('batchId').value=''; document.getElementById('batchName').value=''; document.getElementById('batchStartTime').value=''; document.getElementById('batchEndTime').value='';
+    const semesterSelect = document.getElementById('batchSemester'); if (semesterSelect) { batchSemester=''; semesterSelect.value=''; }
+    fillBatchSelectors([], [], [], '');
 }
 function toDateTimeLocal(value){return value?String(value).replace(' ','T').slice(0,16):'';}
 document.addEventListener('click', event => { if (!event.target.closest('.batch-multi')) document.querySelectorAll('.batch-multi.open').forEach(x=>x.classList.remove('open')); });
