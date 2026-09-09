@@ -14,8 +14,8 @@ function ensureBatchForm() {
             { name: 'endTime', label: '结束时间', selector: '#batchEndTime', required: true, validate: (value, values) => (value && values.startTime && new Date(value) <= new Date(values.startTime)) ? '结束时间必须晚于开始时间' : '' },
             { name: 'semester', label: '所属学期', selector: '#batchSemester', required: true, requiredMessage: '请先选择所属学期' },
             { name: 'classIds', label: '开放课程', read: () => batchChecked('batchCourseOptions').map(Number), required: true, requiredMessage: '请至少选择一门开放课程' },
-            { name: 'majors', label: '面向专业', read: () => batchChecked('batchMajorOptions') },
-            { name: 'grades', label: '面向年级', read: () => batchChecked('batchGradeOptions') }
+            { name: 'majors', label: '面向专业', read: () => batchChecked('batchMajorOptions'), required: true, requiredMessage: '请至少选择一个面向专业' },
+            { name: 'grades', label: '面向年级', read: () => batchChecked('batchGradeOptions'), required: true, requiredMessage: '请至少选择一个面向年级' }
         ]
     });
     return batchFormController;
@@ -103,8 +103,8 @@ function fillBatchSelectors(classIds, majors, grades, semester) {
     renderBatchOptions('batchMajorOptions', batchMajors, majors || [], '', x => ({ title: x, detail: '', search: x }));
     renderBatchOptions('batchGradeOptions', batchGrades, grades || [], '', x => ({ title: x, detail: '', search: x }));
     wireBatchMulti('batchCourseMulti', semester ? '请选择开放课程' : '请先选择所属学期');
-    wireBatchMulti('batchMajorMulti', '全部专业');
-    wireBatchMulti('batchGradeMulti', '全部年级');
+    wireBatchMulti('batchMajorMulti', '请选择面向专业');
+    wireBatchMulti('batchGradeMulti', '请选择面向年级');
 }
 
 function fillBatchSemesterSelect(select, value) {
@@ -179,16 +179,16 @@ async function editBatch(batchId) {
                 { name: 'startTime', label: '开始时间', type: 'datetime-local', required: true, value: toDateTimeLocal(item.startTime) },
                 { name: 'endTime', label: '结束时间', type: 'datetime-local', required: true, value: toDateTimeLocal(item.endTime) },
                 { name: 'classIds', label: '开放课程', kind: 'multiselect', wide: true, required: true, value: [], options: [] },
-                { name: 'majors', label: '面向专业', kind: 'multiselect', value: [], options: [] },
-                { name: 'grades', label: '面向年级', kind: 'multiselect', value: [], options: [] }
+                { name: 'majors', label: '面向专业', kind: 'multiselect', required: true, value: [], options: [] },
+                { name: 'grades', label: '面向年级', kind: 'multiselect', required: true, value: [], options: [] }
             ]
         });
         const dialogForm = dialog.form, submitButton = dialogForm.querySelector('[type="submit"]');
         const setBusy = busy => { submitButton.disabled = busy; submitButton.textContent = busy ? '保存中...' : '保存修改'; };
         const dialogClassCfg = { wrapId: 'dlgClassMulti', optionsId: 'dlgClassOptions', emptyText: '请选择开放课程', searchPlaceholder: '搜索课程、教学班或教师', items: initSemester ? batchClassOptions.filter(x => x.semester === initSemester) : [], selected: selected.filter(x => x.semester === initSemester).map(x => x.classId), valueKey: 'classId', labelBuilder: batchCourseLabel };
         dialogBatchList(dialog, 'classIds', dialogClassCfg);
-        dialogBatchList(dialog, 'majors', { wrapId: 'dlgMajorMulti', optionsId: 'dlgMajorOptions', emptyText: '全部专业', items: batchMajors, selected: selectedMajors, valueKey: '', labelBuilder: x => ({ title: x, detail: '', search: x }) });
-        dialogBatchList(dialog, 'grades', { wrapId: 'dlgGradeMulti', optionsId: 'dlgGradeOptions', emptyText: '全部年级', items: batchGrades, selected: selectedGrades, valueKey: '', labelBuilder: x => ({ title: x, detail: '', search: x }) });
+        dialogBatchList(dialog, 'majors', { wrapId: 'dlgMajorMulti', optionsId: 'dlgMajorOptions', emptyText: '请选择', items: batchMajors, selected: selectedMajors, valueKey: '', labelBuilder: x => ({ title: x, detail: '', search: x }) });
+        dialogBatchList(dialog, 'grades', { wrapId: 'dlgGradeMulti', optionsId: 'dlgGradeOptions', emptyText: '请选择', items: batchGrades, selected: selectedGrades, valueKey: '', labelBuilder: x => ({ title: x, detail: '', search: x }) });
         let dialogSemester = initSemester;
         const semesterSelect = dialogForm.elements['semester'];
         semesterSelect.addEventListener('change', async () => {
@@ -207,6 +207,8 @@ async function editBatch(batchId) {
             const classIds = batchChecked('dlgClassOptions').map(Number);
             if (!classIds.length) { window.sharedUi.alert('请至少选择一门开放课程'); return; }
             const majors = batchChecked('dlgMajorOptions'), grades = batchChecked('dlgGradeOptions');
+            if (!majors.length) { window.sharedUi.alert('请至少选择一个面向专业'); return; }
+            if (!grades.length) { window.sharedUi.alert('请至少选择一个面向年级'); return; }
             setBusy(true);
             try {
                 const batch = await adminFetch(`/api/admin/batches/${batchId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ batchName: dialogForm.elements['batchName'].value.trim(), startTime: start, endTime: end }) });

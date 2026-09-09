@@ -14,7 +14,8 @@
             key: 'scheduling',
             title: '排课管理',
             description: '创建和维护教学班、任课教师及上课时间安排。',
-            fields: '<div class="field"><label>学期筛选</label><div id="scheduleSemesterFilter"></div></div>',
+            fields: '<div class="field"><label for="scheduleKeyword">关键词</label><input type="text" id="scheduleKeyword" placeholder="教学班 / 课程 / 教师"></div>' +
+                '<div class="field"><label>筛选</label><div id="scheduleSemesterFilter"></div></div>',
             actions: '<button class="btn btn-primary" type="button" onclick="loadSchedules()">查询排课</button>'
         },
         {
