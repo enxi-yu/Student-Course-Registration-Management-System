@@ -1290,7 +1290,7 @@ namespace StudentCourse.Repositories
                     OR UPPER(s.semester) LIKE :keyword";
             }
 
-            sql += " ORDER BY s.semester DESC, c.course_name, tc.class_name FETCH FIRST 200 ROWS ONLY";
+            sql += " ORDER BY s.semester DESC, c.course_name, tc.class_name";
 
             List<AdminClassDto> rows = new List<AdminClassDto>();
 
