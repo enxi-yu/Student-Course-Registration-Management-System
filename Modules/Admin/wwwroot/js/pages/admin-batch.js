@@ -115,34 +115,65 @@ async function saveBatch() {
     } catch (error) { alert('保存失败：'+error.message); }
 }
 
+// 弹窗内使用复选框多选组件
+function dialogBatchList(dialog, name, config) {
+    const input = dialog.form.elements[name];
+    if (!input || !input.parentNode) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'batch-multi';
+    wrap.id = config.wrapId;
+    const searchHtml = config.searchPlaceholder ? `<input type="search" class="batch-multi-search" placeholder="${config.searchPlaceholder}">` : '';
+    wrap.innerHTML = `<button type="button" class="batch-multi-trigger">${config.emptyText}</button><div class="batch-multi-menu">${searchHtml}<div class="batch-multi-options" id="${config.optionsId}"></div></div>`;
+    input.replaceWith(wrap);
+    renderBatchOptions(config.optionsId, config.items, config.selected, config.valueKey, config.labelBuilder);
+    wireBatchMulti(wrap.id, config.emptyText);
+}
+
 async function editBatch(batchId) {
     const item = adminBatches.find(x => Number(x.batchId) === Number(batchId)); if (!item) return;
     try {
         const offerings = await adminFetch(`/api/admin/batches/${batchId}/offerings`);
         const selected = offerings.filter(x => x.selected);
+        const selectedMajors = [...new Set(selected.flatMap(x => x.majors || []))];
+        const selectedGrades = [...new Set(selected.flatMap(x => x.grades || []))];
         const dialog = window.sharedUi.formDialog({
             title: '编辑选课批次', description: '修改开放时间、课程范围及面向学生。', submitText: '保存修改',
             fields: [
                 { name: 'batchName', label: '批次名称', required: true, value: item.batchName || '' },
                 { name: 'startTime', label: '开始时间', type: 'datetime-local', required: true, value: toDateTimeLocal(item.startTime) },
-                { name: 'endTime', label: '结束时间', type: 'datetime-local', required: true, value: toDateTimeLocal(item.endTime), validate: (value, values) => value > values.startTime ? '' : '结束时间必须晚于开始时间' },
-                { name: 'classIds', label: '开放课程', kind: 'multiselect', wide: true, required: true, value: selected.map(x => x.classId), options: batchClassOptions.map(x => ({ value: x.classId, label: `${x.courseName} · ${x.className} · ${x.teacherName || '未分配教师'}` })), validate: value => value.length ? '' : '请至少选择一门开放课程' },
-                { name: 'majors', label: '面向专业', kind: 'multiselect', value: [...new Set(selected.flatMap(x => x.majors || []))], options: batchMajors },
-                { name: 'grades', label: '面向年级', kind: 'multiselect', value: [...new Set(selected.flatMap(x => x.grades || []))], options: batchGrades }
-            ],
-            onSubmit: async values => {
-                const batch = await adminFetch(`/api/admin/batches/${batchId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ batchName: values.batchName, startTime: values.startTime, endTime: values.endTime }) });
-                await adminFetch(`/api/admin/batches/${batch.batchId}/offerings`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ offerings: values.classIds.map(classId => ({ classId: Number(classId), majors: values.majors, grades: values.grades })) }) });
-            },
-            onSuccess: async () => { alert('选课批次已保存'); await loadBatches(); }
+                { name: 'endTime', label: '结束时间', type: 'datetime-local', required: true, value: toDateTimeLocal(item.endTime) },
+                { name: 'classIds', label: '开放课程', kind: 'multiselect', wide: true, required: true, value: [], options: [] },
+                { name: 'majors', label: '面向专业', kind: 'multiselect', value: [], options: [] },
+                { name: 'grades', label: '面向年级', kind: 'multiselect', value: [], options: [] }
+            ]
         });
-        const dialogForm = dialog.form, originalSubmit = dialogForm.onsubmit;
-        dialogForm.onsubmit = event => {
+        dialogBatchList(dialog, 'classIds', { wrapId: 'dlgClassMulti', optionsId: 'dlgClassOptions', emptyText: '请选择开放课程', searchPlaceholder: '搜索课程、教学班或教师', items: batchClassOptions, selected: selected.map(x => x.classId), valueKey: 'classId', labelBuilder: x => ({ title: `${x.courseName} · ${x.className}`, detail: `${x.teacherName || '未分配教师'} · ${x.semester}`, search: `${x.courseName} ${x.className} ${x.teacherName || ''} ${x.semester}` }) });
+        dialogBatchList(dialog, 'majors', { wrapId: 'dlgMajorMulti', optionsId: 'dlgMajorOptions', emptyText: '全部专业', items: batchMajors, selected: selectedMajors, valueKey: '', labelBuilder: x => ({ title: x, detail: '', search: x }) });
+        dialogBatchList(dialog, 'grades', { wrapId: 'dlgGradeMulti', optionsId: 'dlgGradeOptions', emptyText: '全部年级', items: batchGrades, selected: selectedGrades, valueKey: '', labelBuilder: x => ({ title: x, detail: '', search: x }) });
+        const dialogForm = dialog.form, submitButton = dialogForm.querySelector('[type="submit"]');
+        const setBusy = busy => { submitButton.disabled = busy; submitButton.textContent = busy ? '保存中...' : '保存修改'; };
+        dialogForm.onsubmit = async event => {
+            event.preventDefault();
+            if (submitButton.disabled) return;
             const start = dialogForm.elements['startTime']?.value || '', end = dialogForm.elements['endTime']?.value || '';
-            if (start && end && new Date(end).getTime() <= new Date(start).getTime()) { window.sharedUi.alert('结束时间必须晚于开始时间'); return false; }
-            return originalSubmit.call(dialogForm, event);
+            if (start && end && new Date(end).getTime() <= new Date(start).getTime()) { window.sharedUi.alert('结束时间必须晚于开始时间'); return; }
+            const classIds = batchChecked('dlgClassOptions').map(Number);
+            if (!classIds.length) { window.sharedUi.alert('请至少选择一门开放课程'); return; }
+            const majors = batchChecked('dlgMajorOptions'), grades = batchChecked('dlgGradeOptions');
+            setBusy(true);
+            try {
+                const batch = await adminFetch(`/api/admin/batches/${batchId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ batchName: dialogForm.elements['batchName'].value.trim(), startTime: start, endTime: end }) });
+                await adminFetch(`/api/admin/batches/${batch.batchId}/offerings`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ offerings: classIds.map(classId => ({ classId, majors, grades })) }) });
+                dialog.close();
+                await window.sharedUi.alert('选课批次已保存');
+                await loadBatches();
+            } catch (error) { 
+                setBusy(false); window.sharedUi.alert('保存失败：' + window.sharedUi.errorText(error)); 
+            }
         };
-    } catch (error) { alert('读取批次配置失败：' + error.message); }
+    } catch (error) { 
+        alert('读取批次配置失败：' + error.message); 
+    }
 }
 
 async function endBatch(batchId) {
