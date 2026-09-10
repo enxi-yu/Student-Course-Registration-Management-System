@@ -594,7 +594,7 @@ textarea {
 
 .gpa-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
   margin-bottom: 20px;
 }
@@ -616,6 +616,12 @@ textarea {
   font-size: 28px;
   font-weight: 700;
   color: var(--blue-800);
+}
+
+@media (max-width: 640px) {
+  .gpa-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .semester-grade-panel {
