@@ -8,22 +8,21 @@
         <td>${escapeHtml(student.studentName)}</td>
         <td>${escapeHtml(student.major)}</td>
         <td>${escapeHtml(student.grade)}</td>
-        <td>${escapeHtml(student.selectTime || "-")}</td>
       </tr>
     `;
   }
 
   async function loadStudents(container, classId) {
     const body = document.getElementById("students-table-body");
-    window.sharedUi.setTableState(body, 5, "正在加载学生名单...");
+    window.sharedUi.setTableState(body, 4, "正在加载学生名单...");
     let students;
     try {
       students = await window.nativeApi.request("teacher.getClassStudents", { classId });
     } catch (error) {
-      window.sharedUi.setTableError(body, 5, `加载学生名单失败：${error.message}`, () => loadStudents(container, classId));
+      window.sharedUi.setTableError(body, 4, `加载学生名单失败：${error.message}`, () => loadStudents(container, classId));
       return;
     }
-    window.sharedUi.renderTableRows(body, students, row, 5, "暂无学生选课");
+    window.sharedUi.renderTableRows(body, students, row, 4, "暂无学生选课");
   }
 
   async function downloadStudentsExcel(classId) {
@@ -90,7 +89,6 @@
               <th>姓名</th>
               <th>专业</th>
               <th>年级</th>
-              <th>选课时间</th>
             </tr>
           </thead>
           <tbody id="students-table-body"></tbody>
