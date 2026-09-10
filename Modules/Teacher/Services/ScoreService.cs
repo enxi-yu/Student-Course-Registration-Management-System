@@ -138,22 +138,22 @@ namespace StudentCourse.Services
             string gradeLevel = CalculateGradeLevel(totalScore);
             if (gradeLevel == "A")
             {
-                return new ScoreCalculation(gradeLevel, 4.0m, credit);
+                return new ScoreCalculation(gradeLevel, 5.0m, credit);
             }
 
             if (gradeLevel == "B")
             {
-                return new ScoreCalculation(gradeLevel, 3.0m, credit);
+                return new ScoreCalculation(gradeLevel, 4.0m, credit);
             }
 
             if (gradeLevel == "C")
             {
-                return new ScoreCalculation(gradeLevel, 2.0m, credit);
+                return new ScoreCalculation(gradeLevel, 3.0m, credit);
             }
 
             if (gradeLevel == "D")
             {
-                return new ScoreCalculation(gradeLevel, 1.0m, credit);
+                return new ScoreCalculation(gradeLevel, 2.0m, credit);
             }
 
             return new ScoreCalculation(gradeLevel, 0m, 0m);

@@ -2,10 +2,10 @@
   const escapeHtml = window.sharedUi.escapeHtml;
 
   function calculate(score) {
-    if (score >= 90) return { gradeLevel: "A", gpa: 4.0 };
-    if (score >= 80) return { gradeLevel: "B", gpa: 3.0 };
-    if (score >= 70) return { gradeLevel: "C", gpa: 2.0 };
-    if (score >= 60) return { gradeLevel: "D", gpa: 1.0 };
+    if (score >= 90) return { gradeLevel: "A", gpa: 5.0 };
+    if (score >= 80) return { gradeLevel: "B", gpa: 4.0 };
+    if (score >= 70) return { gradeLevel: "C", gpa: 3.0 };
+    if (score >= 60) return { gradeLevel: "D", gpa: 2.0 };
     return { gradeLevel: "F", gpa: 0 };
   }
 
