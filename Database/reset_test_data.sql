@@ -136,8 +136,8 @@ INSERT INTO course_application (apply_id,teacher_no,course_name,course_type,cred
 INSERT INTO course_application (apply_id,teacher_no,course_name,course_type,credit,textbook,course_summary,apply_time,status,approve_time,approve_comment) VALUES ('APPLY_DEMO_APPROVED','T_DEMO_02','云计算基础','选修',2,'云计算基础与实践','云平台基础与实践',SYSDATE-10,'通过',SYSDATE-9,'申请内容完整');
 INSERT INTO course_application (apply_id,teacher_no,course_name,course_type,credit,textbook,course_summary,apply_time,status,approve_time,approve_comment) VALUES ('APPLY_DEMO_REJECTED','T_DEMO_03','智能系统专题','选修',2,'智能系统导论','专题内容待完善',SYSDATE-8,'驳回',SYSDATE-7,'请补充教学计划');
 
-INSERT INTO system_log VALUES ('LOG_DEMO_01',9301,'登录','管理员登录系统','A_DEMO_01','127.0.0.1',NULL,'成功',NULL,SYSDATE-1);
-INSERT INTO system_log VALUES ('LOG_DEMO_02',9301,'修改容量','将 Web应用开发01班容量调整为2','8203','127.0.0.1','{"capacity":2,"reason":"测试满班状态"}','成功',NULL,SYSDATE-0.5);
-INSERT INTO system_log VALUES ('LOG_DEMO_03',9302,'审批','驳回智能系统专题开课申请','APPLY_DEMO_REJECTED','127.0.0.1',NULL,'成功',NULL,SYSDATE-0.25);
+INSERT INTO system_log VALUES ('LOG_DEMO_01','A_DEMO_01','登录','管理员登录系统','A_DEMO_01','127.0.0.1',NULL,'成功',NULL,SYSDATE-1);
+INSERT INTO system_log VALUES ('LOG_DEMO_02','A_DEMO_01','修改容量','将 Web应用开发01班容量调整为2','8203','127.0.0.1','{"capacity":2,"reason":"测试满班状态"}','成功',NULL,SYSDATE-0.5);
+INSERT INTO system_log VALUES ('LOG_DEMO_03','A_DEMO_02','审批','驳回智能系统专题开课申请','APPLY_DEMO_REJECTED','127.0.0.1',NULL,'成功',NULL,SYSDATE-0.25);
 
 COMMIT;

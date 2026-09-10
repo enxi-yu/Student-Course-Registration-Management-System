@@ -89,3 +89,15 @@ D:\learning\StudentCourse\main\.tmp\admin-approval-test\StudentCourse.Shared.pdb
 D:\learning\StudentCourse\main\.tmp\admin-order-check\StudentCourse.Shared.deps.json
 D:\learning\StudentCourse\main\.tmp\admin-order-check\StudentCourse.Shared.dll
 D:\learning\StudentCourse\main\.tmp\admin-order-check\StudentCourse.Shared.pdb
+D:\learning\StudentCourse\course\Shared\bin\Debug\net8.0\StudentCourse.Shared.deps.json
+D:\learning\StudentCourse\course\Shared\bin\Debug\net8.0\StudentCourse.Shared.dll
+D:\learning\StudentCourse\course\Shared\bin\Debug\net8.0\StudentCourse.Shared.pdb
+D:\learning\StudentCourse\course\Shared\obj\Debug\net8.0\StudentCourse.Shared.csproj.AssemblyReference.cache
+D:\learning\StudentCourse\course\Shared\obj\Debug\net8.0\StudentCourse.Shared.GeneratedMSBuildEditorConfig.editorconfig
+D:\learning\StudentCourse\course\Shared\obj\Debug\net8.0\StudentCourse.Shared.AssemblyInfoInputs.cache
+D:\learning\StudentCourse\course\Shared\obj\Debug\net8.0\StudentCourse.Shared.AssemblyInfo.cs
+D:\learning\StudentCourse\course\Shared\obj\Debug\net8.0\StudentCourse.Shared.csproj.CoreCompileInputs.cache
+D:\learning\StudentCourse\course\Shared\obj\Debug\net8.0\StudentCourse.Shared.dll
+D:\learning\StudentCourse\course\Shared\obj\Debug\net8.0\refint\StudentCourse.Shared.dll
+D:\learning\StudentCourse\course\Shared\obj\Debug\net8.0\StudentCourse.Shared.pdb
+D:\learning\StudentCourse\course\Shared\obj\Debug\net8.0\ref\StudentCourse.Shared.dll

@@ -220,10 +220,7 @@ namespace StudentCourse.Repositories
             try
             {
                 // 重复选课
-                const string checkSql = @"SELECT COUNT(*) FROM course_select 
-                                        JOIN teaching_class tc ON tc.class_id=course_select.class_id
-                                        WHERE student_no = :studentNo
-                                        AND tc.section_id=(SELECT section_id FROM teaching_class WHERE class_id=:classId)";
+                const string checkSql = "SELECT COUNT(*) FROM course_select WHERE student_no = :studentNo AND class_id = :classId";
                 using (OracleCommand cmd = CreateCommand(conn, checkSql, tx))
                 {
                     AddParams(cmd, ("studentNo", OracleDbType.Varchar2, studentNo), ("classId", OracleDbType.Int32, classId));

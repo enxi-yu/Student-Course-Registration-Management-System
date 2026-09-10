@@ -37,7 +37,7 @@ async function loadLogs(resetPage = true) {
         window.sharedUi.renderTableRows(tbody, rows, item => `
                 <tr>
                     <td>${adminEscape(item.logTime)}</td>
-                    <td>${adminEscape(item.username || item.userId || '-')}</td>
+                    <td>${adminEscape(item.username || item.adminNo || '-')}</td>
                     <td>${adminEscape(item.operationType)}</td>
                     <td>${adminEscape(item.operationDesc)}</td>
                     <td>${adminEscape(item.targetId || '-')}</td>

@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "gTT6icWX8RI=",
+  "dgSpecHash": "AaFfvuQRXdY=",
   "success": true,
-  "projectFilePath": "D:\\learning\\StudentCourse\\main\\Shared\\StudentCourse.Shared.csproj",
+  "projectFilePath": "D:\\learning\\StudentCourse\\course\\Shared\\StudentCourse.Shared.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\enxi_\\.nuget\\packages\\oracle.manageddataaccess.core\\23.8.0\\oracle.manageddataaccess.core.23.8.0.nupkg.sha512",
     "C:\\Users\\enxi_\\.nuget\\packages\\system.configuration.configurationmanager\\8.0.0\\system.configuration.configurationmanager.8.0.0.nupkg.sha512",

@@ -283,7 +283,7 @@ namespace StudentCourse.Models
     {
         public string LogId { get; set; } = string.Empty;
 
-        public int UserId { get; set; }
+        public string AdminNo { get; set; } = string.Empty;
 
         public string Username { get; set; } = string.Empty;
 

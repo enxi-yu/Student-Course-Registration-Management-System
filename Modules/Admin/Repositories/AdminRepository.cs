@@ -15,7 +15,7 @@ namespace StudentCourse.Repositories
             {
                 string sql = "SELECT course_id, course_name, course_type, credit, total_hours, department, course_desc FROM course";
                 if(!string.IsNullOrEmpty(keyword)){
-                    sql+=@" WHERE (UPPER(course_name) LIKE :keyword
+                    sql+=@" WHERE (course_name LIKE :keyword
                     OR TO_CHAR(course_id) LIKE :keyword
                     OR department LIKE :keyword)";
                 }
@@ -26,7 +26,7 @@ namespace StudentCourse.Repositories
                 using (var cmd = new OracleCommand(sql, conn)){
                     cmd.BindByName= true;
                     if(!string.IsNullOrEmpty(keyword)){
-                        cmd.Parameters.Add("keyword", OracleDbType.Varchar2).Value = "%" + keyword.Trim().ToUpperInvariant() + "%";
+                        cmd.Parameters.Add("keyword", OracleDbType.Varchar2).Value = "%" + keyword.Trim() + "%";
                     }
                     if(!string.IsNullOrEmpty(coursetype)){
                         cmd.Parameters.Add("coursetype", OracleDbType.Varchar2).Value = coursetype;
@@ -1163,7 +1163,7 @@ namespace StudentCourse.Repositories
                        batch_name,
                        TO_CHAR(start_time, 'YYYY-MM-DD HH24:MI') AS start_time,
                        TO_CHAR(end_time, 'YYYY-MM-DD HH24:MI') AS end_time,
-                       CASE WHEN status=2 THEN 2 WHEN SYSDATE < start_time THEN 0 WHEN SYSDATE >= end_time THEN 2 ELSE 1 END AS status
+                       CASE WHEN SYSDATE < start_time THEN 0 WHEN SYSDATE > end_time THEN 2 ELSE 1 END AS status
                   FROM selection_batch
                  ORDER BY start_time DESC, batch_id DESC";
 
@@ -1187,7 +1187,7 @@ namespace StudentCourse.Repositories
                        batch_name,
                        TO_CHAR(start_time, 'YYYY-MM-DD HH24:MI') AS start_time,
                        TO_CHAR(end_time, 'YYYY-MM-DD HH24:MI') AS end_time,
-                       CASE WHEN status=2 THEN 2 WHEN SYSDATE < start_time THEN 0 WHEN SYSDATE >= end_time THEN 2 ELSE 1 END AS status
+                       CASE WHEN SYSDATE < start_time THEN 0 WHEN SYSDATE > end_time THEN 2 ELSE 1 END AS status
                   FROM selection_batch
                  WHERE batch_id = :batchId";
 
@@ -1255,7 +1255,7 @@ namespace StudentCourse.Repositories
             const string sql = @"UPDATE selection_batch
                                     SET end_time = SYSDATE,
                                         status = 2
-                                  WHERE batch_id = :batchId AND start_time <= SYSDATE AND end_time >= SYSDATE";
+                                  WHERE batch_id = :batchId AND start_time <= SYSDATE AND end_time > SYSDATE";
             using OracleConnection connection = DbConnectionFactory.OpenConnection();
             using OracleCommand command = CreateCommand(connection, sql);
             command.Parameters.Add("batchId", OracleDbType.Int32).Value = batchId;
@@ -1366,7 +1366,7 @@ namespace StudentCourse.Repositories
             const string sql = @"
                 INSERT INTO system_log (
                     log_id,
-                    user_id,
+                    admin_no,
                     operation_type,
                     operation_desc,
                     target_id,
@@ -1377,7 +1377,7 @@ namespace StudentCourse.Repositories
                     log_time
                 ) VALUES (
                     :logId,
-                    :userId,
+                    (SELECT admin_no FROM administrator WHERE user_id = :userId),
                     :operationType,
                     :operationDesc,
                     :targetId,
@@ -1406,7 +1406,7 @@ namespace StudentCourse.Repositories
         {
             string sql = @"
                 SELECT l.log_id,
-                       l.user_id,
+                       l.admin_no,
                        u.username,
                        l.operation_type,
                        l.operation_desc,
@@ -1417,13 +1417,15 @@ namespace StudentCourse.Repositories
                        l.error_msg,
                        TO_CHAR(l.log_time, 'YYYY-MM-DD HH24:MI:SS') AS log_time
                   FROM system_log l
-                  LEFT JOIN ""user"" u ON u.user_id = l.user_id
+                  LEFT JOIN administrator a ON a.admin_no = l.admin_no
+                  LEFT JOIN ""user"" u ON u.user_id = a.user_id
                  WHERE 1 = 1";
 
             if (!string.IsNullOrWhiteSpace(keyword))
             {
                 sql += @"
                    AND (UPPER(u.username) LIKE :keyword
+                    OR UPPER(l.admin_no) LIKE :keyword
                     OR UPPER(l.operation_desc) LIKE :keyword
                     OR UPPER(l.target_id) LIKE :keyword)";
             }
@@ -1478,7 +1480,7 @@ namespace StudentCourse.Repositories
                 result.Items.Add(new SystemLogDto
                 {
                     LogId = Convert.ToString(reader["log_id"]) ?? string.Empty,
-                    UserId = ToInt32(reader["user_id"]),
+                    AdminNo = Convert.ToString(reader["admin_no"]) ?? string.Empty,
                     Username = Convert.ToString(reader["username"]) ?? string.Empty,
                     OperationType = Convert.ToString(reader["operation_type"]) ?? string.Empty,
                     OperationDesc = Convert.ToString(reader["operation_desc"]) ?? string.Empty,

@@ -182,13 +182,7 @@
             await loadOptions();
             if (!document.querySelector('.schedule-time-row')) resetSchedulingForm();
             const semester = semesterFilterPicker ? semesterFilterPicker.value() : '';
-            const keywordElement = document.getElementById('scheduleKeyword');
-            const keyword = keywordElement ? keywordElement.value.trim() : '';
-            const params = new URLSearchParams();
-            if (semester) params.set('semester', semester);
-            if (keyword) params.set('keyword', keyword);
-            const queryString = params.toString();
-            const rows = await adminFetch('/api/admin/scheduling' + (queryString ? `?${queryString}` : ''));
+            const rows = await adminFetch('/api/admin/scheduling' + (semester ? `?semester=${encodeURIComponent(semester)}` : ''));
             window.sharedUi.renderTableRows(body, rows, item => `<tr>
                 <td>${adminEscape(item.className)}<br><span class="muted-text">#${item.classId}</span></td>
                 <td>${adminEscape(item.courseName)}<br><span class="muted-text">#${item.courseId}</span></td>

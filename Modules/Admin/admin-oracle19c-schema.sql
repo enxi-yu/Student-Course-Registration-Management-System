@@ -294,7 +294,7 @@ BEGIN
     EXECUTE IMMEDIATE q'[
         CREATE TABLE system_log (
             log_id VARCHAR2(40) PRIMARY KEY,
-            user_id NUMBER REFERENCES "user"(user_id),
+            admin_no VARCHAR2(20) NOT NULL REFERENCES administrator(admin_no),
             operation_type VARCHAR2(30) NOT NULL,
             operation_desc VARCHAR2(255),
             target_id VARCHAR2(40),

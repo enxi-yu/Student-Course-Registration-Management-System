@@ -71,7 +71,7 @@ namespace StudentCourse.Repositories
             return result;
         }
 
-        public IList<ScheduleRowDto> GetSchedules(string? semester,string? keyword)
+        public IList<ScheduleRowDto> GetSchedules(string? semester)
         {
             const string sql = @"
                 SELECT tc.class_id, tc.class_name, c.course_id, c.course_name, s.semester,
@@ -87,7 +87,6 @@ namespace StudentCourse.Repositories
                   JOIN ""user"" u ON u.user_id = t.user_id
                   LEFT JOIN course_time ct ON ct.class_id = tc.class_id
                  WHERE (:semester IS NULL OR s.semester = :semester)
-                 AND(:keyword IS NULL OR UPPER(tc.class_name) LIKE :keyword OR UPPER(c.course_name) LIKE :keyword OR teacher_name LIKE :keyword)
                  GROUP BY tc.class_id, tc.class_name, c.course_id, c.course_name, s.semester,
                           tc.teacher_no, u.real_name, tc.capacity, tc.selected_count, c.total_hours
                  ORDER BY s.semester DESC, c.course_name, tc.class_name";
@@ -96,7 +95,6 @@ namespace StudentCourse.Repositories
             using OracleConnection connection = DbConnectionFactory.OpenConnection();
             using OracleCommand command = CreateCommand(connection, sql);
             command.Parameters.Add("semester", OracleDbType.Varchar2).Value = string.IsNullOrWhiteSpace(semester) ? DBNull.Value : semester.Trim();
-            command.Parameters.Add("keyword", OracleDbType.Varchar2).Value = string.IsNullOrWhiteSpace(keyword) ? DBNull.Value : keyword.Trim();
             using OracleDataReader reader = command.ExecuteReader();
             while (reader.Read())
             {
@@ -229,7 +227,7 @@ namespace StudentCourse.Repositories
                     command.ExecuteNonQuery();
                 }
                 transaction.Commit();
-                return GetSchedules(input.Semester,null).Single(row => row.ClassId == classId);
+                return GetSchedules(input.Semester).Single(row => row.ClassId == classId);
             }
             catch { transaction.Rollback(); throw; }
         }
@@ -274,7 +272,7 @@ namespace StudentCourse.Repositories
                 }
                 InsertTimes(connection, transaction, classId, input.Times);
                 transaction.Commit();
-                return GetSchedules(input.Semester,null).Single(row => row.ClassId == classId);
+                return GetSchedules(input.Semester).Single(row => row.ClassId == classId);
             }
             catch { transaction.Rollback(); throw; }
         }

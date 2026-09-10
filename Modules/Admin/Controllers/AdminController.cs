@@ -130,7 +130,7 @@ namespace StudentCourse.Controllers
             => SafeOk(() => _schedulingService.SearchTeachers(keyword, page, pageSize));
 
         [HttpGet("scheduling")]
-        public IActionResult GetSchedules([FromQuery] string? semester,[FromQuery] string? keyword) => SafeOk(() => _schedulingService.GetSchedules(semester,keyword));
+        public IActionResult GetSchedules([FromQuery] string? semester) => SafeOk(() => _schedulingService.GetSchedules(semester));
 
         [HttpGet("scheduling/{classId:int}")]
         public IActionResult GetSchedule(int classId) => SafeOk(() => _schedulingService.GetSchedule(classId));
