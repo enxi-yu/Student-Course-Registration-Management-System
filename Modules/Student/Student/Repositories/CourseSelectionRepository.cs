@@ -52,6 +52,33 @@ namespace StudentCourse.Student.Repositories
                        tc.capacity,
                        tc.selected_count,
                        CASE WHEN cs2.student_no IS NOT NULL THEN 1 ELSE 0 END AS is_selected,
+                       CASE WHEN EXISTS (
+                           SELECT 1
+                             FROM course_select cs3
+                             JOIN teaching_class tc3 ON tc3.class_id = cs3.class_id
+                             JOIN section s3 ON s3.section_id = tc3.section_id
+                            WHERE cs3.student_no = :studentNo
+                              AND s3.course_id = c.course_id
+                              AND cs3.class_id <> tc.class_id
+                       ) THEN 1 ELSE 0 END AS has_previous_selection,
+                       NVL((
+                           SELECT MIN(s3.semester)
+                             FROM course_select cs3
+                             JOIN teaching_class tc3 ON tc3.class_id = cs3.class_id
+                             JOIN section s3 ON s3.section_id = tc3.section_id
+                            WHERE cs3.student_no = :studentNo
+                              AND s3.course_id = c.course_id
+                              AND cs3.class_id <> tc.class_id
+                       ), '') AS previous_selection_semester,
+                       NVL((
+                           SELECT MIN(tc3.class_name)
+                             FROM course_select cs3
+                             JOIN teaching_class tc3 ON tc3.class_id = cs3.class_id
+                             JOIN section s3 ON s3.section_id = tc3.section_id
+                            WHERE cs3.student_no = :studentNo
+                              AND s3.course_id = c.course_id
+                              AND cs3.class_id <> tc.class_id
+                       ), '') AS previous_selection_class_name,
                        (SELECT LISTAGG(ct2.weekday || '-' || ct2.start_period || '-' || ct2.end_period, '; ')
                               WITHIN GROUP (ORDER BY ct2.weekday)
                           FROM course_time ct2 WHERE ct2.class_id = tc.class_id) AS schedule_summary
@@ -99,6 +126,9 @@ namespace StudentCourse.Student.Repositories
                             Capacity = StudentProfileRepository.SafeGetInt(reader["capacity"]),
                             SelectedCount = StudentProfileRepository.SafeGetInt(reader["selected_count"]),
                             IsSelected = StudentProfileRepository.SafeGetInt(reader["is_selected"]) == 1,
+                            HasPreviousSelection = StudentProfileRepository.SafeGetInt(reader["has_previous_selection"]) == 1,
+                            PreviousSelectionSemester = StudentProfileRepository.SafeGetString(reader["previous_selection_semester"]),
+                            PreviousSelectionClassName = StudentProfileRepository.SafeGetString(reader["previous_selection_class_name"]),
                             ScheduleSummary = StudentProfileRepository.SafeGetString(reader["schedule_summary"])
                         });
                     }

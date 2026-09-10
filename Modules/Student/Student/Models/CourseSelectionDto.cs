@@ -15,5 +15,8 @@ namespace StudentCourse.Student.Models
         public int Capacity { get; set; }
         public int Remaining { get { return Capacity - SelectedCount; } }
         public bool IsSelected { get; set; }
+        public bool HasPreviousSelection { get; set; }
+        public string PreviousSelectionSemester { get; set; } = string.Empty;
+        public string PreviousSelectionClassName { get; set; } = string.Empty;
     }
 }

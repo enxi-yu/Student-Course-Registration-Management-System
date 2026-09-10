@@ -30,6 +30,10 @@
     var cid = Number(classId);
     var course = getCourse(cid);
     if (!course) return { ok: false, message: "课程不存在" };
+    if (course.hasPreviousSelection && !selectedIds[cid]) {
+      var previous = [course.previousSelectionSemester, course.previousSelectionClassName].filter(Boolean).join(" ");
+      return { ok: false, message: "该课程已选修过" + (previous ? "（" + previous + "）" : "") + "，不能重复选课。" };
+    }
     if (!canSelectTemporarily(course)) return { ok: false, message: "该课程已满，无法选课。" };
     for (var key in pendingIds) {
       if (!pendingIds[key]) continue;
