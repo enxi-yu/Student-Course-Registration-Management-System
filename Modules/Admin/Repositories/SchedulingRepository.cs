@@ -242,6 +242,7 @@ namespace StudentCourse.Repositories
                     command.Parameters.Add("classroom", OracleDbType.Varchar2).Value = time.Classroom;
                     command.ExecuteNonQuery();
                 }
+                SyncApplicationOpenStatus(connection,transaction,input.CourseId);
                 transaction.Commit();
                 return GetSchedules(input.Semester,null).Single(row => row.ClassId == classId);
             }
@@ -263,7 +264,7 @@ namespace StudentCourse.Repositories
                     selectedCount = Convert.ToInt32(value);
                 }
                 if (input.Capacity < selectedCount) throw new InvalidOperationException($"课程容量不能小于当前已选人数 {selectedCount}");
-
+                int previousCourseId=ReadClassCourseId(connection,transaction,classId);
                 int sectionId = FindOrCreateSection(connection, transaction, input.CourseId, input.Semester);
                 EnsureClassNameUnique(connection, transaction, sectionId, input.ClassName, classId);
                 CheckConflicts(connection, transaction, input, classId);
@@ -287,6 +288,8 @@ namespace StudentCourse.Repositories
                     command.ExecuteNonQuery();
                 }
                 InsertTimes(connection, transaction, classId, input.Times);
+                SyncApplicationOpenStatus(connection,transaction,previousCourseId);
+                SyncApplicationOpenStatus(connection,transaction,input.CourseId);
                 transaction.Commit();
                 return GetSchedules(input.Semester,null).Single(row => row.ClassId == classId);
             }
@@ -307,6 +310,7 @@ namespace StudentCourse.Repositories
                     if (value == null || value == DBNull.Value) throw new InvalidOperationException("排课记录不存在");
                     sectionId = Convert.ToInt32(value);
                 }
+                int deletecourseid=ReadClassCourseId(connection,transaction,classId);
                 using (OracleCommand check = CreateCommand(connection, "SELECT COUNT(*) FROM course_select WHERE class_id = :classId", transaction))
                 {
                     check.Parameters.Add("classId", OracleDbType.Int32).Value = classId;
@@ -319,9 +323,39 @@ namespace StudentCourse.Repositories
                     section.Parameters.Add("sectionId", OracleDbType.Int32).Value = sectionId;
                     section.ExecuteNonQuery();
                 }
+                SyncApplicationOpenStatus(connection,transaction,deletecourseid);
                 transaction.Commit();
             }
             catch { transaction.Rollback(); throw; }
+        }
+
+        //同步开课申请状态
+        private static void SyncApplicationOpenStatus(OracleConnection connection, OracleTransaction transaction, int courseId)
+        {
+            const string sql=@"UPDATE course_application ca
+                                SET ca.status= CASE WHEN EXISTS(SELECT 1 FROM teaching_class tc 
+                                                                        JOIN section s ON s.section_id=tc.section_id
+                                                                        WHERE s.course_id=:courseId)
+                                                    THEN '已开课' ELSE '通过' END
+                                                    WHERE ca.status in('通过','已开课')
+                                                    AND ca.course_name=(SELECT c.course_name FROM course c WHERE c.course_id=:courseId)";
+            using OracleCommand command = CreateCommand(connection, sql, transaction) ;    
+            command.Parameters.Add("courseId", OracleDbType.Int32).Value = courseId;  
+            command. ExecuteNonQuery();              
+        }
+
+        private static int ReadClassCourseId(OracleConnection connection, OracleTransaction transaction, int classId)
+        {
+            const string sql=@"SELECT s.course_id
+                                FROM teaching_class tc 
+                                JOIN section s ON s.section_id=tc.section_id
+                                WHERE tc.class_id=:classId";
+            using OracleCommand command = CreateCommand(connection, sql, transaction) ;    
+            command.Parameters.Add("classId", OracleDbType.Int32).Value = classId; 
+            object? value=command.ExecuteScalar();
+            if(value==null||value==DBNull.Value)
+                throw new InvalidOperationException("教学班不存在");
+            return Convert.ToInt32(value);
         }
 
         private static int FindOrCreateSection(OracleConnection connection, OracleTransaction transaction, int courseId, string semester)

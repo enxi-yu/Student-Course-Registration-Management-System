@@ -101,16 +101,11 @@ async function deleteCourse(id) {
         return;
     }
 
-    fetch('/api/admin/courses/' + id, {
-        method: 'DELETE'
-    })
-    .then(res => {
-        if (res.ok) {
-            alert('课程删除成功！');
-            loadCourses();
-        } else {
-            return res.text().then(msg => alert('删除失败：' + msg));
-        }
-    })
-    .catch(err => alert('网络错误：' + err));
+    try {
+        await adminFetch('/api/admin/courses/' + id, { method: 'DELETE' });
+        alert('课程删除成功！');
+        await loadCourses();
+    } catch (error) {
+        alert(error.message);
+    }
 }

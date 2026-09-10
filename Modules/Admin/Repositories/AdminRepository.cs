@@ -339,8 +339,8 @@ namespace StudentCourse.Repositories
 
                     int courseId = GetNextIntId(connection, transaction, "course_id_seq");
                     const string insertCourseSql = @"INSERT INTO course
-                        (course_id, course_name, course_type, credit, department, course_desc)
-                        VALUES (:courseId, :courseName, :courseType, :credit, :department, :courseDesc)";
+                        (course_id, course_name, course_type, credit,total_hours, department, course_desc)
+                        VALUES (:courseId, :courseName, :courseType, :credit, 0, :department, :courseDesc)";
                     using OracleCommand insert = CreateCommand(connection, insertCourseSql, transaction);
                     insert.Parameters.Add("courseId", OracleDbType.Int32).Value = courseId;
                     insert.Parameters.Add("courseName", OracleDbType.Varchar2).Value = courseName;
