@@ -23,7 +23,7 @@ namespace StudentCourse.Models
 
         public string Email { get; set; } = string.Empty;
 
-        public string ManagedScope { get; set; } = string.Empty;
+        public string Department { get; set; } = string.Empty;
     }
 
     public sealed class UpdateAdminProfileRequest
@@ -52,7 +52,7 @@ namespace StudentCourse.Models
 
         public int AdminLevel { get; set; }
 
-        public string ManagedScope { get; set; } = string.Empty;
+        public string Department { get; set; } = string.Empty;
 
         public int CourseCount { get; set; }
 
@@ -77,7 +77,7 @@ namespace StudentCourse.Models
 
         public int AdminLevel { get; set; }
 
-        public string ManagedScope { get; set; } = string.Empty;
+        public string Department { get; set; } = string.Empty;
 
         public int Status { get; set; }
     }
@@ -218,7 +218,9 @@ namespace StudentCourse.Models
 
         public string AdminNo { get; set; } = string.Empty;
 
-        public int AdminLevel =1;
+        public int AdminLevel { get; set; } = 1;
+
+        public string Department { get; set; } = string.Empty;
     }
 
     public sealed class ResetPasswordRequest
@@ -260,6 +262,8 @@ namespace StudentCourse.Models
         public int CourseId { get; set; }
 
         public string CourseName { get; set; } = string.Empty;
+
+        public string Department { get; set; } = string.Empty;
 
         public string Semester { get; set; } = string.Empty;
 

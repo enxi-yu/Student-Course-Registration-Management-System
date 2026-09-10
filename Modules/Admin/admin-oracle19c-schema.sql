@@ -73,7 +73,7 @@ BEGIN
             user_id NUMBER PRIMARY KEY REFERENCES "user"(user_id),
             admin_no VARCHAR2(20) NOT NULL UNIQUE,
             admin_level NUMBER(1) NOT NULL CHECK (admin_level IN (0, 1)),
-            managed_scope CLOB
+            department VARCHAR2(100)
         )
     ]';
 EXCEPTION
@@ -407,11 +407,11 @@ WHEN NOT MATCHED THEN
 
 MERGE INTO administrator a
 USING (
-    SELECT 10000 AS user_id, 'ADM001' AS admin_no, 0 AS admin_level, '{"scope":"all"}' AS managed_scope FROM dual
+    SELECT 10000 AS user_id, 'ADM001' AS admin_no, 0 AS admin_level, CAST(NULL AS VARCHAR2(100)) AS department FROM dual
 ) src
 ON (a.user_id = src.user_id)
 WHEN NOT MATCHED THEN
-    INSERT (user_id, admin_no, admin_level, managed_scope)
-    VALUES (src.user_id, src.admin_no, src.admin_level, src.managed_scope);
+    INSERT (user_id, admin_no, admin_level, department)
+    VALUES (src.user_id, src.admin_no, src.admin_level, src.department);
 
 COMMIT;

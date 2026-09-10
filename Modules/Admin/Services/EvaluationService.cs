@@ -8,8 +8,8 @@ namespace StudentCourse.Services
         public EvaluationService(EvaluationRepository repository) => _repository = repository;
         public IList<AdminEvaluationDto> Search(string? keyword, string? semester)
         { 
-            AdminAuthService.RequireAdminSession();
-            return _repository.Search(keyword, semester); 
+            string? department = AdminAuthService.GetDepartmentScope();
+            return _repository.Search(keyword, semester, department);
         }
     }
 }

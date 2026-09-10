@@ -18,8 +18,8 @@ namespace StudentCourse.Services
         // 查询可选教学班列表
         public IList<AdminSelectionClassDto> GetSelectableClasses(string? semester, string? keyword)
         {
-            AdminAuthService.RequireAdminSession();
-            return _selectionRepository.GetSelectableClasses(semester, keyword);
+            string? department = AdminAuthService.GetDepartmentScope();
+            return _selectionRepository.GetSelectableClasses(semester, keyword, department);
         }
 
         public IList<AdminSelectionBatchDto> GetBatchesForStudent(string studentNo){
@@ -27,33 +27,34 @@ namespace StudentCourse.Services
             return _selectionRepository.GetBatchesForStudent(studentNo);
         }
         public IList<AdminStudentScheduleDto> GetStudentSchedule(string studentNo){
-            AdminAuthService.RequireAdminSession();
-            return _selectionRepository.GetStudentSchedule(studentNo);
+            string? department = AdminAuthService.GetDepartmentScope();
+            return _selectionRepository.GetStudentSchedule(studentNo, department);
         }
         public IList<AdminSelectionClassDto> GetAllClassesForStudent(string studentNo){
-            AdminAuthService.RequireAdminSession();
-            return _selectionRepository.GetAllClassesForStudent(studentNo);
+            string? department = AdminAuthService.GetDepartmentScope();
+            return _selectionRepository.GetAllClassesForStudent(studentNo, department);
         }
         public IList<AdminStudentScheduleDto> GetAllClassSchedules(){
-            AdminAuthService.RequireAdminSession();
-            return _selectionRepository.GetAllClassSchedules();
+            string? department = AdminAuthService.GetDepartmentScope();
+            return _selectionRepository.GetAllClassSchedules(department);
         }
         public IList<AdminSelectionClassDto> GetBatchClassesForStudent(string studentNo,int batchId){
-            AdminAuthService.RequireAdminSession();
-            return _selectionRepository.GetBatchClassesForStudent(studentNo,batchId);
+            string? department = AdminAuthService.GetDepartmentScope();
+            return _selectionRepository.GetBatchClassesForStudent(studentNo, batchId, department);
         }
 
         // 查询某学生已选课程
         public IList<AdminEnrollmentDto> GetStudentEnrollments(string studentNo, string? semester)
         {
-            AdminAuthService.RequireAdminSession();
-            return _selectionRepository.GetStudentEnrollments(studentNo, semester);
+            string? department = AdminAuthService.GetDepartmentScope();
+            return _selectionRepository.GetStudentEnrollments(studentNo, semester, department);
         }
 
         // 管理员代学生选课
         public AdminSelectionResultDto SelectForStudent(string studentNo, int classId, bool force, string ipAddress)
         {
             AdminAuthService.RequireAdminSession();
+            AdminAuthService.EnsureDepartmentAccess(_selectionRepository.GetClassDepartment(classId), "代选课程");
 
             AdminSelectionResultDto result = _selectionRepository.SelectForStudent(studentNo, classId, force);
 
@@ -72,6 +73,7 @@ namespace StudentCourse.Services
         public AdminSelectionResultDto DropForStudent(string studentNo, int classId, string ipAddress)
         {
             AdminAuthService.RequireAdminSession();
+            AdminAuthService.EnsureDepartmentAccess(_selectionRepository.GetClassDepartment(classId), "代退课程");
 
             AdminSelectionResultDto result = _selectionRepository.DropForStudent(studentNo, classId);
 

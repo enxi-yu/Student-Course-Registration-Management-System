@@ -14,7 +14,7 @@ namespace StudentCourse.Repositories
     {
         private const string DefaultSemester = "2025-2026-2";
 
-        public IList<AdminStudentScheduleDto> GetStudentSchedule(string studentNo)
+        public IList<AdminStudentScheduleDto> GetStudentSchedule(string studentNo, string? department = null)
         {
             const string sql = @"
                 SELECT tc.class_id,c.course_name,tc.class_name,s.semester,NVL(u.real_name,'未分配') teacher_name,
@@ -24,11 +24,13 @@ namespace StudentCourse.Repositories
                   LEFT JOIN teacher t ON t.teacher_no=tc.teacher_no LEFT JOIN ""user"" u ON u.user_id=t.user_id
                   JOIN course_time ct ON ct.class_id=tc.class_id
                  WHERE cs.student_no=:studentNo
+                   AND (:department IS NULL OR UPPER(TRIM(c.department)) = UPPER(TRIM(:department)))
                  ORDER BY s.semester DESC,ct.weekday,ct.start_period,c.course_name";
             var rows = new List<AdminStudentScheduleDto>();
             using OracleConnection conn = DbConnectionFactory.OpenConnection();
             using OracleCommand cmd = CreateCommand(conn, sql);
             cmd.Parameters.Add("studentNo", OracleDbType.Varchar2).Value = studentNo;
+            cmd.Parameters.Add("department", OracleDbType.Varchar2).Value = string.IsNullOrWhiteSpace(department) ? DBNull.Value : department.Trim();
             using OracleDataReader r = cmd.ExecuteReader();
             while (r.Read()) rows.Add(new AdminStudentScheduleDto {
                 ClassId=Convert.ToInt32(r["class_id"]), CourseName=r["course_name"]?.ToString()??"", ClassName=r["class_name"]?.ToString()??"",
@@ -38,7 +40,7 @@ namespace StudentCourse.Repositories
             return rows;
         }
 
-        public IList<AdminSelectionClassDto> GetAllClassesForStudent(string studentNo)
+        public IList<AdminSelectionClassDto> GetAllClassesForStudent(string studentNo, string? department = null)
         {
             const string sql = @"
                 SELECT tc.class_id,c.course_id,c.course_name,c.course_type,c.credit,s.semester,tc.teacher_no,NVL(u.real_name,'未分配') teacher_name,
@@ -47,12 +49,13 @@ namespace StudentCourse.Repositories
                   FROM teaching_class tc JOIN section s ON s.section_id=tc.section_id JOIN course c ON c.course_id=s.course_id
                   LEFT JOIN teacher t ON t.teacher_no=tc.teacher_no LEFT JOIN ""user"" u ON u.user_id=t.user_id
                   LEFT JOIN course_select cs ON cs.class_id=tc.class_id AND cs.student_no=:studentNo
+                 WHERE (:department IS NULL OR UPPER(TRIM(c.department)) = UPPER(TRIM(:department)))
                  ORDER BY s.semester DESC,c.course_name,tc.class_id";
-            var rows=new List<AdminSelectionClassDto>();using OracleConnection conn=DbConnectionFactory.OpenConnection();using OracleCommand cmd=CreateCommand(conn,sql);cmd.Parameters.Add("studentNo",OracleDbType.Varchar2).Value=studentNo;using OracleDataReader r=cmd.ExecuteReader();
+            var rows=new List<AdminSelectionClassDto>();using OracleConnection conn=DbConnectionFactory.OpenConnection();using OracleCommand cmd=CreateCommand(conn,sql);cmd.Parameters.Add("studentNo",OracleDbType.Varchar2).Value=studentNo;cmd.Parameters.Add("department",OracleDbType.Varchar2).Value=string.IsNullOrWhiteSpace(department)?(object)DBNull.Value:department.Trim();using OracleDataReader r=cmd.ExecuteReader();
             while(r.Read())rows.Add(new AdminSelectionClassDto{ClassId=Convert.ToInt32(r["class_id"]),CourseId=Convert.ToInt32(r["course_id"]),CourseName=r["course_name"]?.ToString()??"",CourseType=r["course_type"]?.ToString()??"",Credit=Convert.ToDecimal(r["credit"]),Semester=r["semester"]?.ToString()??"",TeacherNo=r["teacher_no"]?.ToString()??"",TeacherName=r["teacher_name"]?.ToString()??"",Capacity=Convert.ToInt32(r["capacity"]),SelectedCount=Convert.ToInt32(r["selected_count"]),ScheduleSummary=r["schedule_summary"]?.ToString()??"",IsSelected=Convert.ToInt32(r["is_selected"])==1});return rows;
         }
 
-        public IList<AdminStudentScheduleDto> GetAllClassSchedules()
+        public IList<AdminStudentScheduleDto> GetAllClassSchedules(string? department = null)
         {
             const string sql = @"
                 SELECT tc.class_id,c.course_name,tc.class_name,s.semester,NVL(u.real_name,'未分配') teacher_name,
@@ -61,10 +64,12 @@ namespace StudentCourse.Repositories
                   JOIN course c ON c.course_id=s.course_id
                   LEFT JOIN teacher t ON t.teacher_no=tc.teacher_no LEFT JOIN ""user"" u ON u.user_id=t.user_id
                   JOIN course_time ct ON ct.class_id=tc.class_id
+                 WHERE (:department IS NULL OR UPPER(TRIM(c.department)) = UPPER(TRIM(:department)))
                  ORDER BY s.semester DESC,ct.weekday,ct.start_period,c.course_name";
             var rows = new List<AdminStudentScheduleDto>();
             using OracleConnection conn = DbConnectionFactory.OpenConnection();
             using OracleCommand cmd = CreateCommand(conn, sql);
+            cmd.Parameters.Add("department", OracleDbType.Varchar2).Value = string.IsNullOrWhiteSpace(department) ? DBNull.Value : department.Trim();
             using OracleDataReader r = cmd.ExecuteReader();
             while (r.Read()) rows.Add(new AdminStudentScheduleDto {
                 ClassId=Convert.ToInt32(r["class_id"]), CourseName=r["course_name"]?.ToString()??"", ClassName=r["class_name"]?.ToString()??"",
@@ -94,7 +99,7 @@ namespace StudentCourse.Repositories
             while(r.Read()){int status=Convert.ToInt32(r["actual_status"]);rows.Add(new AdminSelectionBatchDto{BatchId=Convert.ToInt32(r["batch_id"]),BatchName=r["batch_name"]?.ToString()??"",StartTime=r["start_time"]?.ToString()??"",EndTime=r["end_time"]?.ToString()??"",Status=status,StatusText=status==0?"未开始":"进行中",CourseCount=Convert.ToInt32(r["course_count"])});} return rows;
         }
 
-        public IList<AdminSelectionClassDto> GetBatchClassesForStudent(string studentNo,int batchId)
+        public IList<AdminSelectionClassDto> GetBatchClassesForStudent(string studentNo,int batchId, string? department = null)
         {
             const string sql=@"
                 SELECT tc.class_id,c.course_id,c.course_name,c.course_type,c.credit,s.semester,tc.teacher_no,NVL(u.real_name,'未分配') teacher_name,
@@ -105,14 +110,15 @@ namespace StudentCourse.Repositories
                   LEFT JOIN teacher t ON t.teacher_no=tc.teacher_no LEFT JOIN ""user"" u ON u.user_id=t.user_id
                   JOIN student st ON st.student_no=:studentNo LEFT JOIN course_select cs ON cs.class_id=tc.class_id AND cs.student_no=:studentNo
                  WHERE bc.batch_id=:batchId AND bc.enabled=1 AND b.start_time<=SYSDATE AND b.end_time>=SYSDATE
+                   AND (:department IS NULL OR UPPER(TRIM(c.department)) = UPPER(TRIM(:department)))
                    AND (NOT EXISTS(SELECT 1 FROM batch_class_scope x WHERE x.batch_id=bc.batch_id AND x.class_id=bc.class_id AND x.major IS NOT NULL) OR EXISTS(SELECT 1 FROM batch_class_scope x WHERE x.batch_id=bc.batch_id AND x.class_id=bc.class_id AND x.major=st.major))
                    AND (NOT EXISTS(SELECT 1 FROM batch_class_scope x WHERE x.batch_id=bc.batch_id AND x.class_id=bc.class_id AND x.grade IS NOT NULL) OR EXISTS(SELECT 1 FROM batch_class_scope x WHERE x.batch_id=bc.batch_id AND x.class_id=bc.class_id AND x.grade=st.grade)) ORDER BY c.course_name,tc.class_id";
-            var rows=new List<AdminSelectionClassDto>();using OracleConnection conn=DbConnectionFactory.OpenConnection();using OracleCommand cmd=CreateCommand(conn,sql);cmd.Parameters.Add("studentNo",OracleDbType.Varchar2).Value=studentNo;cmd.Parameters.Add("batchId",OracleDbType.Int32).Value=batchId;using OracleDataReader r=cmd.ExecuteReader();
+            var rows=new List<AdminSelectionClassDto>();using OracleConnection conn=DbConnectionFactory.OpenConnection();using OracleCommand cmd=CreateCommand(conn,sql);cmd.Parameters.Add("studentNo",OracleDbType.Varchar2).Value=studentNo;cmd.Parameters.Add("batchId",OracleDbType.Int32).Value=batchId;cmd.Parameters.Add("department",OracleDbType.Varchar2).Value=string.IsNullOrWhiteSpace(department)?(object)DBNull.Value:department.Trim();using OracleDataReader r=cmd.ExecuteReader();
             while(r.Read())rows.Add(new AdminSelectionClassDto{ClassId=Convert.ToInt32(r["class_id"]),CourseId=Convert.ToInt32(r["course_id"]),CourseName=r["course_name"]?.ToString()??"",CourseType=r["course_type"]?.ToString()??"",Credit=Convert.ToDecimal(r["credit"]),Semester=r["semester"]?.ToString()??"",TeacherNo=r["teacher_no"]?.ToString()??"",TeacherName=r["teacher_name"]?.ToString()??"",Capacity=Convert.ToInt32(r["capacity"]),SelectedCount=Convert.ToInt32(r["selected_count"]),ScheduleSummary=r["schedule_summary"]?.ToString()??"",IsSelected=Convert.ToInt32(r["is_selected"])==1});return rows;
         }
 
         // 可选教学班列表
-        public IList<AdminSelectionClassDto> GetSelectableClasses(string? semester, string? keyword)
+        public IList<AdminSelectionClassDto> GetSelectableClasses(string? semester, string? keyword, string? department = null)
         {
             string sem = string.IsNullOrWhiteSpace(semester) ? DefaultSemester : semester.Trim();
             //基础查询，LISTAGG合并时间段
@@ -127,8 +133,9 @@ namespace StudentCourse.Repositories
                   JOIN section s ON s.section_id = tc.section_id
                   JOIN course c ON c.course_id = s.course_id
                   LEFT JOIN teacher t ON t.teacher_no = tc.teacher_no
-                  LEFT JOIN ""user"" u ON u.user_id = t.user_id
-                 WHERE s.semester = :semester";
+                 LEFT JOIN ""user"" u ON u.user_id = t.user_id
+                 WHERE s.semester = :semester
+                   AND (:department IS NULL OR UPPER(TRIM(c.department)) = UPPER(TRIM(:department)))";
             //拼接附加条件
             if (!string.IsNullOrWhiteSpace(keyword))
                 sql += " AND (c.course_name || ' ' || tc.teacher_no || ' ' || NVL(u.real_name, ' ')) LIKE :keyword";
@@ -139,6 +146,7 @@ namespace StudentCourse.Repositories
             using OracleConnection conn = DbConnectionFactory.OpenConnection();
             using OracleCommand cmd = CreateCommand(conn, sql);
             cmd.Parameters.Add("semester", OracleDbType.Varchar2).Value = sem;
+            cmd.Parameters.Add("department", OracleDbType.Varchar2).Value = string.IsNullOrWhiteSpace(department) ? DBNull.Value : department.Trim();
             if (!string.IsNullOrWhiteSpace(keyword))
                 cmd.Parameters.Add("keyword", OracleDbType.Varchar2).Value = "%" + keyword.Trim() + "%";
 
@@ -161,7 +169,7 @@ namespace StudentCourse.Repositories
         }
 
         // 某学生已选课程
-        public IList<AdminEnrollmentDto> GetStudentEnrollments(string studentNo, string? semester)
+        public IList<AdminEnrollmentDto> GetStudentEnrollments(string studentNo, string? semester, string? department = null)
         {
             string sem = string.IsNullOrWhiteSpace(semester) ? DefaultSemester : semester.Trim();
 
@@ -179,6 +187,7 @@ namespace StudentCourse.Repositories
                   LEFT JOIN ""user"" u ON u.user_id = t.user_id
                   LEFT JOIN selection_batch b ON b.batch_id = cs.batch_id
                  WHERE cs.student_no = :studentNo AND s.semester = :semester
+                   AND (:department IS NULL OR UPPER(TRIM(c.department)) = UPPER(TRIM(:department)))
                  ORDER BY schedule_summary";
 
             List<AdminEnrollmentDto> rows = new List<AdminEnrollmentDto>();
@@ -187,6 +196,7 @@ namespace StudentCourse.Repositories
             using OracleCommand cmd = CreateCommand(conn, sql);
             cmd.Parameters.Add("studentNo", OracleDbType.Varchar2).Value = studentNo;
             cmd.Parameters.Add("semester", OracleDbType.Varchar2).Value = sem;
+            cmd.Parameters.Add("department", OracleDbType.Varchar2).Value = string.IsNullOrWhiteSpace(department) ? DBNull.Value : department.Trim();
             using OracleDataReader reader = cmd.ExecuteReader();
             while (reader.Read())
             {
@@ -326,6 +336,20 @@ namespace StudentCourse.Repositories
                 result.Message = "代退课失败，请稍后重试。";
                 return result;
             }
+        }
+
+        public string? GetClassDepartment(int classId)
+        {
+            const string sql = @"SELECT c.department
+                                   FROM teaching_class tc
+                                   JOIN section s ON s.section_id = tc.section_id
+                                   JOIN course c ON c.course_id = s.course_id
+                                  WHERE tc.class_id = :classId";
+            using OracleConnection conn = DbConnectionFactory.OpenConnection();
+            using OracleCommand cmd = CreateCommand(conn, sql);
+            cmd.Parameters.Add("classId", OracleDbType.Int32).Value = classId;
+            object? value = cmd.ExecuteScalar();
+            return value == null || value == DBNull.Value ? null : Convert.ToString(value);
         }
 
         private List<string> CheckTimeConflict(OracleConnection conn, string studentNo, int classId, OracleTransaction tx)

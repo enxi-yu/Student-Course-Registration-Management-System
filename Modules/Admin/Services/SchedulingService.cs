@@ -17,8 +17,8 @@ namespace StudentCourse.Services
 
         public SchedulingLookupDto<CourseOptionDto> SearchCourses(string? keyword, int page, int pageSize)
         {
-            AdminAuthService.RequireAdminSession();
-            return _repository.SearchCourses(keyword, Math.Max(1, page), Math.Clamp(pageSize, 1, 50));
+            string? department = AdminAuthService.GetDepartmentScope();
+            return _repository.SearchCourses(keyword, Math.Max(1, page), Math.Clamp(pageSize, 1, 50), department);
         }
 
         public SchedulingLookupDto<TeacherOptionDto> SearchTeachers(string? keyword, int page, int pageSize)
@@ -27,19 +27,22 @@ namespace StudentCourse.Services
             return _repository.SearchTeachers(keyword, Math.Max(1, page), Math.Clamp(pageSize, 1, 50));
         }
         public IList<ScheduleRowDto> GetSchedules(string? semester,string? keyword) { 
-            AdminAuthService.RequireAdminSession();
-            return _repository.GetSchedules(semester,keyword); 
+            string? department = AdminAuthService.GetDepartmentScope();
+            return _repository.GetSchedules(semester, keyword, department);
         }
         
         public ScheduleDetailDto GetSchedule(int classId) { 
             AdminAuthService.RequireAdminSession();
-            return _repository.GetSchedule(classId); 
+            ScheduleDetailDto detail = _repository.GetSchedule(classId);
+            AdminAuthService.EnsureDepartmentAccess(detail.CourseDepartment, "排课记录");
+            return detail;
         }
 
         public ScheduleRowDto Create(SchedulingInput input, string ipAddress)
         {
             AdminAuthService.RequireAdminSession();
             Validate(input);
+            AdminAuthService.EnsureDepartmentAccess(_repository.GetCourseDepartment(input.CourseId), "课程排课");
             ScheduleRowDto result = _repository.Create(input);
             _logs.WriteCurrent("新增", "新增课程排课", Convert.ToString(result.ClassId), ipAddress, input);
             return result;
@@ -49,6 +52,9 @@ namespace StudentCourse.Services
         {
             AdminAuthService.RequireAdminSession();
             Validate(input);
+            ScheduleDetailDto current = _repository.GetSchedule(classId);
+            AdminAuthService.EnsureDepartmentAccess(current.CourseDepartment, "排课记录");
+            AdminAuthService.EnsureDepartmentAccess(_repository.GetCourseDepartment(input.CourseId), "课程排课");
             ScheduleRowDto result = _repository.Update(classId, input);
             _logs.WriteCurrent("修改", "修改课程排课", Convert.ToString(classId), ipAddress, input);
             return result;
@@ -57,6 +63,8 @@ namespace StudentCourse.Services
         public void Delete(int classId, string ipAddress)
         {
             AdminAuthService.RequireAdminSession();
+            ScheduleDetailDto current = _repository.GetSchedule(classId);
+            AdminAuthService.EnsureDepartmentAccess(current.CourseDepartment, "排课记录");
             _repository.Delete(classId);
             _logs.WriteCurrent("删除", "删除课程排课", Convert.ToString(classId), ipAddress, null);
         }

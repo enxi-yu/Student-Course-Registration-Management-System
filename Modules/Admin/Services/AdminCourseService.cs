@@ -16,8 +16,8 @@ namespace StudentCourse.Services
 
         public IList<CourseDto> GetCourses(string? keyword, string? coursetype)
         {
-            AdminAuthService.RequireAdminSession();
-            return _adminRepository.GetCourses(keyword,coursetype);
+            string? department = AdminAuthService.GetDepartmentScope();
+            return _adminRepository.GetCourses(keyword, coursetype, department);
         }
 
         public CourseDto GetCourse(int courseId)
@@ -28,12 +28,18 @@ namespace StudentCourse.Services
             {
                 throw new InvalidOperationException("课程不存在");
             }
+            AdminAuthService.EnsureDepartmentAccess(course.Department, "课程");
             return course;
         }
 
         public CourseDto CreateCourse(CourseDto input, string ipAddress)
         {
-            AdminAuthService.RequireAdminSession();
+            if (input == null) throw new InvalidOperationException("课程信息不能为空");
+            string? department = AdminAuthService.GetDepartmentScope();
+            if (department != null)
+            {
+                input.Department = department;
+            }
             ValidateCourseInput(input);
 
             CourseDto created = _adminRepository.InsertCourse(input);
@@ -43,14 +49,20 @@ namespace StudentCourse.Services
 
         public CourseDto UpdateCourse(int courseId, CourseDto input, string ipAddress)
         {
-            AdminAuthService.RequireAdminSession();
-            ValidateCourseInput(input);
+            if (input == null) throw new InvalidOperationException("课程信息不能为空");
+            string? department = AdminAuthService.GetDepartmentScope();
 
             CourseDto? current = _adminRepository.GetCourseById(courseId);
             if (current == null)
             {
                 throw new InvalidOperationException("课程不存在");
             }
+            AdminAuthService.EnsureDepartmentAccess(current.Department, "课程");
+            if (department != null)
+            {
+                input.Department = department;
+            }
+            ValidateCourseInput(input);
 
             CourseDto updated = _adminRepository.UpdateCourse(courseId, input);
             _systemLogService.WriteCurrent("修改", "更新课程信息", Convert.ToString(courseId), ipAddress, new { current, input });
@@ -66,6 +78,7 @@ namespace StudentCourse.Services
             {
                 throw new InvalidOperationException("课程不存在");
             }
+            AdminAuthService.EnsureDepartmentAccess(current.Department, "课程");
 
             try
             {
@@ -94,6 +107,11 @@ namespace StudentCourse.Services
             if (string.IsNullOrWhiteSpace(input.CourseType))
             {
                 throw new InvalidOperationException("课程类型不能为空");
+            }
+
+            if (string.IsNullOrWhiteSpace(input.Department))
+            {
+                throw new InvalidOperationException("开课学院不能为空");
             }
         }
     }

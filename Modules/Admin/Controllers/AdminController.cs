@@ -340,18 +340,21 @@ namespace StudentCourse.Controllers
         }
 
         [HttpPost("batches")]
+        [Authorize(Policy = "SuperAdmin")]
         public IActionResult CreateBatch([FromBody] SelectionBatchInput input)
         {
             return SafeOk(() => _selectionBatchService.Create(input, ClientIp()));
         }
 
         [HttpPut("batches/{batchId:int}")]
+        [Authorize(Policy = "SuperAdmin")]
         public IActionResult UpdateBatch(int batchId, [FromBody] SelectionBatchInput input)
         {
             return SafeOk(() => _selectionBatchService.Update(batchId, input, ClientIp()));
         }
 
         [HttpPut("batches/{batchId:int}/end")]
+        [Authorize(Policy = "SuperAdmin")]
         public IActionResult EndBatch(int batchId)
         {
             return SafeOk(() => _selectionBatchService.End(batchId, ClientIp()));
@@ -383,6 +386,7 @@ namespace StudentCourse.Controllers
         }
 
         [HttpPut("batches/{batchId:int}/offerings")]
+        [Authorize(Policy = "SuperAdmin")]
         public IActionResult SaveBatchOfferings(int batchId, [FromBody] SaveBatchOfferingsRequest request)
         {
             return SafeOk(() => { _selectionBatchService.SaveOfferings(batchId, request, ClientIp()); return new { saved = true }; });

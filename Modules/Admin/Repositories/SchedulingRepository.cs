@@ -7,7 +7,7 @@ namespace StudentCourse.Repositories
 {
     public sealed class SchedulingRepository
     {
-        public SchedulingLookupDto<CourseOptionDto> SearchCourses(string? keyword, int page, int pageSize)
+        public SchedulingLookupDto<CourseOptionDto> SearchCourses(string? keyword, int page, int pageSize, string? department = null)
         {
             SchedulingLookupDto<CourseOptionDto> result = new SchedulingLookupDto<CourseOptionDto> { Page = page, PageSize = pageSize };
             using OracleConnection connection = DbConnectionFactory.OpenConnection();
@@ -15,14 +15,16 @@ namespace StudentCourse.Repositories
                     SELECT c.course_id, c.course_name, c.department,
                            ROW_NUMBER() OVER (ORDER BY c.course_name, c.course_id) AS rn
                       FROM course c
-                     WHERE :keyword IS NULL
+                     WHERE (:department IS NULL OR UPPER(TRIM(c.department)) = UPPER(TRIM(:department)))
+                       AND (:keyword IS NULL
                         OR UPPER(c.course_name) LIKE '%' || UPPER(:keyword) || '%'
                         OR TO_CHAR(c.course_id) LIKE '%' || :keyword || '%'
-                        OR UPPER(NVL(c.department, '')) LIKE '%' || UPPER(:keyword) || '%'
+                        OR UPPER(NVL(c.department, '')) LIKE '%' || UPPER(:keyword) || '%')
                 ) WHERE rn > :offset AND rn <= :upperBound ORDER BY rn";
             using (OracleCommand command = CreateCommand(connection, sql))
             {
                 command.Parameters.Add("keyword", OracleDbType.Varchar2).Value = string.IsNullOrWhiteSpace(keyword) ? DBNull.Value : keyword.Trim();
+                command.Parameters.Add("department", OracleDbType.Varchar2).Value = string.IsNullOrWhiteSpace(department) ? DBNull.Value : department.Trim();
                 command.Parameters.Add("offset", OracleDbType.Int32).Value = (page - 1) * pageSize;
                 command.Parameters.Add("upperBound", OracleDbType.Int32).Value = page * pageSize + 1;
                 using OracleDataReader reader = command.ExecuteReader();
@@ -71,7 +73,7 @@ namespace StudentCourse.Repositories
             return result;
         }
 
-        public IList<ScheduleRowDto> GetSchedules(string? semester,string? keyword)
+        public IList<ScheduleRowDto> GetSchedules(string? semester,string? keyword, string? department = null)
         {
             const string sql = @"
                 SELECT tc.class_id, tc.class_name, c.course_id, c.course_name, s.semester,
@@ -87,7 +89,8 @@ namespace StudentCourse.Repositories
                   JOIN ""user"" u ON u.user_id = t.user_id
                   LEFT JOIN course_time ct ON ct.class_id = tc.class_id
                  WHERE (:semester IS NULL OR s.semester = :semester)
-                 AND(:keyword IS NULL OR UPPER(tc.class_name) LIKE :keyword OR UPPER(c.course_name) LIKE :keyword OR teacher_name LIKE :keyword)
+                 AND (:department IS NULL OR UPPER(TRIM(c.department)) = UPPER(TRIM(:department)))
+                 AND (:keyword IS NULL OR UPPER(tc.class_name) LIKE :keyword OR UPPER(c.course_name) LIKE :keyword OR UPPER(u.real_name) LIKE :keyword)
                  GROUP BY tc.class_id, tc.class_name, c.course_id, c.course_name, s.semester,
                           tc.teacher_no, u.real_name, tc.capacity, tc.selected_count, c.total_hours
                  ORDER BY s.semester DESC, c.course_name, tc.class_name";
@@ -96,7 +99,8 @@ namespace StudentCourse.Repositories
             using OracleConnection connection = DbConnectionFactory.OpenConnection();
             using OracleCommand command = CreateCommand(connection, sql);
             command.Parameters.Add("semester", OracleDbType.Varchar2).Value = string.IsNullOrWhiteSpace(semester) ? DBNull.Value : semester.Trim();
-            command.Parameters.Add("keyword", OracleDbType.Varchar2).Value = string.IsNullOrWhiteSpace(keyword) ? DBNull.Value : keyword.Trim();
+            command.Parameters.Add("department", OracleDbType.Varchar2).Value = string.IsNullOrWhiteSpace(department) ? DBNull.Value : department.Trim();
+            command.Parameters.Add("keyword", OracleDbType.Varchar2).Value = string.IsNullOrWhiteSpace(keyword) ? DBNull.Value : "%" + keyword.Trim().ToUpperInvariant() + "%";
             using OracleDataReader reader = command.ExecuteReader();
             while (reader.Read())
             {
@@ -111,6 +115,16 @@ namespace StudentCourse.Repositories
                 });
             }
             return rows;
+        }
+
+        public string? GetCourseDepartment(int courseId)
+        {
+            const string sql = "SELECT department FROM course WHERE course_id = :courseId";
+            using OracleConnection connection = DbConnectionFactory.OpenConnection();
+            using OracleCommand command = CreateCommand(connection, sql);
+            command.Parameters.Add("courseId", OracleDbType.Int32).Value = courseId;
+            object? value = command.ExecuteScalar();
+            return value == null || value == DBNull.Value ? null : Convert.ToString(value);
         }
 
         public ScheduleDetailDto GetSchedule(int classId)

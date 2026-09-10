@@ -52,8 +52,8 @@ INSERT INTO student VALUES (9103, 'S_DEMO_03', '软件工程', '2025', 4.00, 4);
 INSERT INTO teacher VALUES (9201, 'T_DEMO_01', '副教授', '软件学院');
 INSERT INTO teacher VALUES (9202, 'T_DEMO_02', '讲师', '计算机学院');
 INSERT INTO teacher VALUES (9203, 'T_DEMO_03', '教授', '人工智能学院');
-INSERT INTO administrator VALUES (9301, 'A_DEMO_01', 0, '{"scope":"all"}');
-INSERT INTO administrator VALUES (9302, 'A_DEMO_02', 1, '{"scope":"teaching"}');
+INSERT INTO administrator (user_id, admin_no, admin_level, department) VALUES (9301, 'A_DEMO_01', 0, NULL);
+INSERT INTO administrator (user_id, admin_no, admin_level, department) VALUES (9302, 'A_DEMO_02', 1, '软件学院');
 
 INSERT INTO course VALUES (8001, '数据库原理', '必修', 3, 32, '软件学院', '数据库模型、SQL 与事务管理');
 INSERT INTO course VALUES (8002, '操作系统', '必修', 4, 32, '计算机学院', '进程、内存、文件与设备管理');

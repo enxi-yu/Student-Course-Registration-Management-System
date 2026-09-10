@@ -5,6 +5,11 @@ let batchGrades = [];
 let batchFormController;
 let batchPage = 1;
 
+function applyBatchAccess() {
+    const formCard = document.querySelector('#batches-tab > .form-card');
+    if (formCard) formCard.style.display = Number(window.ADMIN_LEVEL) === 0 ? '' : 'none';
+}
+
 function ensureBatchForm() {
     if (!batchFormController) batchFormController = window.sharedUi.createForm({
         root: '#batches-tab', submitButton: '#saveBatchButton', busyText: '保存中...',
@@ -128,13 +133,15 @@ async function loadBatches(resetPage = true) {
     if (resetPage) batchPage = 1;
     window.sharedUi.setTableState(tbody, 6, '正在加载选课批次...');
     try {
-        await loadBatchLookups();
+        applyBatchAccess();
+        if (Number(window.ADMIN_LEVEL) === 0) await loadBatchLookups();
         adminBatches = await adminFetch('/api/admin/batches');
-        batchPage = window.sharedUi.renderPagedTable({body:tbody,rows:adminBatches,page:batchPage,pageSize:10,colspan:6,emptyText:'暂无选课批次',pagination:'batchPagination',onPageChange:page=>{batchPage=page;loadBatches(false);},row:item=>`<tr><td>${adminEscape(item.batchId)}</td><td>${adminEscape(item.batchName)}</td><td>${adminEscape(item.startTime)}</td><td>${adminEscape(item.endTime)}</td><td>${adminBatchBadge(item.status,item.statusText)}</td><td><button class="btn btn-sm btn-edit table-action" onclick="editBatch(${item.batchId})">编辑</button>${Number(item.status) === 1 ? ` <button class="btn btn-sm btn-delete table-action" onclick="endBatch(${item.batchId})">结束</button>` : ''}</td></tr>`});
+        batchPage = window.sharedUi.renderPagedTable({body:tbody,rows:adminBatches,page:batchPage,pageSize:10,colspan:6,emptyText:'暂无选课批次',pagination:'batchPagination',onPageChange:page=>{batchPage=page;loadBatches(false);},row:item=>`<tr><td>${adminEscape(item.batchId)}</td><td>${adminEscape(item.batchName)}</td><td>${adminEscape(item.startTime)}</td><td>${adminEscape(item.endTime)}</td><td>${adminBatchBadge(item.status,item.statusText)}</td><td>${Number(window.ADMIN_LEVEL) === 0 ? `<button class="btn btn-sm btn-edit table-action" onclick="editBatch(${item.batchId})">编辑</button>${Number(item.status) === 1 ? ` <button class="btn btn-sm btn-delete table-action" onclick="endBatch(${item.batchId})">结束</button>` : ''}` : '<span class="muted">仅查看</span>'}</td></tr>`});
     } catch (error) { window.sharedUi.setTableError(tbody,6,error.message,()=>loadBatches(false)); }
 }
 
 async function saveBatch() {
+    if (Number(window.ADMIN_LEVEL) !== 0) return alert('普通教务管理员只能查看选课批次');
     if (ensureBatchForm().isSubmitting()) return;
     const batchId = document.getElementById('batchId').value;
     try {
@@ -162,6 +169,7 @@ function dialogBatchList(dialog, name, config) {
 }
 
 async function editBatch(batchId) {
+    if (Number(window.ADMIN_LEVEL) !== 0) return alert('普通教务管理员只能查看选课批次');
     const item = adminBatches.find(x => Number(x.batchId) === Number(batchId)); if (!item) return;
     try {
         const offerings = await adminFetch(`/api/admin/batches/${batchId}/offerings`);
@@ -226,6 +234,7 @@ async function editBatch(batchId) {
 }
 
 async function endBatch(batchId) {
+    if (Number(window.ADMIN_LEVEL) !== 0) return alert('普通教务管理员只能查看选课批次');
     if (!await window.sharedUi.confirm('确定立即结束这个选课批次吗？结束后学生将不能继续选课。')) return;
     try {
         await adminFetch(`/api/admin/batches/${batchId}/end`, {method:'PUT'});

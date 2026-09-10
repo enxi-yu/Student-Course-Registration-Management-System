@@ -2,11 +2,15 @@ async function loadAdminCurrent() {
     try {
         const admin = await adminFetch('/api/admin/current');
         window.ADMIN_LEVEL = Number(admin.adminLevel);
+        window.ADMIN_DEPARTMENT = admin.department || '';
         applyAdminMenuVisibility();
+        if (typeof applyCourseDepartmentScope === 'function') applyCourseDepartmentScope();
+        if (typeof applyBatchAccess === 'function') applyBatchAccess();
         renderAdminCurrent(admin);
     } catch (error) {
         // 未登录
         window.ADMIN_LEVEL = undefined;
+        window.ADMIN_DEPARTMENT = '';
         applyAdminMenuVisibility();
         document.getElementById('adminCurrentRole').textContent = '未登录';
     }
@@ -46,6 +50,7 @@ function applyAdminMenuVisibility() {
 }
 
 function renderAdminCurrent(admin) {
+    const department = Number(admin.adminLevel) === 0 ? '全校' : (admin.department || '未配置学院');
     document.getElementById('adminCurrentRole').textContent =
-        `${admin.realName || admin.username || '-'} / ${admin.adminNo || '-'}`;
+        `${admin.realName || admin.username || '-'} / ${admin.adminNo || '-'} / ${department}`;
 }

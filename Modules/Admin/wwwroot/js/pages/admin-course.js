@@ -6,11 +6,20 @@ function ensureCourseForm() {
             { name: 'courseName', label: '课程名称', selector: '#courseName', required: true },
             { name: 'courseType', label: '课程类型', selector: '#courseType', required: true, oneOf: ['必修', '选修', '公选'] },
             { name: 'credit', label: '学分', selector: '#credit', required: true, type: 'number', min: 0.5, invalidMessage: '学分必须大于 0' },
-            { name: 'department', label: '开课学院', selector: '#department' },
+            { name: 'department', label: '开课学院', selector: '#department', required: true },
             { name: 'courseDesc', label: '课程描述', selector: '#courseDesc' }
         ]
     });
     return courseFormController;
+}
+
+function applyCourseDepartmentScope() {
+    const input = document.getElementById('department');
+    if (!input) return;
+    const scoped = Number(window.ADMIN_LEVEL) === 1;
+    input.readOnly = scoped;
+    if (scoped) input.value = window.ADMIN_DEPARTMENT || '';
+    input.title = scoped ? '普通教务管理员只能维护所属学院的课程' : '';
 }
 
 function getTypeBadge(type) {
@@ -68,20 +77,22 @@ function clearForm() {
     document.getElementById('courseName').value = '';
     document.getElementById('courseType').value = '';
     document.getElementById('credit').value = '';
-    document.getElementById('department').value = '';
+    document.getElementById('department').value = Number(window.ADMIN_LEVEL) === 1 ? (window.ADMIN_DEPARTMENT || '') : '';
     document.getElementById('courseDesc').value = '';
 }
 
 async function openEditModal(id) {
     try {
         const data = await adminFetch('/api/admin/courses/' + id);
-        window.sharedUi.formDialog({title:'编辑课程',description:'修改课程基础信息。',submitText:'保存修改',fields:[
+        const scoped = Number(window.ADMIN_LEVEL) === 1;
+        const dialog = window.sharedUi.formDialog({title:'编辑课程',description:scoped?'只能修改本学院课程，开课学院不可变更。':'修改课程基础信息。',submitText:'保存修改',fields:[
             {name:'courseName',label:'课程名称',required:true,value:data.courseName},
             {name:'courseType',label:'课程类型',kind:'select',required:true,value:data.courseType,options:['必修','选修','公选']},
             {name:'credit',label:'学分',type:'number',required:true,min:0.5,step:0.5,value:data.credit,validate:value=>Number(value)>0?'':'学分必须大于 0'},
-            {name:'department',label:'开课学院',value:data.department||''},
+            {name:'department',label:'开课学院',required:true,value:scoped?(window.ADMIN_DEPARTMENT||''):(data.department||'')},
             {name:'courseDesc',label:'课程描述',kind:'textarea',wide:true,value:data.courseDesc||''}
         ],onSubmit:values=>adminFetch('/api/admin/courses/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({...values,credit:Number(values.credit),totalHours:0})}),onSuccess:async()=>{alert('课程更新成功！');await loadCourses();}});
+        if (scoped && dialog.form.elements.department) dialog.form.elements.department.readOnly = true;
     } catch (error) { alert('加载课程信息失败：'+error.message); }
 }
 

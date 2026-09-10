@@ -16,8 +16,8 @@ namespace StudentCourse.Services
 
         public IList<AdminClassDto> GetClasses(string? keyword)
         {
-            AdminAuthService.RequireAdminSession();
-            return _adminRepository.GetClasses(keyword);
+            string? department = AdminAuthService.GetDepartmentScope();
+            return _adminRepository.GetClasses(keyword, department);
         }
 
         public AdminClassDto UpdateCapacity(int classId, CapacityUpdateRequest request, string ipAddress)
@@ -33,6 +33,7 @@ namespace StudentCourse.Services
             {
                 throw new InvalidOperationException("教学班不存在");
             }
+            AdminAuthService.EnsureDepartmentAccess(current.Department, "教学班");
 
             if (request.Capacity < current.SelectedCount)
             {

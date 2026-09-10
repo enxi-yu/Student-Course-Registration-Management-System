@@ -372,7 +372,7 @@
                 <input type="number" id="credit" step="0.5" min="0" placeholder="例如：3.0">
               </div>
               <div class="field">
-                <label>开课学院</label>
+                <label>开课学院 <span class="required">*</span></label>
                 <input type="text" id="department" placeholder="例如：计算机科学与技术学院">
               </div>
               <div class="field field-wide">
@@ -646,6 +646,10 @@
                 <input type="email" id="academicEmail">
               </div>
               <div class="field">
+                <label>所属学院 <span class="required">*</span></label>
+                <input type="text" id="academicDepartment" placeholder="例如：软件学院">
+              </div>
+              <div class="field">
                 <label>账号状态</label>
                 <select id="academicStatus">
                   <option value="1">激活</option>
@@ -666,6 +670,7 @@
                   <th>管理员编号</th>
                   <th>姓名</th>
                   <th>登录账号</th>
+                  <th>所属学院</th>
                   <th>账号状态</th>
                   <th>联系方式</th>
                   <th>操作</th>

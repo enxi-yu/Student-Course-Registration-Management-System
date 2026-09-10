@@ -8,21 +8,25 @@ namespace StudentCourse.Repositories
     public sealed class AdminRepository
     {
         //查询课程
-        public IList<CourseDto> GetCourses(string? keyword, string? coursetype)
+        public IList<CourseDto> GetCourses(string? keyword, string? coursetype, string? department = null)
         {
             var list = new List<CourseDto>();
             using (var conn = DbConnectionFactory.OpenConnection())
             {
                 string sql = "SELECT course_id, course_name, course_type, credit, total_hours, department, course_desc FROM course";
+                var conditions = new List<string>();
                 if(!string.IsNullOrEmpty(keyword)){
-                    sql+=@" WHERE (UPPER(course_name) LIKE :keyword
+                    conditions.Add(@"(UPPER(course_name) LIKE :keyword
                     OR TO_CHAR(course_id) LIKE :keyword
-                    OR department LIKE :keyword)";
+                    OR UPPER(NVL(department, '')) LIKE :keyword)");
                 }
                 if(!string.IsNullOrEmpty(coursetype)){
-                    sql+= !string.IsNullOrEmpty(keyword)?" AND ":" WHERE ";
-                    sql+="course_type=:coursetype";
+                    conditions.Add("course_type=:coursetype");
                 }
+                if (!string.IsNullOrWhiteSpace(department))
+                    conditions.Add("UPPER(TRIM(department)) = UPPER(TRIM(:department))");
+                if (conditions.Count > 0) sql += " WHERE " + string.Join(" AND ", conditions);
+                sql += " ORDER BY course_name, course_id";
                 using (var cmd = new OracleCommand(sql, conn)){
                     cmd.BindByName= true;
                     if(!string.IsNullOrEmpty(keyword)){
@@ -31,6 +35,8 @@ namespace StudentCourse.Repositories
                     if(!string.IsNullOrEmpty(coursetype)){
                         cmd.Parameters.Add("coursetype", OracleDbType.Varchar2).Value = coursetype;
                     }
+                    if (!string.IsNullOrWhiteSpace(department))
+                        cmd.Parameters.Add("department", OracleDbType.Varchar2).Value = department.Trim();
                     using (var reader = cmd.ExecuteReader())
                     {
                         while (reader.Read())
@@ -173,32 +179,39 @@ namespace StudentCourse.Repositories
         }
 
         //查询开课申请
-        public IList<CourseApplicationDto> GetApplications(string? keyword, string? status)
+        public IList<CourseApplicationDto> GetApplications(string? keyword, string? status, string? department = null)
         {
             List<CourseApplicationDto> list = new List<CourseApplicationDto>();
             try{
                 using (var conn = DbConnectionFactory.OpenConnection()){
-                    string sql = @"SELECT apply_id, teacher_no, course_name, credit, textbook,
-                                       course_summary, course_type,
-                                       TO_CHAR(apply_time, 'YYYY-MM-DD HH24:MI:SS') AS apply_time,
-                                       status,
-                                       TO_CHAR(approve_time, 'YYYY-MM-DD HH24:MI:SS') AS approve_time,
-                                       approve_comment
-                                FROM course_application";
+                    string sql = @"SELECT ca.apply_id, ca.teacher_no, ca.course_name, ca.credit, ca.textbook,
+                                       ca.course_summary, ca.course_type,
+                                       TO_CHAR(ca.apply_time, 'YYYY-MM-DD HH24:MI:SS') AS apply_time,
+                                       ca.status,
+                                       TO_CHAR(ca.approve_time, 'YYYY-MM-DD HH24:MI:SS') AS approve_time,
+                                       ca.approve_comment,
+                                       t.department
+                                FROM course_application ca
+                                LEFT JOIN teacher t ON t.teacher_no = ca.teacher_no";
                     if(!string.IsNullOrEmpty(keyword)){
-                        sql+=@" WHERE (apply_id LIKE :keyword
-                        OR course_name LIKE :keyword
-                        OR teacher_no LIKE :keyword
-                        OR textbook LIKE :keyword
-                        OR DBMS_LOB.INSTR(course_summary, :keywordText) > 0)";
+                        sql+=@" WHERE (ca.apply_id LIKE :keyword
+                        OR ca.course_name LIKE :keyword
+                        OR ca.teacher_no LIKE :keyword
+                        OR ca.textbook LIKE :keyword
+                        OR DBMS_LOB.INSTR(ca.course_summary, :keywordText) > 0)";
                     }
                     if(!string.IsNullOrEmpty(status)){
                         sql+= !string.IsNullOrEmpty(keyword)?" AND ":" WHERE ";
-                        sql+="status=:status";
+                        sql+="ca.status=:status";
                     }
-                    sql += @" ORDER BY CASE WHEN NVL(status, '待审核') = '待审核' THEN 0 ELSE 1 END,
-                                           apply_time DESC,
-                                           apply_id DESC";
+                    if (!string.IsNullOrWhiteSpace(department))
+                    {
+                        sql += (!string.IsNullOrEmpty(keyword) || !string.IsNullOrEmpty(status)) ? " AND " : " WHERE ";
+                        sql += "UPPER(TRIM(t.department)) = UPPER(TRIM(:department))";
+                    }
+                    sql += @" ORDER BY CASE WHEN NVL(ca.status, '待审核') = '待审核' THEN 0 ELSE 1 END,
+                                           ca.apply_time DESC,
+                                           ca.apply_id DESC";
                     using (var cmd = new OracleCommand(sql, conn)){
                         cmd.BindByName =true;
                         if(!string.IsNullOrEmpty(keyword)){
@@ -208,11 +221,14 @@ namespace StudentCourse.Repositories
                         if(!string.IsNullOrEmpty(status)){
                             cmd.Parameters.Add("status", OracleDbType.Varchar2).Value = status;
                         }
+                        if (!string.IsNullOrWhiteSpace(department))
+                            cmd.Parameters.Add("department", OracleDbType.Varchar2).Value = department.Trim();
                         using (var reader = cmd.ExecuteReader()){
                             while (reader.Read()) {
                                 list.Add(new CourseApplicationDto{
                                     ApplyId = reader["apply_id"].ToString() ?? "",
                                     TeacherNo = reader["teacher_no"].ToString() ?? "",
+                                    Department = reader["department"]?.ToString() ?? "",
                                     CourseName = reader["course_name"].ToString() ?? "",
                                     Credit = Convert.ToDecimal(reader["credit"]),
                                     Textbook = reader["textbook"]?.ToString() ?? "",
@@ -239,14 +255,16 @@ namespace StudentCourse.Repositories
         {
             using (var conn = DbConnectionFactory.OpenConnection())
             {
-                string sql = @"SELECT apply_id, teacher_no, course_name, credit, textbook,
-                                       course_summary, course_type,
-                                       TO_CHAR(apply_time, 'YYYY-MM-DD HH24:MI:SS') AS apply_time,
-                                       status,
-                                       TO_CHAR(approve_time, 'YYYY-MM-DD HH24:MI:SS') AS approve_time,
-                                       approve_comment
-                                FROM course_application
-                                WHERE apply_id = :applyID";
+                string sql = @"SELECT ca.apply_id, ca.teacher_no, ca.course_name, ca.credit, ca.textbook,
+                                       ca.course_summary, ca.course_type,
+                                       TO_CHAR(ca.apply_time, 'YYYY-MM-DD HH24:MI:SS') AS apply_time,
+                                       ca.status,
+                                       TO_CHAR(ca.approve_time, 'YYYY-MM-DD HH24:MI:SS') AS approve_time,
+                                       ca.approve_comment,
+                                       t.department
+                                FROM course_application ca
+                                LEFT JOIN teacher t ON t.teacher_no = ca.teacher_no
+                                WHERE ca.apply_id = :applyID";
                     using (var cmd = new OracleCommand(sql, conn))
                     {
                         cmd.Parameters.Add(new OracleParameter("applyID", applyId));
@@ -258,6 +276,7 @@ namespace StudentCourse.Repositories
                                 {
                                 ApplyId = reader["apply_id"].ToString() ?? "",
                                 TeacherNo = reader["teacher_no"].ToString() ?? "",
+                                Department = reader["department"]?.ToString() ?? "",
                                 CourseName = reader["course_name"].ToString() ?? "",
                                 Credit = Convert.ToDecimal(reader["credit"]),
                                 Textbook = reader["textbook"]?.ToString() ?? "",
@@ -315,15 +334,19 @@ namespace StudentCourse.Repositories
 
                 if (status == "通过")
                 {
+                    if (string.IsNullOrWhiteSpace(department))
+                        throw new InvalidOperationException("申请教师未配置所属学院，无法审批通过");
+
                     int courseId = GetNextIntId(connection, transaction, "course_id_seq");
                     const string insertCourseSql = @"INSERT INTO course
-                        (course_id, course_name, course_type, credit,  course_desc)
-                        VALUES (:courseId, :courseName, :courseType, :credit, :courseDesc)";
+                        (course_id, course_name, course_type, credit, department, course_desc)
+                        VALUES (:courseId, :courseName, :courseType, :credit, :department, :courseDesc)";
                     using OracleCommand insert = CreateCommand(connection, insertCourseSql, transaction);
                     insert.Parameters.Add("courseId", OracleDbType.Int32).Value = courseId;
                     insert.Parameters.Add("courseName", OracleDbType.Varchar2).Value = courseName;
                     insert.Parameters.Add("courseType", OracleDbType.Varchar2).Value = courseType;
                     insert.Parameters.Add("credit", OracleDbType.Decimal).Value = credit;
+                    insert.Parameters.Add("department", OracleDbType.Varchar2).Value = string.IsNullOrWhiteSpace(department) ? DBNull.Value : department;
                     insert.Parameters.Add("courseDesc", OracleDbType.Varchar2).Value = string.IsNullOrWhiteSpace(courseSummary) ? DBNull.Value : courseSummary;
                     insert.ExecuteNonQuery();
                 }
@@ -358,7 +381,7 @@ namespace StudentCourse.Repositories
                        u.status,
                        a.admin_no,
                        a.admin_level,
-                       a.managed_scope
+                       a.department
                   FROM ""user"" u
                   JOIN administrator a ON a.user_id = u.user_id
                  WHERE u.username = :username";
@@ -477,17 +500,17 @@ namespace StudentCourse.Repositories
                     SELECT :userId AS user_id,
                            'AADMIN001' AS admin_no,
                            0 AS admin_level,
-                           '{""scope"":""all""}' AS managed_scope
+                           CAST(NULL AS VARCHAR2(100)) AS department
                       FROM dual
                 ) src
                    ON (a.user_id = src.user_id)
                  WHEN MATCHED THEN
                    UPDATE SET a.admin_no = src.admin_no,
                               a.admin_level = src.admin_level,
-                              a.managed_scope = src.managed_scope
+                              a.department = src.department
                  WHEN NOT MATCHED THEN
-                   INSERT (user_id, admin_no, admin_level, managed_scope)
-                   VALUES (src.user_id, src.admin_no, src.admin_level, src.managed_scope)";
+                   INSERT (user_id, admin_no, admin_level, department)
+                   VALUES (src.user_id, src.admin_no, src.admin_level, src.department)";
 
             using (OracleCommand adminCommand = CreateCommand(connection, adminSql, transaction))
             {
@@ -507,7 +530,7 @@ namespace StudentCourse.Repositories
                        u.phone,u.email,
                        a.admin_no,
                        a.admin_level,
-                       a.managed_scope
+                       a.department
                   FROM ""user"" u
                   JOIN administrator a ON a.user_id = u.user_id
                  WHERE u.user_id = :userId";
@@ -527,11 +550,27 @@ namespace StudentCourse.Repositories
                        u.real_name,
                        a.admin_no,
                        a.admin_level,
-                       a.managed_scope,
-                       (SELECT COUNT(*) FROM course) AS course_count,
-                       (SELECT COUNT(*) FROM teaching_class) AS class_count,
-                       (SELECT COUNT(*) FROM ""user"" au WHERE au.status = 1) AS active_user_count,
-                       (SELECT COUNT(*) FROM course_application ca WHERE ca.status = '待审核') AS pending_application_count
+                       a.department,
+                       (SELECT COUNT(*)
+                          FROM course c
+                         WHERE a.admin_level = 0
+                            OR UPPER(TRIM(c.department)) = UPPER(TRIM(a.department))) AS course_count,
+                       (SELECT COUNT(*)
+                          FROM teaching_class tc
+                          JOIN section s ON s.section_id = tc.section_id
+                          JOIN course c ON c.course_id = s.course_id
+                         WHERE a.admin_level = 0
+                            OR UPPER(TRIM(c.department)) = UPPER(TRIM(a.department))) AS class_count,
+                       CASE WHEN a.admin_level = 0
+                            THEN (SELECT COUNT(*) FROM ""user"" au WHERE au.status = 1)
+                            ELSE 0
+                        END AS active_user_count,
+                       (SELECT COUNT(*)
+                          FROM course_application ca
+                          LEFT JOIN teacher t ON t.teacher_no = ca.teacher_no
+                         WHERE ca.status = '待审核'
+                           AND (a.admin_level = 0
+                            OR UPPER(TRIM(t.department)) = UPPER(TRIM(a.department)))) AS pending_application_count
                   FROM ""user"" u
                   JOIN administrator a ON a.user_id = u.user_id
                  WHERE u.user_id = :userId";
@@ -552,7 +591,7 @@ namespace StudentCourse.Repositories
                 RealName = Convert.ToString(reader["real_name"]) ?? string.Empty,
                 AdminNo = Convert.ToString(reader["admin_no"]) ?? string.Empty,
                 AdminLevel = ToInt32(reader["admin_level"]),
-                ManagedScope = ReadText(reader["managed_scope"]),
+                Department = Convert.ToString(reader["department"]) ?? string.Empty,
                 CourseCount = ToInt32(reader["course_count"]),
                 ClassCount = ToInt32(reader["class_count"]),
                 ActiveUserCount = ToInt32(reader["active_user_count"]),
@@ -837,7 +876,8 @@ namespace StudentCourse.Repositories
                        u.status,
                        TO_CHAR(u.last_login, 'YYYY-MM-DD HH24:MI:SS') AS last_login,
                        TO_CHAR(u.create_time, 'YYYY-MM-DD HH24:MI:SS') AS create_time,
-                       a.admin_no
+                       a.admin_no,
+                       a.department
                   FROM administrator a
                   JOIN ""user"" u ON u.user_id = a.user_id
                   WHERE a.admin_level=1";
@@ -881,7 +921,8 @@ namespace StudentCourse.Repositories
                        u.status,
                        TO_CHAR(u.last_login, 'YYYY-MM-DD HH24:MI:SS') AS last_login,
                        TO_CHAR(u.create_time, 'YYYY-MM-DD HH24:MI:SS') AS create_time,
-                       a.admin_no
+                       a.admin_no,
+                       a.department
                   FROM administrator a
                   JOIN ""user"" u ON u.user_id = a.user_id
                  WHERE u.user_id = :userId";
@@ -902,15 +943,16 @@ namespace StudentCourse.Repositories
 
             const string sql = @"
                 INSERT INTO administrator (
-                    user_id,admin_no,admin_level,managed_scope
+                    user_id,admin_no,admin_level,department
                 ) VALUES (
-                    :userId,:adminNo,1,'{""scope"":""teaching""}'
+                    :userId,:adminNo,1,:department
                 )";
 
             using (OracleCommand command = CreateCommand(connection, sql, transaction))
             {
                 command.Parameters.Add("userId", OracleDbType.Int32).Value = userId;
                 command.Parameters.Add("adminNo", OracleDbType.Varchar2).Value = input.AdminNo.Trim();
+                command.Parameters.Add("department", OracleDbType.Varchar2).Value = input.Department.Trim();
                 command.ExecuteNonQuery();
             }
             transaction.Commit();
@@ -925,12 +967,14 @@ namespace StudentCourse.Repositories
 
             const string sql = @"
                 UPDATE administrator
-                   SET admin_no = :adminNo
+                   SET admin_no = :adminNo,
+                       department = :department
                  WHERE user_id = :userId";
 
             using (OracleCommand command = CreateCommand(connection, sql, transaction))
             {
                 command.Parameters.Add("adminNo", OracleDbType.Varchar2).Value = input.AdminNo.Trim();
+                command.Parameters.Add("department", OracleDbType.Varchar2).Value = input.Department.Trim();
                 command.Parameters.Add("userId", OracleDbType.Int32).Value = userId;
                 if (command.ExecuteNonQuery() == 0)
                 {
@@ -1263,13 +1307,14 @@ namespace StudentCourse.Repositories
             return GetBatchById(batchId)!;
         }
 
-        public IList<AdminClassDto> GetClasses(string? keyword)
+        public IList<AdminClassDto> GetClasses(string? keyword, string? department = null)
         {
             string sql = @"
                 SELECT tc.class_id,
                        tc.class_name,
                        c.course_id,
                        c.course_name,
+                       c.department,
                        s.semester,
                        tc.teacher_no,
                        u.real_name AS teacher_name,
@@ -1281,14 +1326,17 @@ namespace StudentCourse.Repositories
                   LEFT JOIN teacher t ON t.teacher_no = tc.teacher_no
                   LEFT JOIN ""user"" u ON u.user_id = t.user_id";
 
+            var conditions = new List<string>();
             if (!string.IsNullOrWhiteSpace(keyword))
             {
-                sql += @"
-                 WHERE UPPER(tc.class_name) LIKE :keyword
+                conditions.Add(@"(UPPER(tc.class_name) LIKE :keyword
                     OR UPPER(c.course_name) LIKE :keyword
                     OR UPPER(tc.teacher_no) LIKE :keyword
-                    OR UPPER(s.semester) LIKE :keyword";
+                    OR UPPER(s.semester) LIKE :keyword)");
             }
+            if (!string.IsNullOrWhiteSpace(department))
+                conditions.Add("UPPER(TRIM(c.department)) = UPPER(TRIM(:department))");
+            if (conditions.Count > 0) sql += " WHERE " + string.Join(" AND ", conditions);
 
             sql += " ORDER BY s.semester DESC, c.course_name, tc.class_name";
 
@@ -1300,6 +1348,8 @@ namespace StudentCourse.Repositories
             {
                 command.Parameters.Add("keyword", OracleDbType.Varchar2).Value = "%" + keyword.Trim().ToUpperInvariant() + "%";
             }
+            if (!string.IsNullOrWhiteSpace(department))
+                command.Parameters.Add("department", OracleDbType.Varchar2).Value = department.Trim();
 
             using OracleDataReader reader = command.ExecuteReader();
             while (reader.Read())
@@ -1317,6 +1367,7 @@ namespace StudentCourse.Repositories
                        tc.class_name,
                        c.course_id,
                        c.course_name,
+                       c.department,
                        s.semester,
                        tc.teacher_no,
                        u.real_name AS teacher_name,
@@ -1628,7 +1679,7 @@ namespace StudentCourse.Repositories
                 Status = ToInt32(reader["status"]),
                 AdminNo = Convert.ToString(reader["admin_no"]) ?? string.Empty,
                 AdminLevel = ToInt32(reader["admin_level"]),
-                ManagedScope = ReadText(reader["managed_scope"])
+                Department = Convert.ToString(reader["department"]) ?? string.Empty
             };
         }
 
@@ -1643,7 +1694,7 @@ namespace StudentCourse.Repositories
                 Email=Convert.ToString(reader["email"]) ?? string.Empty,
                 AdminNo = Convert.ToString(reader["admin_no"]) ?? string.Empty,
                 AdminLevel = ToInt32(reader["admin_level"]),
-                ManagedScope = ReadText(reader["managed_scope"])
+                Department = Convert.ToString(reader["department"]) ?? string.Empty
             };
         }
 
@@ -1698,6 +1749,7 @@ namespace StudentCourse.Repositories
                 LastLogin = Convert.ToString(reader["last_login"]) ?? string.Empty,
                 CreateTime = Convert.ToString(reader["create_time"]) ?? string.Empty,
                 AdminNo = Convert.ToString(reader["admin_no"]) ?? string.Empty,
+                Department = Convert.ToString(reader["department"]) ?? string.Empty,
             };
         }
 
@@ -1723,6 +1775,7 @@ namespace StudentCourse.Repositories
                 ClassName = Convert.ToString(reader["class_name"]) ?? string.Empty,
                 CourseId = ToInt32(reader["course_id"]),
                 CourseName = Convert.ToString(reader["course_name"]) ?? string.Empty,
+                Department = Convert.ToString(reader["department"]) ?? string.Empty,
                 Semester = Convert.ToString(reader["semester"]) ?? string.Empty,
                 TeacherNo = Convert.ToString(reader["teacher_no"]) ?? string.Empty,
                 TeacherName = Convert.ToString(reader["teacher_name"]) ?? string.Empty,

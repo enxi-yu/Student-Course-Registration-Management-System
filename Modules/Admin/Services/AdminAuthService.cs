@@ -62,7 +62,7 @@ namespace StudentCourse.Services
                 RealName = credential.RealName,
                 AdminNo = credential.AdminNo,
                 AdminLevel = credential.AdminLevel,
-                ManagedScope = credential.ManagedScope
+                Department = credential.Department
             };
         }
 
@@ -113,6 +113,37 @@ namespace StudentCourse.Services
         }
 
         public const int SuperAdminLevel=0;
+
+        public static string? GetDepartmentScope()
+        {
+            UserSession session = RequireAdminSession();
+            if (session.AdminLevel == SuperAdminLevel)
+            {
+                return null;
+            }
+
+            string department = (session.Department ?? string.Empty).Trim();
+            if (department.Length == 0)
+            {
+                throw new InvalidOperationException("当前教务管理员未配置所属学院，请联系超级管理员");
+            }
+
+            return department;
+        }
+
+        public static void EnsureDepartmentAccess(string? resourceDepartment, string resourceName)
+        {
+            string? department = GetDepartmentScope();
+            if (department == null)
+            {
+                return;
+            }
+
+            if (!string.Equals(department, (resourceDepartment ?? string.Empty).Trim(), StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException($"无权操作其他学院的{resourceName}");
+            }
+        }
 
         public static UserSession RequireSuperAdmin()
         {

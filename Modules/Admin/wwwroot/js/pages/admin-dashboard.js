@@ -36,15 +36,20 @@
         const isSuperAdmin = Number(data.adminLevel) === 0;
         renderShell(isSuperAdmin);
         window.sharedUi.updateDashboard(dashboardElements, {
-            metrics: [
+            metrics: isSuperAdmin ? [
                 { label: '课程总数', value: data.courseCount, note: '系统已维护课程', tone: 'blue' },
                 { label: '教学班', value: data.classCount, note: '当前教学班总数', tone: 'cyan' },
                 { label: '启用用户', value: data.activeUserCount, note: '当前可登录用户', tone: 'green' },
                 { label: '待审申请', value: data.pendingApplicationCount, note: Number(data.pendingApplicationCount) > 0 ? '建议优先处理' : '暂无待处理', tone: 'amber' }
+            ] : [
+                { label: '本学院课程', value: data.courseCount, note: '当前管理范围', tone: 'blue' },
+                { label: '本学院教学班', value: data.classCount, note: '当前管理范围', tone: 'cyan' },
+                { label: '本学院待审申请', value: data.pendingApplicationCount, note: Number(data.pendingApplicationCount) > 0 ? '建议优先处理' : '暂无待处理', tone: 'amber' }
             ],
             profile: [
                 { label: '管理员姓名', value: data.realName }, { label: '管理员编号', value: data.adminNo },
-                { label: '登录账号', value: data.username }, { label: '管理级别', value: isSuperAdmin ? '超级管理员' : '教务管理员' }
+                { label: '登录账号', value: data.username }, { label: '管理级别', value: isSuperAdmin ? '超级管理员' : '教务管理员' },
+                { label: '管理学院', value: isSuperAdmin ? '全校' : (data.department || '未配置') }
             ]
         });
     }

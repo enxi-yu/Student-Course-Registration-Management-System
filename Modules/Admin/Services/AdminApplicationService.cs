@@ -16,8 +16,8 @@ namespace StudentCourse.Services
 
         public IList<CourseApplicationDto> GetApplications(string? keyword,string? status)
         {
-            AdminAuthService.RequireAdminSession();
-            return _adminRepository.GetApplications(keyword,status);
+            string? department = AdminAuthService.GetDepartmentScope();
+            return _adminRepository.GetApplications(keyword, status, department);
         }
 
         public CourseApplicationDto GetApplication(string applyId)
@@ -28,6 +28,7 @@ namespace StudentCourse.Services
             {
                 throw new InvalidOperationException("申请不存在");
             }
+            AdminAuthService.EnsureDepartmentAccess(application.Department, "开课申请");
             return application;
         }
 
@@ -49,6 +50,13 @@ namespace StudentCourse.Services
             {
                 throw new InvalidOperationException("审批状态只能为'通过'或'驳回'");
             }
+
+            CourseApplicationDto? current = _adminRepository.GetApplicationById(applyId);
+            if (current == null)
+            {
+                throw new InvalidOperationException("申请不存在");
+            }
+            AdminAuthService.EnsureDepartmentAccess(current.Department, "开课申请");
 
             CourseApplicationDto updated = _adminRepository.ApproveApplication(applyId, request.Status, request.Comment);
             _systemLogService.WriteCurrent("审批", $"开课申请{request.Status}", applyId, ipAddress, new { applyId, request });

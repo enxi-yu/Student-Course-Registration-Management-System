@@ -8,6 +8,7 @@ function ensureAcademicForm() {
             { name: 'adminNo', label: '管理员编号', selector: '#academicAdminNo', required: true },
             { name: 'password', label: '初始密码', selector: '#academicPassword', required: () => !document.getElementById('academicUserId').value, validate: value => value && (value.length < 6 || value.length > 20) ? '密码长度必须为6-20位' : '' },
             { name: 'realName', label: '姓名', selector: '#academicRealName', required: true },
+            { name: 'department', label: '所属学院', selector: '#academicDepartment', required: true },
             { name: 'phone', label: '联系电话', selector: '#academicPhone', validate: value => value && !/^1\d{10}$/.test(value) ? '请输入11位手机号码' : '' },
             { name: 'email', label: '电子邮箱', selector: '#academicEmail' }
         ]
@@ -21,7 +22,7 @@ async function loadAcademics() {
 
     const keyword = document.getElementById('academicKeyword').value;
     const query = keyword ? `?keyword=${encodeURIComponent(keyword)}` : '';
-    window.sharedUi.setTableState(tbody, 6, '正在加载教务管理员数据...');
+    window.sharedUi.setTableState(tbody, 7, '正在加载教务管理员数据...');
 
     try {
         adminAcademics = await adminFetch('/api/admin/academics' + query);
@@ -30,6 +31,7 @@ async function loadAcademics() {
                 <td>${adminEscape(item.adminNo)}</td>
                 <td>${adminEscape(item.realName)}</td>
                 <td>${adminEscape(item.username)}</td>
+                <td>${adminEscape(item.department || '未配置')}</td>
                 <td>${adminStatusBadge(item.status)}</td>
                 <td>${adminEscape(item.phone || '-')}${item.email ? '<br>' + adminEscape(item.email) : ''}</td>
                 <td>
@@ -42,9 +44,9 @@ async function loadAcademics() {
                     </div>
                 </td>
             </tr>
-        `, 6, '暂无教务管理员数据');
+        `, 7, '暂无教务管理员数据');
     } catch (error) {
-        window.sharedUi.setTableError(tbody, 6, `教务管理员数据加载失败：${error.message}`, loadAcademics);
+        window.sharedUi.setTableError(tbody, 7, `教务管理员数据加载失败：${error.message}`, loadAcademics);
     }
 }
 
@@ -73,6 +75,7 @@ function editAcademic(userId) {
     document.getElementById('academicUsername').value = item.username || '';
     document.getElementById('academicAdminNo').value = item.adminNo || '';
     document.getElementById('academicRealName').value = item.realName || '';
+    document.getElementById('academicDepartment').value = item.department || '';
     document.getElementById('academicPassword').value = '';
     document.getElementById('academicPhone').value = item.phone || '';
     document.getElementById('academicEmail').value = item.email || '';
@@ -86,6 +89,7 @@ function clearAcademicForm() {
     document.getElementById('academicUsername').value = '';
     document.getElementById('academicAdminNo').value = '';
     document.getElementById('academicRealName').value = '';
+    document.getElementById('academicDepartment').value = '';
     document.getElementById('academicPassword').value = '';
     document.getElementById('academicPhone').value = '';
     document.getElementById('academicEmail').value = '';
@@ -133,6 +137,7 @@ function readAcademicForm() {
         adminNo: document.getElementById('academicAdminNo').value,
         password: document.getElementById('academicPassword').value,
         realName: document.getElementById('academicRealName').value,
+        department: document.getElementById('academicDepartment').value,
         phone: document.getElementById('academicPhone').value,
         email: document.getElementById('academicEmail').value,
         status: Number(document.getElementById('academicStatus').value)

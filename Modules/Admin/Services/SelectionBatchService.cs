@@ -25,7 +25,7 @@ namespace StudentCourse.Services
 
         public void SaveOfferings(int batchId, SaveBatchOfferingsRequest request, string ipAddress)
         {
-            AdminAuthService.RequireAdminSession();
+            AdminAuthService.RequireSuperAdmin();
             if (_adminRepository.GetBatchById(batchId) == null) throw new InvalidOperationException("选课批次不存在");
             IList<BatchOfferingInput> offerings=request?.Offerings ?? new List<BatchOfferingInput>();
             if (offerings.Count == 0)
@@ -70,7 +70,7 @@ namespace StudentCourse.Services
 
         public SelectionBatchDto Create(SelectionBatchInput input, string ipAddress)
         {
-            AdminAuthService.RequireAdminSession();
+            AdminAuthService.RequireSuperAdmin();
             Validate(input);
             int status = NormalizeStatus(input);
             SelectionBatchDto batch = _adminRepository.InsertBatch(input, status);
@@ -80,7 +80,7 @@ namespace StudentCourse.Services
 
         public SelectionBatchDto Update(int batchId, SelectionBatchInput input, string ipAddress)
         {
-            AdminAuthService.RequireAdminSession();
+            AdminAuthService.RequireSuperAdmin();
             Validate(input);
             int status = NormalizeStatus(input);
             SelectionBatchDto batch = _adminRepository.UpdateBatch(batchId, input, status);
@@ -90,7 +90,7 @@ namespace StudentCourse.Services
 
         public SelectionBatchDto End(int batchId, string ipAddress)
         {
-            AdminAuthService.RequireAdminSession();
+            AdminAuthService.RequireSuperAdmin();
             SelectionBatchDto batch = _adminRepository.EndBatch(batchId);
             _systemLogService.WriteCurrent("修改", "手动结束选课批次", batchId.ToString(), ipAddress, new { BatchId = batchId });
             return batch;

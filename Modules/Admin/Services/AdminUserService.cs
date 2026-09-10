@@ -129,6 +129,7 @@ namespace StudentCourse.Services
             ValidateCommon(input, requirePassword: true);
             RequirePrefix(input.Username, 'A', "教务管理员账号必须以 A 开头");
             Require(input.AdminNo, "管理员工号不能为空");
+            Require(input.Department, "所属学院不能为空");
 
             EnsureUsernameUnique(input.Username);
             if (_adminRepository.AdminNoExists(input.AdminNo.Trim()))
@@ -147,6 +148,7 @@ namespace StudentCourse.Services
             ValidateCommon(input, requirePassword: false);
             RequirePrefix(input.Username, 'A', "教务管理员账号必须以 A 开头");
             Require(input.AdminNo, "管理员工号不能为空");
+            Require(input.Department, "所属学院不能为空");
             EnsureUsernameUnique(input.Username,userId);
             if (_adminRepository.AdminNoExists(input.AdminNo.Trim(),userId))
             {

@@ -8,6 +8,8 @@ namespace StudentCourse.Models
 
         public string TeacherNo { get; set; } = string.Empty;
 
+        public string Department { get; set; } = string.Empty;
+
         public string CourseName { get; set; } = string.Empty;
 
         public decimal Credit { get; set; }
