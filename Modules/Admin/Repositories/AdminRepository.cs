@@ -15,7 +15,7 @@ namespace StudentCourse.Repositories
             {
                 string sql = "SELECT course_id, course_name, course_type, credit, total_hours, department, course_desc FROM course";
                 if(!string.IsNullOrEmpty(keyword)){
-                    sql+=@" WHERE (course_name LIKE :keyword
+                    sql+=@" WHERE (UPPER(course_name) LIKE :keyword
                     OR TO_CHAR(course_id) LIKE :keyword
                     OR department LIKE :keyword)";
                 }
@@ -26,7 +26,7 @@ namespace StudentCourse.Repositories
                 using (var cmd = new OracleCommand(sql, conn)){
                     cmd.BindByName= true;
                     if(!string.IsNullOrEmpty(keyword)){
-                        cmd.Parameters.Add("keyword", OracleDbType.Varchar2).Value = "%" + keyword.Trim() + "%";
+                        cmd.Parameters.Add("keyword", OracleDbType.Varchar2).Value = "%" + keyword.Trim().ToUpperInvariant() + "%";
                     }
                     if(!string.IsNullOrEmpty(coursetype)){
                         cmd.Parameters.Add("coursetype", OracleDbType.Varchar2).Value = coursetype;
@@ -1163,7 +1163,7 @@ namespace StudentCourse.Repositories
                        batch_name,
                        TO_CHAR(start_time, 'YYYY-MM-DD HH24:MI') AS start_time,
                        TO_CHAR(end_time, 'YYYY-MM-DD HH24:MI') AS end_time,
-                       CASE WHEN SYSDATE < start_time THEN 0 WHEN SYSDATE > end_time THEN 2 ELSE 1 END AS status
+                       CASE WHEN status=2 THEN 2 WHEN SYSDATE < start_time THEN 0 WHEN SYSDATE >= end_time THEN 2 ELSE 1 END AS status
                   FROM selection_batch
                  ORDER BY start_time DESC, batch_id DESC";
 
@@ -1187,7 +1187,7 @@ namespace StudentCourse.Repositories
                        batch_name,
                        TO_CHAR(start_time, 'YYYY-MM-DD HH24:MI') AS start_time,
                        TO_CHAR(end_time, 'YYYY-MM-DD HH24:MI') AS end_time,
-                       CASE WHEN SYSDATE < start_time THEN 0 WHEN SYSDATE > end_time THEN 2 ELSE 1 END AS status
+                       CASE WHEN status=2 THEN 2 WHEN SYSDATE < start_time THEN 0 WHEN SYSDATE >= end_time THEN 2 ELSE 1 END AS status
                   FROM selection_batch
                  WHERE batch_id = :batchId";
 
@@ -1255,7 +1255,7 @@ namespace StudentCourse.Repositories
             const string sql = @"UPDATE selection_batch
                                     SET end_time = SYSDATE,
                                         status = 2
-                                  WHERE batch_id = :batchId AND start_time <= SYSDATE AND end_time > SYSDATE";
+                                  WHERE batch_id = :batchId AND start_time <= SYSDATE AND end_time >= SYSDATE";
             using OracleConnection connection = DbConnectionFactory.OpenConnection();
             using OracleCommand command = CreateCommand(connection, sql);
             command.Parameters.Add("batchId", OracleDbType.Int32).Value = batchId;

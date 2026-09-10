@@ -27,9 +27,18 @@ namespace StudentCourse.Services
         {
             AdminAuthService.RequireAdminSession();
             if (_adminRepository.GetBatchById(batchId) == null) throw new InvalidOperationException("选课批次不存在");
+            IList<BatchOfferingInput> offerings=request?.Offerings ?? new List<BatchOfferingInput>();
+            if (offerings.Count == 0)
+                throw new InvalidOperationException("至少需要开放一个教学班");
+            foreach (BatchOfferingInput item in offerings)
+            {
+                if (!HasAnySelected(item?.Majors))
+                    throw new InvalidOperationException("请至少选择一个面向专业");
+                if (!HasAnySelected(item?.Grades))
+                    throw new InvalidOperationException("请至少选择一个面向年级");
+            }
 
-            List<int> classIds = (request?.Offerings ?? new List<BatchOfferingInput>())
-                                .Select(x => x.ClassId).Distinct().ToList();
+            List<int> classIds = offerings.Select(x => x.ClassId).Distinct().ToList();
             string? semester=null;
             foreach(int classId in classIds){
                 AdminClassDto? teachingclass=  _adminRepository.GetClassById(classId);
@@ -40,9 +49,17 @@ namespace StudentCourse.Services
                 else if(semester!=teachingclass.Semester)
                     throw new InvalidOperationException("同一选课批次中只能开放同一学期的教学班");
             }
-            _batchOfferingRepository.Save(batchId, request?.Offerings ?? new List<BatchOfferingInput>());
+            _batchOfferingRepository.Save(batchId, offerings);
             _systemLogService.WriteCurrent("修改", "配置批次释放课程", batchId.ToString(), ipAddress,
-                new { BatchId = batchId, Count = request?.Offerings?.Count ?? 0 });
+                new { BatchId = batchId, Count = offerings.Count });
+        }
+
+        private static bool HasAnySelected(IList<string>? values)
+        {
+            if (values == null) return false;
+            foreach (string value in values)
+                if (!string.IsNullOrWhiteSpace(value)) return true;
+            return false;
         }
 
         public IList<SelectionBatchDto> GetBatches()
