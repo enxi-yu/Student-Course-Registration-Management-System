@@ -12,7 +12,41 @@ function weekBounds(text){const nums=String(text||'').match(/\d+/g)?.map(Number)
 function overlaps(a,b){if(Number(a.weekday)!==Number(b.weekday)||Number(a.startPeriod)>Number(b.endPeriod)||Number(a.endPeriod)<Number(b.startPeriod))return false;const aw=weekBounds(a.weekRange),bw=weekBounds(b.weekRange);return aw[0]<=bw[1]&&bw[0]<=aw[1];}
 function conflicts(){const data=selectedSchedule(),pairs=[],ids={};for(let i=0;i<data.length;i++)for(let j=i+1;j<data.length;j++)if(Number(data[i].classId)!==Number(data[j].classId)&&overlaps(data[i],data[j])){const key=[data[i].classId,data[j].classId].sort().join('-');if(!ids[key]){ids[key]=true;pairs.push([data[i],data[j]]);}}return pairs;}
 function scheduleGrid(conflictIds){return window.sharedUi.timetable(selectedSchedule(),{conflictIds,cardClass:'admin-schedule-card'});}
-function renderSelectionCenter(){const pairs=conflicts(),conflictIds={};pairs.forEach(p=>{conflictIds[p[0].classId]=true;conflictIds[p[1].classId]=true;});const words=selectionFilter.toLowerCase(),courses=selectionCourses.filter(c=>c.semester===selectionSemester&&(`${c.courseName} ${c.teacherName} ${c.classId}`).toLowerCase().includes(words));document.getElementById('adminSelectionCenter').innerHTML=`<div class="form-card"><div class="admin-selection-toolbar"><div class="field"><label>学年学期</label><div id="adminSelectionSemester"></div></div><span class="term-badge">当前课表：${adminEscape(semesterLabel(selectionSemester))}</span></div>${scheduleGrid(conflictIds)}${pairs.length?`<div class="message error">存在时间冲突：${pairs.map(p=>`${adminEscape(p[0].courseName)} 与 ${adminEscape(p[1].courseName)}（${adminEscape(selectionDays[Number(p[0].weekday)-1])} ${p[0].startPeriod}-${p[0].endPeriod}节，教室 ${adminEscape(p[0].classroom||'未安排')} / ${adminEscape(p[1].classroom||'未安排')}）`).join('；')}</div>`:''}</div><div class="admin-selection-actions"><strong>代选课程</strong><div class="admin-selection-action-controls"><input class="admin-course-filter" id="adminCourseFilter" placeholder="搜索课程、教师或教学班" value="${adminEscape(selectionFilter)}"><button class="btn btn-primary" id="saveAdminSelection" ${pairs.length?'disabled':''}>保存选课</button></div></div><div class="admin-course-list">${courses.length?courses.map(c=>courseCard(c,conflictIds)).join(''):'<div class="form-card"><div class="empty-state">该学期没有匹配的课程。</div></div>'}</div>`;window.academicSemester.mountPicker('adminSelectionSemester',{minimumStartYear:2024,selected:selectionSemester,onChange:value=>{selectionSemester=value;selectionFilter='';renderSelectionCenter();}});document.getElementById('adminCourseFilter').oninput=e=>{selectionFilter=e.target.value;renderSelectionCenter();setTimeout(()=>{const i=document.getElementById('adminCourseFilter');i.focus();i.setSelectionRange(i.value.length,i.value.length);},0);};document.getElementById('saveAdminSelection').onclick=saveAdminSelection;document.querySelectorAll('.admin-course-check').forEach(x=>x.onchange=()=>{const id=Number(x.dataset.class);x.checked?selectionPending[id]=true:delete selectionPending[id];renderSelectionCenter();});}
 function courseCard(c,conflictIds){const selected=!!selectionPending[c.classId],full=Number(c.remaining)<=0&&!selected;return `<label class="admin-course-card${conflictIds[c.classId]?' conflict':''}"><input class="admin-course-check" type="checkbox" data-class="${c.classId}" ${selected?'checked':''}><div class="admin-course-info"><h3>${adminEscape(c.courseName)} <span class="muted-text">${adminEscape(c.className||c.classId)}</span></h3><div class="admin-course-meta"><span>教师：${adminEscape(c.teacherName)}</span><span>学分：${adminEscape(c.credit)}</span><span>类型：${adminEscape(c.courseType)}</span><span>时间：${adminEscape(c.scheduleSummary||'暂无')}</span></div></div><span class="status-badge ${full?'rejected':'ongoing'}">${c.selectedCount}/${c.capacity}${full?' 已满，可确认扩容':` 剩余 ${c.remaining}`}</span></label>`;}
 async function saveAdminSelection(){const button=document.getElementById('saveAdminSelection');if(!button||button.disabled)return;if(conflicts().length){alert('存在时间冲突，请调整课程后再保存。');return;}const add=Object.keys(selectionPending).filter(id=>!selectionOriginal[id]).map(Number),drop=Object.keys(selectionOriginal).filter(id=>!selectionPending[id]).map(Number);if(!add.length&&!drop.length){alert('未做任何修改，无需保存。');return;}window.sharedUi.setBusy(button,true,'保存中...');const errors=[];try{for(const id of drop){try{const r=await adminFetch(`/api/admin/selection/students/${encodeURIComponent(selectionCurrent.studentNo)}/classes/${id}`,{method:'DELETE'});if(!(r.success??r.Success))errors.push(r.message||r.Message);}catch(e){errors.push(e.message);}}for(const id of add)await selectAnyClass(id,false,errors);alert(errors.length?'部分操作失败：'+errors.join('；'):'选课保存成功');await enterSelectionMode(selectionCurrent.studentNo,selectionCurrent.studentName);}finally{if(button.isConnected)window.sharedUi.setBusy(button,false);}}
 async function selectAnyClass(classId,force,errors){try{const url=`/api/admin/selection/students/${encodeURIComponent(selectionCurrent.studentNo)}/classes/${classId}${force?'?force=true':''}`,r=await adminFetch(url,{method:'POST'}),message=r.message||r.Message,items=r.conflictCourses||r.ConflictCourses||[];if(r.success??r.Success)return;if((r.requireCapacityConfirm??r.RequireCapacityConfirm)&&!force){if(await adminDialog.confirm(`${message}\n\n确认后将容量增加 1 并继续代选。`)){await selectAnyClass(classId,true,errors);return;}}errors.push(message+(items.length?'（冲突：'+items.join('、')+'）':''));}catch(e){errors.push(e.message);}}
+function renderSelectionCenter(){
+  const pairs=conflicts(),conflictIds={};
+  pairs.forEach(p=>{conflictIds[p[0].classId]=true;conflictIds[p[1].classId]=true;});
+  document.getElementById('adminSelectionCenter').innerHTML=`
+    <div class="form-card">
+      <div class="admin-selection-toolbar">
+        <div class="field"><label>学年学期</label><div id="adminSelectionSemester"></div></div>
+        <span class="term-badge">当前课表：${adminEscape(semesterLabel(selectionSemester))}</span>
+      </div>
+      ${scheduleGrid(conflictIds)}
+      ${pairs.length?`<div class="message error">存在时间冲突：${pairs.map(p=>`${adminEscape(p[0].courseName)} 与 ${adminEscape(p[1].courseName)}（${adminEscape(selectionDays[Number(p[0].weekday)-1])} ${p[0].startPeriod}-${p[0].endPeriod}节，教室 ${adminEscape(p[0].classroom||'未安排')} / ${adminEscape(p[1].classroom||'未安排')}）`).join('；')}</div>`:''}
+    </div>
+    <div class="admin-selection-actions">
+      <strong>代选课程</strong>
+      <div class="admin-selection-action-controls">
+        <input class="admin-course-filter" id="adminCourseFilter" placeholder="搜索课程、教师或教学班" value="${adminEscape(selectionFilter)}">
+        <button class="btn btn-primary" id="saveAdminSelection" ${pairs.length?'disabled':''}>保存选课</button>
+      </div>
+    </div>
+    <div class="admin-course-list" id="adminCourseList"></div>`;
+  window.academicSemester.mountPicker('adminSelectionSemester',{minimumStartYear:2024,selected:selectionSemester,onChange:value=>{selectionSemester=value;selectionFilter='';renderSelectionCenter();}});
+  document.getElementById('adminCourseFilter').oninput=e=>{selectionFilter=e.target.value;renderCourseList();};
+  document.getElementById('saveAdminSelection').onclick=saveAdminSelection;
+  renderCourseList();
+}
+function renderCourseList(){
+  const pairs=conflicts(),conflictIds={};
+  pairs.forEach(p=>{conflictIds[p[0].classId]=true;conflictIds[p[1].classId]=true;});
+  const words=selectionFilter.toLowerCase();
+  const courses=selectionCourses.filter(c=>c.semester===selectionSemester&&(`${c.courseName} ${c.teacherName} ${c.classId}`).toLowerCase().includes(words));
+  const list=document.getElementById('adminCourseList');
+  if(!list)return;
+  list.innerHTML=courses.length?courses.map(c=>courseCard(c,conflictIds)).join(''):'<div class="form-card"><div class="empty-state">该学期没有匹配的课程。</div></div>';
+  list.querySelectorAll('.admin-course-check').forEach(x=>x.onchange=()=>{const id=Number(x.dataset.class);x.checked?selectionPending[id]=true:delete selectionPending[id];renderSelectionCenter();});
+}
