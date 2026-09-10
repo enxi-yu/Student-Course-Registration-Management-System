@@ -38,7 +38,7 @@
 
     var scheduleHtml = window.sharedUi.dataTable({
       columns: ["星期", "节次", "教室", "周次"], rows: detail.schedule || [], emptyText: "暂无上课时间安排",
-      row: function (s) { return `<tr><td>${weekdayLabel(s.weekday)}</td><td>${s.startPeriod}-${s.endPeriod}节</td><td>${escapeHtml(s.classroom)}</td><td>第${escapeHtml(s.weekRange)}周</td></tr>`; }
+      row: function (s) { return `<tr><td>${weekdayLabel(s.weekday)}</td><td>${s.startPeriod}-${s.endPeriod}节</td><td>${escapeHtml(s.classroom)}</td><td>第${escapeHtml(s.weekRange)}</td></tr>`; }
     });
 
     var badgeClass = detail.remaining > 0 ? "available" : "full";
